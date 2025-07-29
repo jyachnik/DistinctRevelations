@@ -13,23 +13,24 @@ jobs:
       # 1. Check out your code
       - uses: actions/checkout@v3
 
-      # 2. Set up Node.js
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+      # 2. (Optional) Install Node & deps if you have a package.json
+      - name: Install dependencies (if any)
+        if: files.exists('package.json')
+        run: npm install
 
-      # 3. Install dependencies
-      - name: Install dependencies
-        run: npm ci
-
-      # 4. Build your site
-      - name: Build
+      # 3. (Optional) Build your site if you have a build script
+      - name: Build (if any)
+        if: |
+          files.exists('package.json') && 
+          contains(fromJSON(fs.readFileSync('package.json','utf8')).scripts, 'build')
         run: npm run build
 
-      # 5. Install Firebase CLI & Deploy
+      # 4. Deploy to Firebase Hosting
       - name: Deploy to Firebase
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
+          # install CLI (always)
           npm install -g firebase-tools
+          # deploy using your firebase.json or defaults
           firebase deploy --only hosting --token "$FIREBASE_TOKEN"
