@@ -1,72 +1,273 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="Distinct Revelations - Expert Management Consulting"/>
-  <meta name="keywords" content="Management Consulting, Business Strategy, Operational Improvement, Distinct Revelations"/>
-  <meta name="author" content="Distinct Revelations"/>
-  <title>Distinct Revelations</title>
-  <link rel="stylesheet" href="styles.css"/>
+<meta charset="utf-8"/>
+<title>index</title>
+<link href="style/global-backup.css" rel="stylesheet"/>
+
+
 </head>
 <body>
-  <header class="header">
-    <img src="images/dr1.svg" alt="Distinct Revelations Logo" class="large-logo"/>
-    <div class="corner-login">
-      <input type="text" placeholder="User ID"/>
-      <input type="password" placeholder="Password"/>
-      <button>Login</button>
+<header class="site-header">
+<div class="logo-container">
+<img alt="Distinct Revelations Logo" class="site-logo" src="images/distinct_revelations.png"/>
+</div>
+</header>
+<main>
+
+
+
+
+<section class="hero">
+<h1>Welcome to Distinct Revelations</h1>
+<p>Empowering businesses with clarity, strategy, and transformation.</p>
+</section>
+<section class="services-preview">
+<h2>Our Core Services</h2>
+<div class="service-cards">
+<div class="card">
+<img alt="Strategy Consulting" src="images/wallpaper_consulting.jpeg"/>
+<h3>Business Strategy</h3>
+<p>Optimize long-term growth with expert guidance.</p>
+</div>
+<div class="card">
+<img alt="Operations Consulting" src="images/wallpaper_consulting2.jpeg"/>
+<h3>Operations Efficiency</h3>
+<p>Streamline operations and reduce overhead.</p>
+</div>
+<div class="card">
+<img alt="Tech Consulting" src="images/wallpaper_consulting3.jpeg"/>
+<h3>Technology Advisory</h3>
+<p>Implement solutions to stay ahead of the curve.</p>
+</div>
+</div>
+</section>
+</main>
+<section class="about-section">
+<h2>About Us</h2>
+<p>Distinct Revelations is a forward-thinking management consultancy...</p>
+<div class="brand-slider">
+<div class="slider-track">
+<!-- Duplicate logos for seamless scrolling -->
+<img alt="Brand 1" src="images/absolut.png"/>
+<img alt="Brand 2" src="images/campbells.png"/>
+<img alt="Brand 3" src="images/jameson.png"/>
+<img alt="Brand 4" src="images/malibu.png"/>
+<img alt="Brand 5" src="images/metlife.png"/>
+<img alt="Brand 6" src="images/mrmrst.jpg"/>
+<img alt="Brand 7" src="images/pace.jpg"/>
+<img alt="Brand 8" src="images/post.jpg"/>
+<img alt="Brand 9" src="images/reallemon.jpg"/>
+<img alt="Brand 10" src="images/tom thumb.png"/>
+<!-- Duplicate again for infinite scroll -->
+<img alt="Brand 11" src="images/albertsons.jpg"/>
+<img alt="Brand 12" src="images/clamato.jpg"/>
+<img alt="Brand 13" src="images/independent distillers.jpg"/>
+<img alt="Brand 14" src="images/maxwellhouse.png"/>
+<img alt="Brand 15" src="images/motts.png"/>
+<img alt="Brand 16" src="images/nielsen.png"/>
+<img alt="Brand 17" src="images/pernodricard.png"/>
+<img alt="Brand 18" src="images/prego.png"/>
+<img alt="Brand 19" src="images/theglenlivet.png"/>
+</div>
+</div>
+</section>
+<!-- Contact & Scheduler Side by Side -->
+<section class="contact-scheduler-container">
+<div class="contact-box">
+<h2>Get in Touch</h2>
+<form action="https://formspree.io/f/mgvkqkjr" method="POST">
+<label for="firstname">First Name:</label>
+<input id="firstname" name="firstname" placeholder="Your First Name" type="text"/>
+<label for="lastname">Last Name:</label>
+<input id="lastname" name="lastname" placeholder="Your Last Name" type="text"/>
+<label for="businessname">Business Name:</label>
+<input id="businessname" name="businessname" placeholder="Your Business Name" type="text"/>
+<select id="businessCategory"       required>
+        <option value="">Select Business Category</option>
+        <option value="Consulting">Consulting</option>
+        <option value="Retail">Retail</option>
+        <option value="Finance">Finance</option>
+        <option value="Technology">Technology</option>
+        <option value="Other">Other</option>
+      </select>
+
+
+
+
+<label for="email">Your Email:</label>
+<input id="email" name="email" placeholder="Your Email" type="email"/>
+<label for="phone">Your Phone:</label>
+<input id="phone" name="Phone" placeholder="Your Phone" type="phone"/>
+<label for="message">Your Message:</label>
+<textarea id="message" name="message" placeholder="Your Message"></textarea>
+<button type="submit">Send</button>
+</form>
+</div>
+<div class="scheduler-box">
+<h2>Schedule a Meeting</h2>
+<div id="calendly-container"></div>
+</div>
+<script>
+ //  Defer Calendly script injection until everything else loads
+  window.addEventListener("load", () => {
+    const widgetContainer = document.getElementById("calendly-container");
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "calendly-inline-widget";
+    widgetDiv.setAttribute("data-url", "https://calendly.com/john-distinctrevelations");
+    widgetDiv.style.minWidth = "320px";
+    widgetDiv.style.height = "630px";
+    widgetContainer.appendChild(widgetDiv);
+
+    const calendlyScript = document.createElement("script");
+    calendlyScript.src = "https://assets.calendly.com/assets/external/widget.js";
+    calendlyScript.async = true;
+    document.body.appendChild(calendlyScript);
+  });
+</script>
+
+
+</section>
+<section class="login-section">
+  <div class="login-card">
+    <h3>Client Login</h3>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="Email" required />
+      <input type="password" id="loginPassword" placeholder="Password" required />
+      <button type="button" id="loginBtn">Login</button>
+      <div class="login-links">
+        <a href="#" id="openRegisterModal">Register</a> |
+        <a href="#" id="openForgotModal">Forgot Password?</a>
+      </div>
+      <p id="errorMsg" class="error-msg"></p>
+      <p id="successMsg" class="success-msg"></p>
+    </form>
+  </div>
+</section>
+
+
+<!-- REGISTER MODAL -->
+<div id="registerModal" class="modal hidden">
+  <div class="modal-content">
+    <!-- Close button -->
+    <button type="button" class="close-button" id="closeRegisterModal">×</button>
+
+    <h3>Register</h3>
+    <form id="registerForm">
+      <input id="firstName"               placeholder="First Name"        required type="text">
+      <input id="lastName"                placeholder="Last Name"         required type="text">
+      <input id="businessName"            placeholder="Business Name"     required type="text">
+      <select id="businessCategory"       required>
+        <option value="">Select Business Category</option>
+        <option value="Consulting">Consulting</option>
+        <option value="Retail">Retail</option>
+        <option value="Finance">Finance</option>
+        <option value="Technology">Technology</option>
+        <option value="Other">Other</option>
+      </select>
+      <input id="address1" placeholder="Address Line 1" required type="text">
+      <input id="address2" placeholder="Address Line 2"             type="text">
+      <input id="city"     placeholder="City"             required type="text">
+      <input id="state"    placeholder="State"            required type="text">
+      <input id="zip"      placeholder="ZIP Code"         required type="text">
+      <input id="phone"    placeholder="Phone Number"     required type="tel">
+      <input id="registerEmail"           placeholder="Email Address"    required type="email">
+      <input id="registerPassword"        placeholder="Password"         required type="password">
+      <input id="registerConfirmPassword" placeholder="Confirm Password" required type="password">
+
+      <!-- THIS is the Submit button -->
+      <button type="submit" id="registerBtn">Register</button>
+
+      <p class="status-message" id="registerStatus"></p>
+    </form>
+  </div>
+</div>
+
+
+<!-- Forgot Password Modal -->
+<div class="modal hidden" id="forgotPasswordModal">
+<div class="modal-content">
+<span class="close-button" id="closeForgotModal">×</span>
+<h3>Reset Your Password</h3>
+<input id="resetEmail" placeholder="Enter your email" required="" type="email"/>
+<button id="sendResetButton">Send Reset Email</button>
+<p class="status-message" id="resetStatus"></p>
+</div>
+</div>
+<footer>
+<p>© 2025 Distinct Revelations. All rights reserved.</p>
+</footer>
+<!-- Firebase & Modal Logic -->
+
+<!-- 🧩 Business Selection Modal -->
+
+<div id="businessSelectModal" class="custom-modal hidden">
+  <div class="custom-modal-content">
+    <button id="closeBusinessModal" class="custom-modal-close">×</button>
+    <h2>Select a Business</h2>
+    <div class="modal-body">
+      <select id="businessDropdown" class="-custom-modal-select" size="8"></select>
     </div>
-  </header>
+    <button id="selectBusinessBtn" class="custom-modal-button">Enter Dashboard</button>
+  </div>
+</div>
 
-  <main>
-    <section class="hero-section">
-      <h1>Welcome to Distinct Revelations</h1>
-      <p>Unlocking strategic insights and operational excellence.</p>
-    </section>
 
-    <section class="services">
-      <div class="service-box">
-        <img src="images/wallpaper_consulting.jpg" alt="Consulting Service"/>
-        <h3>Strategy Development</h3>
-        <p>Empowering businesses with clarity and direction through actionable strategies.</p>
-      </div>
-      <div class="service-box">
-        <img src="images/wallpaper_consulting2.jpg" alt="Operational Service"/>
-        <h3>Operational Excellence</h3>
-        <p>Improving processes and reducing inefficiencies for optimal performance.</p>
-      </div>
-      <div class="service-box">
-        <img src="images/wallpaper_consulting3.jpg" alt="Innovation Service"/>
-        <h3>Innovation Planning</h3>
-        <p>Helping organizations innovate effectively in rapidly evolving markets.</p>
-      </div>
-    </section>
+<!-- 🔚 FINAL SCRIPTS -->''
 
-    <section class="about-section">
-      <h2>About Us</h2>
-      <p>Distinct Revelations is a forward-thinking management consultancy dedicated to helping organizations achieve excellence in strategy, operations, and innovation. Our tailored solutions are built on deep industry insights and practical experience.</p>
-    </section>
 
-    <section class="contact-scheduler">
-      <div class="contact-form">
-        <h3>Contact Us</h3>
-        <form>
-          <input type="text" placeholder="Name"/><br/>
-          <input type="email" placeholder="Email"/><br/>
-          <textarea placeholder="Your Message"></textarea><br/>
-          <button type="submit">Send</button>
-        </form>
-      </div>
-      <div class="scheduler">
-        <h3>Schedule a Meeting</h3>
-        <iframe src="https://calendly.com/" width="100%" height="300" frameborder="0"></iframe>
-      </div>
-    </section>
-  </main>
+<!-- 1) Modular Firebase SDKs -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
 
-  <footer class="footer">
-    <p>&copy; 2025 Distinct Revelations. All rights reserved.</p>
-  </footer>
+  <!-- 2) Your Firebase init module -->
+  <script type="module" src="JS/firebaseInit.js"></script>
+
+  <!-- 3) Login & register modules -->
+  <script type="module" src="JS/login.js"></script>
+  <script type="module" src="JS/register.js"></script>
+
+  <script type="module" src="JS/select-business.js"></script> 
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const registerBtn = document.getElementById("openRegisterModal");
+  const closeRegister = document.getElementById("closeRegisterModal");
+  const forgotBtn = document.getElementById("openForgotModal");
+  const closeForgot = document.getElementById("closeForgotModal");
+
+  if (registerBtn && closeRegister) {
+    registerBtn.addEventListener("click", () => {
+      document.getElementById("registerModal").classList.remove("hidden");
+    });
+    closeRegister.addEventListener("click", () => {
+      document.getElementById("registerModal").classList.add("hidden");
+    });
+  }
+
+  if (forgotBtn && closeForgot) {
+    forgotBtn.addEventListener("click", () => {
+      document.getElementById("forgotPasswordModal").classList.remove("hidden");
+    });
+    closeForgot.addEventListener("click", () => {
+      document.getElementById("forgotPasswordModal").classList.add("hidden");
+    });
+  }
+});
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById("businessSelectModal");
+    if (modal) {
+      modal.classList.add("hidden");
+      console.log("🚫 Forcing modal hidden on initial load");
+    }
+  });
+</script>
 </body>
 </html>
