@@ -1,0 +1,961 @@
+@charset "utf-8";
+/* CSS Document */
+
+/* Reset and Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: url('../images/background.jpg') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: -1;
+}
+.logo-container{
+	text-align:center;
+	}
+
+/* Overlay to darken background */
+.overlay {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0;
+  margin: 0;
+}
+
+/* Header Style */
+.header {
+  background: linear-gradient(to right, #002f6c, #c0c0c0); /* richer blue to silver */
+  padding: 15px 20px;
+  text-align: center;
+  position: sticky;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+header.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 998;
+  background: linear-gradient(to bottom, #070707, #c0c0c0); /* richer blue to silver */
+  border: none;
+}
+
+/* Make logo a bit more dominant */
+.site-logo {
+  height: 150px;
+  max-width: 100%;
+  text-align: center;
+}
+
+/* Login: Desktop */
+.corner-login {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  display: flex;
+  gap: 5px;
+}
+
+/* Login: Mobile */
+@media screen and (max-width: 768px) {
+  .corner-login {
+    position: static;
+    margin: 20px auto;
+    justify-content: center;
+    padding-bottom: 10px;
+  }
+
+  .corner-login input,
+  .corner-login button {
+    flex: 1;
+    max-width: 120px;
+  }
+
+  .contact-scheduler {
+    flex-direction: column;
+  }
+}
+
+
+
+
+.hero {
+  background: linear-gradient(to right, blue, silver);
+  color: #f8f8f8;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* Ensure Services Grid */
+.services {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.service-box {
+  width: 30%;
+  min-width: 250px;
+}
+
+/* About Us Below Services */
+.about-section {
+  padding: 30px 20px;
+  background: #f8f8f8;
+}
+/* Compact login section */
+.compact-auth {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.compact-auth input, .compact-auth button {
+  padding: 6px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+/* Sections */
+section {
+  padding: 60px 20px;
+  text-align: center;
+  color: black;
+}
+
+/* Services Layout */
+.service-cards {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  width: 300px;
+  color: black;
+  text-align: center;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.service-box {
+  width: 30%;
+  min-width: 250px;
+}
+
+/* About Us Below Services */
+.about-section {
+  padding: 30px 20px;
+  background: #f8f8f8;
+}
+.brand-slider {
+  overflow: hidden;
+  padding: 2rem 0;
+  background-color: #f8f8f8;
+  position: relative;
+}
+
+.slider-track {
+  display: flex;
+  width: calc(250px * 10); /* 10 images total */
+  animation: scroll-left 30s linear infinite;
+}
+
+.slider-track img {
+  height: 60px;
+  width: 250px;
+  object-fit: contain;
+  padding: 0 20px;
+  filter: grayscale(100%);
+  transition: filter 0.3s;
+}
+
+.slider-track img:hover {
+  filter: grayscale(0%);
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 768px) {
+  .slider-track img {
+    height: 40px;
+    width: 180px;
+  }
+
+  .slider-track {
+    animation: scroll-left 20s linear infinite;
+    width: calc(180px * 10);
+  }
+}
+
+
+
+/* Container holding Contact and Scheduler side-by-side */
+.contact-scheduler-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 40px auto;
+  max-width: 1000px;
+  padding: 20px;
+}
+
+/* Style for each box */
+.contact-box,
+.scheduler-box {
+  flex: 1 1 45%;
+  background: #ffffffdd;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.1);
+  min-width: 300px;
+}
+
+/* Inputs and buttons styling */
+.contact-box input,
+.contact-box textarea,
+.scheduler-box input,
+.scheduler-box button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1em;
+  text-align:left;
+}
+
+.contact-box label {
+  display: block;
+  text-align: left;
+  font-weight: bold;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.contact-box {
+  text-align: left;
+}
+
+.contact-box h2 {
+  display: block;
+  text-align: center;
+  font-weight: bold;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.contact-box input,
+.contact-box textarea {
+  text-align: left;
+  background-color: white;
+  color: #333;
+}
+/* Scheduler submit button */
+.scheduler-box button {
+  background-color: #004080;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.scheduler-box button:hover {
+  background-color: #0066cc;
+}
+
+/* Login Section Styling */
+.login-section {
+  background: #ffffffdd;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  position: relative;
+  margin: 0px auto;
+  max-width: 350px;
+  text-align: right;
+}
+
+loginform{ text-align: right;}
+
+.login-section input[type="text"],
+.login-section input[type="password"] {
+  width: 90%;
+  padding: 8px;
+  margin: 10px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.login-section input[type="submit"] {
+  background-color: #004080;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.login-section input[type="submit"]:hover {
+  background-color: #0066cc;
+}
+
+/* Responsive layout tweaks */
+@media (max-width: 768px) {
+  .contact-scheduler-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .contact-box,
+  .scheduler-box {
+    width: 100%;
+  }
+
+  .login-section {
+    max-width: 90%;
+  }
+}
+
+/* /* Modal Styles */
+/* .modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+
+.modal.hidden {
+  display: none;
+}
+
+.modal {
+  display: block; 
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.modal-content {
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.modal-content button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.modal-content button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+} */
+
+.status-message {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: green;
+}
+
+.status-message.error {
+  color: red;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 1.5em;
+  cursor: pointer;
+} */
+
+/* Desktop - Login floats top-right */
+.corner-login {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #ffffffee;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 100;
+  max-width: 300px;
+}
+
+/* Mobile - Login moves to bottom above footer */
+@media (max-width: 768px) {
+  .corner-login {
+    position: static;
+    margin: 30px auto 60px;
+    max-width: 90%;
+    box-shadow: none;
+  }
+
+  .corner-login form {
+    align-items: center;
+  }
+
+  .corner-login input,
+  .corner-login button {
+    width: 90%;
+  }
+}
+/* Footer */
+footer {
+  background: linear-gradient(to right, #0c0c0c, #0f0f0f);
+  color: white;
+  padding: 30px 0;
+  
+}
+footer p {text-align: center;}
+
+
+/* Responsive Behavior */
+@media (max-width: 768px) {
+  .service-cards {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card {
+    width: 90%;
+  }
+
+  .large-logo {
+    height: 80px;
+  }
+
+  .compact-auth input {
+    width: 90%;
+  }
+}
+/* Bottom Login Section */
+.login-section {
+  background-color: #ffffffee;
+  padding: 30px 20px;
+  max-width: 400px;
+  margin: 60px auto 40px auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.login-section h2 {
+  margin-bottom: 20px;
+  color: #004080;
+}
+
+.login-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-section input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.9em;
+}
+
+.login-section button {
+  padding: 10px;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-section button:hover {
+  background-color: #0066cc;
+}
+
+.login-links {
+  font-size: 0.85em;
+  margin-top: -10px;
+}
+
+.login-links a {
+  color: #004080;
+  text-decoration: none;
+}
+
+.login-links a:hover {
+  text-decoration: underline;
+}
+
+.success-msg {
+  color: green;
+  font-size: 0.85em;
+}
+
+.error-msg {
+  color: red;
+  font-size: 0.85em;
+}
+
+/* Shared styling for bottom sections */
+.contact-box,
+.scheduler-box {
+  flex: 1 1 45%;
+  background-color: #ffffffee;
+  padding: 30px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  min-width: 300px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Headings */
+.contact-box h2,
+.scheduler-box h2 {
+  text-align: center;
+  color: #004080;
+  margin-bottom: 20px;
+}
+
+/* Input & Textarea */
+.contact-box input,
+.contact-box textarea,
+.scheduler-box input,
+.scheduler-box textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.9em;
+}
+
+/* Buttons */
+.contact-box button,
+.scheduler-box button {
+  background-color: #004080;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.contact-box button:hover,
+.scheduler-box button:hover {
+  background-color: #0066cc;
+}
+
+/* Label styling */
+.contact-box label {
+  display: block;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: left;
+  color: #333;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .contact-scheduler-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+
+  .contact-box,
+  .scheduler-box {
+    width: 90%;
+  }
+  
+}
+/* .custom-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.custom-modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  text-align: center;
+}
+.hidden {
+  display: none;
+}
+
+.custom-modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 400px;
+} */
+/* 1) Hide by default when .hidden is present */
+#registerModal.hidden {
+  display: none !important;
+}
+
+/* 2) Only show & center the register modal when visible */
+#registerModal:not(.hidden) {
+  position: fixed;
+  inset: 0;                    /* top:0; right:0; bottom:0; left:0 */
+  display: flex !important;
+  align-items: center;         /* vertical centering */
+  justify-content: center;     /* horizontal centering */
+  background: rgba(0,0,0,0.4);  /* backdrop tint */
+  z-index: 10000;              /* on top of everything */
+}
+
+/* 3) Force the content box into the exact center */
+#registerModal .modal-content {
+  margin: 0;                   /* cancel any stray margins */
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 2rem;
+  background: #fff;
+  border-color: #004080;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  transform: none;             /* cancel any translate() */
+}
+
+/* 4) Small X in top-right */
+#closeRegisterModal {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.5rem; height: 1.5rem;
+  font-size: 1.2rem; line-height:1.5rem;
+  background: #004080; color: white;
+  border: none; border-radius:4px;
+  cursor: pointer; padding:0;
+}
+#closeRegisterModal:hover {
+  background: #002f6c;
+}
+
+/* 5) Make selects match inputs */
+#registerModal .modal-content select,
+#registerModal .modal-content input {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+  box-sizing: border-box;
+}
+/* === Hide any modal or custom-modal when it has .hidden === */
+.modal.hidden,
+.custom-modal.hidden {
+  display: none !important;
+}
+
+/* === Show & center any modal/custom-modal when visible === */
+.modal:not(.hidden),
+.custom-modal:not(.hidden) {
+  position: fixed;
+  inset: 0;                        /* top/right/bottom/left: 0 */
+  display: flex !important;        /* flex to center child */
+  align-items: center;             /* vertical center */
+  justify-content: center;         /* horizontal center */
+  background: rgba(0,0,0,0.4);     /* dark translucent backdrop */
+  z-index: 10000;                  /* on top of everything */
+}
+
+/* === Inner box styling for both modal and custom-modal === */
+.modal-content,
+.custom-modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  margin: 0;        /* reset any margins */
+  transform: none;  /* reset any transforms */
+}
+
+/* Center the Register title */
+#registerModal .modal-content h3 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Enlarge & blue-style the Register button */
+#registerBtn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #004080;     /* same as close button */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+#registerBtn:hover {
+  background-color: #002f6c;     /* darker on hover */
+}
+/* ——— Unified Pop-up Styles ——— */
+
+/* Center the heading inside every modal/custom-modal */
+.modal-content h3,
+.custom-modal-content h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* Style all action buttons the same blue, full-width style */
+#registerBtn,
+#sendResetButton,
+#selectBusinessBtn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+#registerBtn:hover,
+#sendResetButton:hover,
+#selectBusinessBtn:hover {
+  background-color: #002f6c;
+}
+
+/* Ensure all selects/inputs inside pop-ups match */
+.modal-content input,
+.modal-content select,
+.custom-modal-content input,
+.custom-modal-content select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+/* Smaller “×” close buttons all share same style */
+.close-button,
+.custom-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.5rem; height: 1.5rem;
+  font-size: 1.2rem; line-height:1.5rem;
+  background: #004080; color:#fff;
+  border:none; border-radius:4px;
+  cursor:pointer; padding:0;
+}
+
+.close-button:hover,
+.custom-modal-close:hover {
+  background: #002f6c;
+}
+
+/* ——— “Get in Touch” Card Styling ——— */
+.contact-box {
+  background: #fff;                         /* white card */
+  border-radius: 8px;                       
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);   /* gentle shadow */
+  padding: 2rem;                           
+  max-width: 400px;                        
+  margin: 2rem auto;                       /* center horizontally */
+}
+
+/* Center the “Get in Touch” heading */
+.contact-box h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Match inputs, textarea & select */
+.contact-box input,
+.contact-box textarea,
+.contact-box select {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+/* Full‐width blue “Send” button */
+.contact-box button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.contact-box button:hover {
+  background-color: #002f6c;
+}
+/* === Unified “Get in Touch” & Scheduler Cards === */
+.contact-box,
+.scheduler-box {
+  background: #fff;                         /* white card */
+  border-radius: 8px;                       
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);   /* gentle shadow */
+  padding: 2rem;                            /* same padding */
+  flex: 1 1 45%;                            /* share row equally */
+  max-width: 400px;                         /* limit max width */
+  width: 100%;                              /* fill flex slot */
+  margin: 0 auto;                           /* center if wrapped */
+}
+
+/* Center their headings */
+.contact-box h2,
+.scheduler-box h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Match their input / select styling */
+.contact-box input,
+.contact-box textarea,
+.contact-box select,
+.scheduler-box input,
+.scheduler-box select {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+/* Make their buttons identical */
+.contact-box button,
+.scheduler-box button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.contact-box button:hover,
+.scheduler-box button:hover {
+  background-color: #002f6c;
+}
+
+/* Make both cards a bit larger */
+.contact-box,
+.scheduler-box {
+  flex: 1 1 48%;        /* grow to ~48% each */
+  max-width: 500px;     /* up from 400px */
+  padding: 2.5rem;      /* up from 2rem */
+  min-height: 300px;    /* ensure at least this tall */
+}
