@@ -81,12 +81,15 @@
 <section class="contact-scheduler-container">
 <div class="contact-box">
 <h2>Get in Touch</h2>
-<form action="https://formspree.io/f/mgvkqkjr" method="POST">
-<label for="firstname">First Name:</label>
-<input id="firstname" name="firstname" placeholder="Your First Name" type="text"/>
-<label for="lastname">Last Name:</label>
-<input id="lastname" name="lastname" placeholder="Your Last Name" type="text"/>
-<label for="businessname">Business Name:</label>
+<form id="contactForm"
+  action="https://formspree.io/f/mgvkqkjr"
+  method="POST"
+  autocomplete="off">
+  <label for="firstname">First Name:</label>
+  <input id="firstname" name="firstname" placeholder="Your First Name" type="text"/>
+  <label for="lastname">Last Name:</label>
+  <input id="lastname" name="lastname" placeholder="Your Last Name" type="text"/>
+  <label for="businessname">Business Name:</label>
 <input id="businessname" name="businessname" placeholder="Your Business Name" type="text"/>
 <select id="businessCategory"       required>
         <option value="">Select Business Category</option>
@@ -158,7 +161,7 @@
     <button type="button" class="close-button" id="closeRegisterModal">×</button>
 
     <h3>Register</h3>
-    <form id="registerForm">
+    <form id="registerForm" action="/register" method ="post" autocomplete ="off">
       <input id="firstName"               placeholder="First Name"        required type="text">
       <input id="lastName"                placeholder="Last Name"         required type="text">
       <input id="businessName"            placeholder="Business Name"     required type="text">
