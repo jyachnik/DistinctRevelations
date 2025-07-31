@@ -447,10 +447,15 @@
 
 
 <script type="module">
-  import { initProjectStatus } from './projectStatus.js';
-  const businessKey = new URLSearchParams(location.search).get('business');
-  initProjectStatus(businessKey);
+  import { initProjectStatus } from './JS/projectStatus.js';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('businessStatus'); // or however you map business→status
+    initProjectStatus(status);
+  });
 </script>
+
 
 
 
