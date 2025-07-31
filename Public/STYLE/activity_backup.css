@@ -1,0 +1,373 @@
+.activity-table-container {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+#activityTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+/* Activity Tracker: Section Header Red Border */
+.activity-section .section-header {
+  border: 0px;     /* your brand-accent red */
+  padding: 0;                /* give it breathing room */
+  
+  background-color: #fff;       /* ensure it sits on a white card */
+  margin-bottom: 0;        /* separate from the form/table below */
+}
+
+.activity-section .section-header .section-title h2 {
+  margin: 0; padding: 0;                  /* tighten up the headline spacing */
+}
+
+
+/* ─── Match Activity Log header to Milestones ─── */
+
+/* 1) Target the header wrapper */
+.activity-panel .activity-section .section-header {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 2) Zero out the title container */
+.activity-panel .activity-section .section-header .section-title {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 3) Remove spacing on the subtitle */
+.activity-panel .activity-section .section-header .section-subtext {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+
+/* 5) Make sure no leftover border-lines appear */
+.activity-panel .activity-section .section-header hr,
+.activity-panel .activity-section .section-header .divider {
+  display: none !important;
+}
+
+
+
+/* #activityTable col.col-title   { width: 50%; }
+#activityTable col.col-status  { width: 20%; }
+#activityTable col.col-date    { width: 20%; }
+#activityTable col.col-actions { width: 10%; } */
+
+#activityTable th,
+#activityTable td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #eee;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+/* Container for vertical scroll + sticky header */
+.activity-table-container {
+  position: relative;
+  max-height: 350px;       /* adjust as needed */
+  overflow-y: auto;
+}
+
+/* Sticky, blue, sortable headers */
+#activityTable thead th {
+  position: sticky;
+  top: 0;
+  background-color: #007bff;  /* same blue as File Manager */
+  color: #fff;
+  padding: 0.75rem;
+  z-index: 2;                  /* above rows */
+  cursor: pointer;             /* indicate clickable/sortable */
+  user-select: none;
+}
+
+/* Hover darken */
+#activityTable thead th:hover {
+  background-color: #0056b3;
+}
+
+/* Show sort arrows via data attributes */
+#activityTable thead th[data-sort]::after {
+  content: "↕";
+  font-size: 0.8em;
+  margin-left: 0.4em;
+  opacity: 0.7;
+}
+
+/* If you toggle these classes in JS, arrows will switch */
+#activityTable thead th.sorted-asc::after {
+  content: "↑";
+}
+#activityTable thead th.sorted-desc::after {
+  content: "↓";
+}
+
+/* Ensure table uses fixed layout so columns align under sticky headers */
+#activityTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Basic cell styling */
+#activityTable th,
+#activityTable td {
+  border-bottom: 1px solid #ddd;
+  /* other padding/margins as you like */
+}
+.activity-table-container {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#activityTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#activityTable th,
+#activityTable td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #ddd;
+}
+
+#activityTable thead th {
+  position: sticky;
+  top: 0;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+#activityTable thead th:hover {
+  background-color: #0056b3;
+}
+
+#activityTable thead th.sorted-asc::after {
+  content: " ↑";
+}
+#activityTable thead th.sorted-desc::after {
+  content: " ↓";
+}
+
+/* Hide Actions column for non-owner */
+#activityTable:not(.owner) th.actions,
+#activityTable:not(.owner) td.actions {
+  display: none;
+}
+
+/* 1) Make sure the wrapper spans the card’s full width */
+.activity-table-container {
+  width: 100%;
+  overflow-x: auto;   /* in case of overflow on small screens */
+}
+
+/* 2) Give the table itself 100% width and a fixed layout */
+#activityTable {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* 3) Ensure each cell fills its column and wraps text */
+#activityTable th,
+#activityTable td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #ddd;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 5) Sticky headers & sorting arrows (if you haven’t already) */
+#activityTable thead th {
+  position: sticky;
+  top: 0;
+  background: #007bff;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+#activityTable thead th.sorted-asc::after { content: " ↑"; }
+#activityTable thead th.sorted-desc::after { content: " ↓"; }
+
+/* 1) Make sure the wrapper and table fill 100% */
+.activity-table-container {
+  width: 100%;
+  overflow-x: auto;  /* fall-back scroll on very narrow screens */
+}
+#activityTable {
+  width: 100% !important;
+  table-layout: fixed;    /* force equal distribution of column widths */
+  border-collapse: collapse;
+}
+
+/* 2) When owner sees 4 columns, each one gets 25% */
+#activityTable.owner th,
+#activityTable.owner td {
+  width: 25%;
+}
+
+/* 3) When non-owner sees only 3 columns, each one gets ~33.33% */
+#activityTable:not(.owner) th,
+#activityTable:not(.owner) td {
+  width: 33.3333%;
+}
+
+/* 4) Sorting cursors & sticky blue headers */
+#activityTable thead th {
+  position: sticky;
+  top: 0;
+  background: #007bff;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.75rem;
+  border-bottom: 2px solid #0056b3;
+}
+#activityTable thead th:hover {
+  background: #0056b3;
+}
+
+/* 5) Sort indicators */
+#activityTable thead th.sorted-asc::after {
+  content: " ↑";
+}
+#activityTable thead th.sorted-desc::after {
+  content: " ↓";
+}
+
+:root {
+  /* Non-owner (3 columns) */
+  --act-col-1: 40%;    /* Activity */
+  --act-col-2: 35%;    /* Status */
+  --act-col-3: 25%;    /* Date */
+
+  /* Owner (4 columns) */
+  --act-col-owner-1: 35%;  /* Activity */
+  --act-col-owner-2: 25%;  /* Status */
+  --act-col-owner-3: 20%;  /* Date */
+  --act-col-owner-4: 20%;  /* Actions */
+}
+
+/* Apply widths via <colgroup> */
+#activityTable col:nth-child(1) {
+  width: var(--act-col-1);
+}
+#activityTable:not(.owner) col:nth-child(2) {
+  width: var(--act-col-2);
+}
+#activityTable:not(.owner) col:nth-child(3) {
+  width: var(--act-col-3);
+}
+
+/* When owner (4 columns) */
+#activityTable.owner col:nth-child(1) {
+  width: var(--act-col-owner-1);
+}
+#activityTable.owner col:nth-child(2) {
+  width: var(--act-col-owner-2);
+}
+#activityTable.owner col:nth-child(3) {
+  width: var(--act-col-owner-3);
+}
+#activityTable.owner col:nth-child(4) {
+  width: var(--act-col-owner-4);
+}
+
+/* base table setup */
+#activityTable {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* give each col a default width (adjust as you like) */
+#activityTable col.col-title   { width: 60%; }
+#activityTable col.col-status  { width: 20%; }
+#activityTable col.col-date    { width: 20%; }
+/* this one only matters for owner */
+#activityTable col.col-actions { width: 0; }
+
+/* when owner, bump Actions back in */
+#activityTable.owner col.col-actions {
+  width: 20%;
+}
+
+/* and redistribute the others */
+#activityTable.owner col.col-title  { width: 35%; }
+#activityTable.owner col.col-status { width: 25%; }
+#activityTable.owner col.col-date   { width: 20%; }
+
+/* hide the cells too (you may already have this) */
+#activityTable:not(.owner) th.actions,
+#activityTable:not(.owner) td.actions {
+  display: none;
+}
+#activityTable th[data-sort] {
+  position: relative;
+  padding-right: 20px;
+}
+#activityTable th[data-sort]::after {
+  content: '↕';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75em;
+  color: #888;
+}
+#activityTable th[data-sort].asc::after  { content: '▲'; color: #004e92; }
+#activityTable th[data-sort].desc::after { content: '▼'; color: #004e92; }
+
+/* 1) Remove all spacing on header container */
+.card.activity-section > .section-header {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 2) Match typography and spacing of milestone header */
+/* Assuming .refined-table-header uses these settings */
+.card.milestone-section .refined-table-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #002b45;
+}
+.card.milestone-section .refined-table-header .section-subtext {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Apply same to Activity Log */
+.card.activity-section .section-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #002b45;
+}
+.card.activity-section .section-header .section-subtext {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* 3) Ensure header wrapper width matches container */
+.card.activity-section .section-header {
+  width: 100%;
+}
+
+/* 4) Optional: If .card has padding, collapse inner header margin */
+.card.activity-section > form + .section-header,
+.card.activity-section form + .section-header {
+  margin-top: 0 !important;
+}
+
+/* Place this CSS last in your cascade */

@@ -1,0 +1,124 @@
+/* qnaStats.css — clean, token-based styling for horizontal alignment */
+
+/* Container Card */
+.qna-stats-vertical {
+  /* ensure it fills its column alongside the other two panels */
+  width: 100%;
+  /* match heights if desired, or let content size flexibly */
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  background: var(--color-surface);
+  border-left: 6px solid var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-md);
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Individual stat blocks */
+.qna-stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+.qna-stat-block:last-child {
+  margin-bottom: 0;
+}
+
+/* Label text */
+.qna-label {
+  font-size: var(--font-size-lg);       /* e.g. 1.125rem */
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+/* Number text */
+.qna-number {
+  font-size: var(--font-size-xl);       /* e.g. 1.5rem or larger */
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+/* Ensure headings inside are left-aligned if you use <h2> */
+.qna-stats-vertical h2 {
+  width: 100%;
+  font-size: var(--font-size-lg);
+  margin: 0 0 var(--space-sm);
+  text-align: left;
+}
+
+/* Remove any duplicate or conflicting rules */
+.qna-stats-vertical,
+.qna-stat-block,
+.qna-label,
+.qna-number {
+  /* Overrides to wipe out old styles */
+  max-width: none;
+  font-family: var(--font-family-base);
+}
+/* If leftside is a CSS Grid: */
+.leftside {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  align-items: start;    /* default, keep items at top by default */
+}
+
+/* Push the stats panel to the bottom of its grid cell */
+.qna-stats-vertical {
+  align-self: start;
+}
+
+/* ———————— OR, if leftside is a Flex container: ———————— */
+.leftside {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start; /* default: all at top */
+}
+
+/* Use margin‐top auto to push it down */
+.qna-stats-vertical {
+  margin-top: auto;
+}
+/* Make the left‐side a flex row if it isn’t already */
+.leftside {
+  display: flex;
+  gap: 24px;            /* match your usual horizontal gutter */
+  align-items: flex-start;  /* keep most panels at the top by default */
+}
+
+/* Push only the stats panel down to the bottom edge */
+.qna-stats-vertical {
+  align-self: flex-start;
+}
+/* 1) Make the left‐side a grid with two columns and two rows */
+.leftside {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "status progress"
+    "stats  progress";
+  gap: 16px;  /* adjust the gutter as you like */
+  margin: 0;
+  padding: 0;
+}
+
+/* 2) Assign each section to its grid area */
+.project-status       { grid-area: status; }
+.project-progress     { grid-area: progress; }
+.qna-stats-vertical   { grid-area: stats; }
+
+/* 3) Ensure each card fills its cell */
+.leftside > section {
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -1,0 +1,311 @@
+/* Milestone Card */
+.milestone-section {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Header */
+.refined-table-header {
+  margin-bottom: 1rem;
+}
+.refined-table-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  margin: 0;
+}
+.refined-table-header p.section-subtext {
+  margin: 0.25rem 0 0 2rem; /* align under title text */
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Form */
+#milestoneForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+#milestoneForm input,
+#milestoneForm select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+#milestoneForm input:focus,
+#milestoneForm select:focus {
+  outline: none;
+  border-color: #004080;
+}
+#milestoneForm button {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  background: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#milestoneForm button:hover {
+  background: #b3b3b3;
+}
+
+/* Table */
+.milestone-table-container {
+  overflow-x: auto;
+}
+#milestoneTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+#milestoneTable thead {
+  background: #f8f9fa;
+}
+#milestoneTable th,
+#milestoneTable td {
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+#milestoneTable th {
+  font-weight: bold;
+}
+/* Force the table to respect our column widths */
+#milestoneTable {
+  width: 100%;
+  table-layout: fixed;    /* distributes columns based on the widths below */
+}
+
+/* Column 1: Title — widest */
+#milestoneTable th:nth-child(1),
+#milestoneTable td:nth-child(1) {
+  width: 50%;             /* adjust as needed */
+}
+
+/* Column 2: Status */
+#milestoneTable th:nth-child(2),
+#milestoneTable td:nth-child(2) {
+  width: 25%;             /* adjust as needed */
+}
+
+/* Column 3: Due Date */
+#milestoneTable th:nth-child(3),
+#milestoneTable td:nth-child(3) {
+  width: 25%;             /* adjust as needed */
+}
+#milestoneForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* two equal columns */
+  gap: 0.75rem;                    /* same spacing you had */
+}
+
+/* Title input spans full width */
+#milestoneTitle {
+  grid-column: 1 / -1;
+}
+
+/* Status select naturally occupies column 1 */
+/* Due-Date input naturally occupies column 2 */
+
+/* Button spans both columns */
+#milestoneForm button {
+  grid-column: 1 / -1;
+}
+
+/* Remove horizontal scrolling on the container */
+.milestone-table-container {
+  overflow-x: visible; /* or simply remove any overflow-x rule */
+}
+
+/* Force fixed table layout so column widths are honored */
+#milestoneTable {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Prevent long text from breaking the layout */
+#milestoneTable th,
+#milestoneTable td {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Column 1: Title — 50% */
+#milestoneTable th:nth-child(1),
+#milestoneTable td:nth-child(1) {
+  width: 50%;
+}
+
+/* Column 2: Status — 25% */
+#milestoneTable th:nth-child(2),
+#milestoneTable td:nth-child(2) {
+  width: 25%;
+}
+
+/* Column 3: Due Date — 25% */
+#milestoneTable th:nth-child(3),
+#milestoneTable td:nth-child(3) {
+  width: 25%;
+}
+/* 1) Make the table respect our <col> widths */
+#milestoneTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* 2) Give each <col> its share of the width */
+#milestoneTable col.col-title   { width: 50%; }
+#milestoneTable col.col-status  { width: 20%; }
+#milestoneTable col.col-date    { width: 20%; }
+#milestoneTable col.col-actions { width: 10%; }
+
+/* 3) Prevent any cell from blowing out its column */
+#milestoneTable th,
+#milestoneTable td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #eee;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 4) Ensure the outer container doesn’t hide anything */
+.milestone-table-container {
+  overflow-x: visible; /* or remove any overflow rule you had */
+}
+/* 1) Make the table respect our <col> widths */
+#milestoneTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* 2) Give each <col> its share of the width */
+#milestoneTable col.col-title   { width: 50%; }
+#milestoneTable col.col-status  { width: 20%; }
+#milestoneTable col.col-date    { width: 20%; }
+#milestoneTable col.col-actions { width: 10%; }
+
+/* 3) Prevent any cell from blowing out its column */
+#milestoneTable th,
+#milestoneTable td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #eee;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 4) Ensure the outer container doesn’t hide anything */
+.milestone-table-container {
+  overflow-x: visible; /* or remove any overflow rule you had */
+}
+
+/* 1) Ensure the table is positioned relative so sticky works */
+.milestone-table-container {
+  position: relative;
+  max-height: 400px;     /* or whatever you prefer */
+  overflow-y: auto;
+}
+
+/* 2) Make the THEAD row sticky */
+#milestoneTable thead th {
+  position: sticky;
+  top: 0;
+  background-color: #007bff;  /* match your file-manager blue */
+  color: #fff;
+  padding: 0.75rem;
+  z-index: 2;                  /* sits above the tbody rows */
+  cursor: pointer;             /* indicates sortable */
+}
+
+/* 3) Hover state for clarity */
+#milestoneTable thead th:hover {
+  background-color: #0056b3;
+}
+
+/* 4) Optional: show sort indicator via a data attribute */
+#milestoneTable thead th[data-sort]::after {
+  content: "↕";
+  font-size: 0.8em;
+  margin-left: 0.4em;
+  opacity: 0.6;
+}
+
+/* 5) When sorted ascending or descending, toggle an attribute */
+/* You can add/remove these classes in JS if you want a visual cue */
+#milestoneTable thead th.sorted-asc::after {
+  content: "↑";
+}
+#milestoneTable thead th.sorted-desc::after {
+  content: "↓";
+}
+/* Make sure the wrapper spans its container */
+.milestone-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Force the table to use fixed layout and fill 100% */
+#milestoneTable {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* You’ll need a matching <colgroup> in your HTML like:
+   <table id="milestoneTable">
+     <colgroup>
+       <col class="col-title" />
+       <col class="col-status" />
+       <col class="col-date" />
+       <col class="col-actions" />
+     </colgroup>
+     …
+   </table>
+*/
+
+/* NON-OWNER: 3 columns at 33.33% each; collapse the Actions col */
+#milestoneTable:not(.owner) col.col-title   { width: 55.3333%; }
+#milestoneTable:not(.owner) col.col-status  { width: 25.3333%; }
+#milestoneTable:not(.owner) col.col-date    { width: 20.3333%; }
+#milestoneTable:not(.owner) col.col-actions { width:    0;           }
+
+/* OWNER: 4 columns at whatever split you like */
+#milestoneTable.owner col.col-title   { width: 40%; }
+#milestoneTable.owner col.col-status  { width: 20%; }
+#milestoneTable.owner col.col-date    { width: 20%; }
+#milestoneTable.owner col.col-actions { width: 20%; }
+
+/* Basic cell styling */
+#milestoneTable th,
+#milestoneTable td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #ddd;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Sticky, blue headers if you want */
+#milestoneTable thead th {
+  position: sticky;
+  top: 0;
+  background: #007bff;
+  color: #fff;
+  padding: 0.75rem;
+}
+/* Hide the Actions column header and cells for non-owners */
+#milestoneTable:not(.owner) th.actions,
+#milestoneTable:not(.owner) td.actions {
+  display: none;
+}

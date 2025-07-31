@@ -1,0 +1,385 @@
+
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/*Question and Answer Section*/
+/* 🔹 Q&A SECTION LAYOUT */
+.qna-section {
+  margin: 2rem auto;
+  padding: 1rem;
+  background: #b192e9;
+    max-width: 1200px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+    max-height: 400px; /* Set to your desired scroll window */
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 0.5rem;
+   position: relative;
+}
+
+
+.qna-header-left {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  background-color: aquamarine;
+  max-width: 30%;
+}
+
+.qna-header-left h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.qna-header-left p {
+  margin: 0.25rem 0 0 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.qna-filters {
+  display: flex 2;
+  gap: 0.5rem;
+  align-items:right;
+  flex-wrap: wrap;
+  background-color: #007bff;
+  max-width: 30%;
+}
+
+.qna-filters {
+  flex-direction:column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin: 0-10rem 0rem 0rem 0rem;
+}      
+
+.qna-filters select {
+min-width: 200px;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+/* 🔹 FORM STYLES */
+.qna-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 10 rem;
+  flex-wrap: wrap;
+  background-color: #b02a37;
+  width:50%;
+  margin-top: 0px;
+}
+
+.qna-form select,
+.qna-form input[type="text"] {
+  padding: 0.5rem;
+  font-size: 1rem;
+  min-width: 250px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-top: -100px;
+}
+
+.qna-form .btn-submit {
+  background-color: #007bff;
+  color: #fff;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.qna-form .btn-submit:hover {
+  background-color: #0056b3;
+} */
+
+/* /* 🔹 TABLE STYLES */
+.qna-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+} 
+
+/* .qna-table thead {
+  background-color: #1a0247;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  color:#f4f4f4;
+  font-weight:bold;
+} */
+
+.qna-table th,
+.qna-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.qna-table th:nth-child(2),
+.qna-table td:nth-child(2) {
+  width: 40%; /* Message column */
+}
+
+.qna-table th:nth-child(5),
+.qna-table td:nth-child(5) {
+  text-align: center;
+  width: 90px;
+} 
+
+.qna-table th:nth-child(6),
+.qna-table td:nth-child(6) {
+  width: 110px;
+}
+
+.qna-table input[type="checkbox"] {
+  transform: scale(1.2);
+} 
+ 
+
+
+
+
+/* Make the form sticky */
+.qna-form-container {
+  position: sticky;
+  top: 0;
+  background: #1a1a1a;
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #444;
+}
+
+/* Make the table headers sticky too */
+/* .qna-table-wrapper {
+  overflow-x: auto;
+} */
+
+/* .qna-table-wrapper thead th {
+  position: sticky;
+  top: 0px; /* adjust this based on form height */
+  /* background-color: #222;
+  color:#f4f4f4;
+  z-index: 5;
+  padding: 0.5rem;
+  text-align: center;
+} */ */
+
+/* Prevent overlap on scroll */
+/* .qna-table-wrapper tbody td {
+  padding: 0.0rem;
+} */
+
+/* Sticky table headers */
+#qnaTable thead th {
+  position: sticky;
+  top: 0;
+  background: #222;
+  z-index: 5;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+/* .qna-table-wrapper {
+  max-height: 350px;
+  overflow-y: auto;
+  position: relative;
+}
+ */
+/* Set the scroll container for the table */
+.qna-table-scroll {
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+/* Sticky header */
+.qna-table thead th {
+  position: sticky;
+  top: 0;
+  background: #222;
+  color: #f4f4f4;
+  z-index: 5;
+}
+
+
+
+
+
+
+
+
+
+/* BUTTONS IN TABLE */
+/* .btn-edit,
+.btn-delete {
+  border: none;
+  padding: 0.3rem 0.6rem;
+  margin: 0 0.2rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #495057;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+}
+
+.btn-delete:hover {
+  background-color: #b02a37;
+} */
+                                                                                                                         
+
+/* .qna-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.qna-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+} */
+
+/* .qna-message {
+  min-height: 100px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  resize: vertical;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.qna-message {
+  min-height: 100px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  resize: vertical;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 50%;
+} */
+/* .qna-completed {
+  background-color: #524e4e;
+  text-decoration: line-through;
+  color: #e7e1e1;
+} */
+
+/* Sortable Table Headers */
+/* th[data-sort] {
+  position: relative;
+  padding-right: 20px;
+}
+
+th[data-sort]::after {
+  content: '⇅'; /* neutral icon */
+  /* position: absolute;
+  right: 5px;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* Ascending */
+/* th.sort-asc::after {
+  content: '↑';
+  color: #f1e9e9;
+} */
+
+/* Descending */
+/* th.sort-desc::after {
+  content: '↓';
+  color: #f1e9e9;
+} */ 
+/* Q&A Section Tight Header */
+/* .qna-section {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  padding-bottom: 1rem;
+}
+
+.qna-section h2 {
+  margin-bottom: 0.25rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.qna-section p {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #ccc;
+}
+
+/* Optional: tighten up form spacing */
+/* .qna-section form {
+  margin-bottom: 1rem;
+}
+.qna-section {
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0.5rem;
+}
+
+.qna-section h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.qna-section p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+/* Tighten Q&A Section Overall */
+/* .qna-section {
+  margin-top: 0;
+  padding-top: 0.25rem;
+  padding-bottom: 1rem;
+}
+
+/* Compact Header */
+/* .qna-section h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.qna-section p {
+  margin: 0 0 0.5rem 0;
+  padding: 0;
+  font-size: 0.9rem;
+  color: #aaa;
+} */
+ 
+/* Q&A Form Area */
+/* .qna-section form {
+  margin-top: 0.5rem;
+  padding: 0;
+} */ 
+
+

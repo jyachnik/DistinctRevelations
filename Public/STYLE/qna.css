@@ -1,0 +1,360 @@
+/* qna.css — cleaned & de-duplicated */
+
+/* ─── Card Container ─── */
+.qna-section {
+  margin: 8px 0;
+  padding: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ─── Header: title + subtitle ─── */
+.qna-header {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
+}
+.qna-header h2 {
+  font-size: var(--font-size-md);
+  margin: 0 0 2px;
+  line-height: 1.2;
+  text-align: left;
+}
+.qna-header p {
+  font-size: var(--font-size-sm);
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* ─── Controls Row ─── */
+.qna-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;  /* filters sit at bottom */
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  padding: 0 var(--space-md);
+}
+
+/* ─── Form Layout ─── */
+.qna-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin: 0;
+  padding: 0 var(--space-md);
+}
+.qna-form textarea {
+  padding: 0;
+  height: 60px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+/* ─── Form Row (selects + add) ─── */
+.qna-form-row {
+  display: flex;
+  gap: 0;  /* flush against each other */
+  align-items: center;
+  margin: 0;
+}
+.qna-form-row select,
+.qna-form-row button.primary {
+  height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  margin: 0;
+}
+.qna-form-row button.primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+}
+
+/* ─── Filters (stacked at right) ─── */
+.qna-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin: 0;
+}
+.qna-filters select {
+  height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+/* ─── Table Wrapper ─── */
+.qna-table-wrapper {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 4px;
+  padding: 0 var(--space-md) var(--space-md);
+}
+.qna-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+.qna-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+/* ─── Table ─── */
+.qna-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+.qna-table th,
+.qna-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+.qna-table th {
+  text-align: center;
+}
+
+/* ─── Column Widths ─── */
+.qna-table th:nth-child(1), .qna-table td:nth-child(1) { width: 10%; }
+.qna-table th:nth-child(2), .qna-table td:nth-child(2) { width: 45%; }
+.qna-table th:nth-child(3), .qna-table td:nth-child(3) { width: 24%; }
+.qna-table th:nth-child(4), .qna-table td:nth-child(4) { width: 10%; }
+.qna-table th:nth-child(5), .qna-table td:nth-child(5) { width: 6%; }
+.qna-table th:nth-child(6), .qna-table td:nth-child(6) { width: 5%; }
+
+/* ─── Completed Row Styling ─── */
+.qna-table tbody tr.completed {
+  background-color: var(--color-background);
+}
+.qna-table tbody tr.completed td {
+  text-decoration: line-through;
+  color:#f3eeee;
+  background-color: #aaa2a2;
+}
+
+/* ─── Modal Content (minimal) ─── */
+.custom-modal-content {
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  max-width: 400px;
+}
+
+/* ───── Eliminate extra padding/margins in Q&A ───── */
+
+/* Collapse the card container */
+.qna-section {
+  padding: 4px 0;             /* only 4px top/bottom, no left/right */
+  margin: 4px 0;              /* small vertical gap between cards */
+}
+
+/* Snug up the header */
+.qna-header {
+  padding: 2px 0;             /* just enough for the underline */
+  margin-bottom: 2px;         /* tiny gap before controls */
+}
+.qna-header h2 {
+  margin: 0 0 2px;            /* title directly above subtitle */
+}
+.qna-header p {
+  margin: 0 0 4px;            /* subtitle right above the form */
+}
+
+/* Tighten the controls row */
+.qna-controls {
+  padding: 0;                 /* remove horizontal breathing room */
+  margin-bottom: 4px;         /* small gap to the table */
+  gap: 4px;                   /* minimal space between form & filters */
+}
+
+/* Remove the form’s horizontal inset */
+.qna-form {
+  padding: 0;                 /* flush left/right */
+  margin: 0 0 4px;            /* tiny gap before the table */
+}
+
+/* Eliminate table wrapper padding */
+.qna-table-wrapper {
+  padding: 0;                 /* no extra padding around table */
+  margin-top: 4px;            /* small gap below form */
+}
+
+/* (Optionally) shrink scrollbar gutter */
+.qna-table-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+.qna-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+}
+/* qna.css */
+
+/* 1) Make sure your actions column is wide enough */
+.qna-table th:nth-child(6),
+.qna-table td:nth-child(6) {
+  width: 120px;
+  text-align: center;
+}
+
+/* 2) Style the edit & delete buttons so they’re visible */
+.edit-btn,
+.delete-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  margin: 0 0.25rem;
+  cursor: pointer;
+  color: #444;                /* default icon color */
+  transition: color 0.2s ease;
+}
+
+/* 3) Hover states for clarity */
+.edit-btn:hover {
+  color: #007bff;             /* blue on hover */
+}
+.delete-btn:hover {
+  color: #dc3545;             /* red on hover */
+}
+
+/* 4) If you want a little padding around the cell */
+.qna-table td:nth-child(6) {
+  padding: 0.5rem;
+}
+
+/* If you wrapped the table in a div for scrolling, ensure it’s flush */
+.qna-table-wrapper > .qna-table,
+.qna-table {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  table-layout: fixed; /* preserve column widths */
+}
+/* ─── Sortable header arrows ─── */
+.qna-table th[data-sort] {
+  position: relative;
+  padding-right: 20px; /* room for arrow */
+  cursor: pointer;
+}
+
+.qna-table th[data-sort]::after {
+  content: '↕';        /* neutral up/down arrow */
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75em;
+  color: #aaa;
+}
+
+.qna-table th[data-sort].asc::after  { content: '▲'; color: #004e92; }
+.qna-table th[data-sort].desc::after { content: '▼'; color: #004e92; }
+
+/* Put sort arrows immediately after the column title text */
+.qna-table th[data-sort] {
+  cursor: pointer;
+  /* remove the extra right padding since we’re in-flow now */
+  padding-right: initial;
+}
+
+.qna-table th[data-sort]::after {
+  content: '↕';        /* neutral arrow */
+  display: inline-block;
+  margin-left: 6px;    /* space between text & arrow */
+  font-size: 0.75em;
+  color: #f8f4f4;
+}
+
+/* Active sort states */
+.qna-table th[data-sort].asc::after {
+  content: '▲';
+  color: #004e92;      /* your primary blue */
+}
+
+.qna-table th[data-sort].desc::after {
+  content: '▼';
+  color: #004e92;
+}
+/* ─── Q&A: Sticky table header ─── */
+.qna-table-wrapper {
+  max-height: 400px;      /* or whatever height you need */
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;     /* establish a containing block for stickies */
+}
+
+/* Ensure the <table> itself fills the wrapper */
+.qna-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* 2) Ensure the table uses normal table layout */
+.qna-table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* 3) Force the thead to act as a header group */
+.qna-table thead {
+  display: table-header-group;
+}
+
+/* ─── Q&A: Sticky Header Fix ─── */
+.qna-table-wrapper {
+  /* an explicit height so thead can stick */
+  height: 400px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  position: relative;  /* containing block for sticky positioning */
+  margin: 0;
+  padding: 0;
+}
+
+.qna-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+/* force the header group to stick */
+.qna-table thead {
+  display: table-header-group;
+}
+
+/* sticky THs */
+.qna-table-wrapper .qna-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #004e92;
+  color: #fff;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+/* And if needed, push the Q&A down to align */
+.qna-section {
+  margin-top: 2rem;
+}
+
+/* Center the Done column header & cells */
+.qna-table th:nth-child(5),
+.qna-table td:nth-child(5) {
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 6px;  /* ensure consistent padding */
+}
+

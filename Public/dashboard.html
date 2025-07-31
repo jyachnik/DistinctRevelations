@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Client Dashboard</title>
+  <link rel="stylesheet" href="style/filemanager.css" />
+  <link rel="stylesheet" href="style/qna.css" />
+   <link rel="stylesheet" href="style/dashboard(1).css" />
+ <link rel="stylesheet" href="style/milestone.css" />
+  <link rel="stylesheet" href="style/activity.css" />
+   <link rel="stylesheet" href="style/projectStatus.css" />
+     <link rel="stylesheet" href="style/projectProgress.css" />
+      <link rel="stylesheet" href="style/qnaStats.css" />
+       <link rel="stylesheet" href="style/header.css" />
+</head>
+<body>
+    <header id="dashboardHeader">
+        <div class="header-left">
+                <img src="images/distinct_revelations.png" alt="Distinct Revelations" class="dr-logo"/>
+        </div>
+        <div class="header-center">
+                <h1>Project Dashboard</h1>
+                <h2 id="companyName">Loading…</h2>
+        </div>
+        <div class="header-right owner">
+             <div class="logo-wrapper">
+                <img id="companyLogo" src="default-logo.png" alt="Company Logo"/>
+            </div>
+               <label for="logoFileInput" class="upload-logo-label">Upload Logo</label>
+              <input 
+                type="file" 
+                id="logoFileInput" 
+                accept="image/*" 
+                style="position:absolute; left:-9999px;"/>
+            </div>
+      </header>
+  <main>
+
+<section class="card dashboard-container">  
+     <div class="leftside">
+            
+      <div class="dashboard-overview">
+
+            <section class="project-status card">
+  <h2>Project Status</h2>
+  <div class="status-options">
+    <div class="status-row">
+      <div class="light red"    data-status="critical"></div><span>Critical</span>
+    </div>
+    <div class="status-row">
+      <div class="light yellow" data-status="caution"></div><span>Caution</span>
+    </div>
+    <div class="status-row">
+      <div class="light green"  data-status="onTrack"></div><span>On Track</span>
+    </div>
+  </div>
+</section>
+      <!-- <p id="status-label">Status: Not Set</p> -->
+      
+      <section class="card project-progress owner">
+           <h1>Project Progress</h1>
+
+  <!-- wrapper MUST be the positioning context -->
+  <div
+    id="progress-bar-container"
+    style="position: relative; width:40px; height:200px; background:#eee; border-radius:8px; overflow:visible; margin:0 auto 1rem; cursor:pointer;"
+  >
+    <!-- the blue fill -->
+    <div
+      id="progress-bar-fill"
+      style="position:absolute; bottom:0; left:0; width:100%; height:0; background:linear-gradient(to top, #007bff, #00aaff); transition:height 0.3s ease;"
+    ></div>
+    <!-- the percentage label INSIDE the wrapper -->
+    <span
+      id="progress-label"
+      style="position:absolute; left:100%; transform:translateX(6px) translateY(50%); background:rgba(255,255,255,0.9); padding:2px 6px; border-radius:3px; font-size:0.85rem; font-weight:600; white-space:nowrap; pointer-events:none; z-index:1;"
+    >0%</span>
+  </div>
+</section>
+
+   <section class="card qna-stats-vertical">
+  <div class="qna-stat-block">
+    <h1>OPEN</h1>
+    <div class="qna-label">Questions</div>
+    <div class="qna-number" id="openQuestionsCount">0</div>
+  </div>
+  <div class="qna-stat-block">
+    <div class="qna-label">Tasks</div>
+    <div class="qna-number"   id="openTasksCount">0</div>
+  </div>
+</section>
+
+</div>
+
+
+          </div>
+
+          <div class="middle">
+            
+<section class="card milestone-section">
+  <div class="refined-table-header">
+    <h2><span class="icon">🎯</span> Project Milestones/Meetings/Events</h2>
+    <p class="section-subtext">Track key project milestones and their status</p>
+  </div>
+  <form id="milestoneForm">
+    <input type="text" id="milestoneTitle" placeholder="Milestone Title" required />
+    <select id="milestoneStatus" required>
+      <option value="">Select Venue</option>
+      <option value="On-site">On-Site</option>
+      <option value="Virtual">Virtual</option>
+      <option value="Other">Other</option>
+    </select>
+    <input type="date" id="milestoneDueDate" required />
+    <button type="submit">Add Milestone</button>
+  </form>
+  <div class="milestone-table-container">
+    <table id="milestoneTable">
+  <colgroup>
+    <col class="col-title" />
+    <col class="col-status" />
+    <col class="col-date" />
+    <col class="col-actions" />
+  </colgroup>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Location</th>
+          <th>Date</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card activity-panel">
+  
+            <section id="activityContainer" class="card activity-section">
+              <div class="section-header">
+  
+    <h2><span class="icom">📝</span>Activity Log</h2>
+    <p class="section-subtext">Track project actions and team updates.</p>
+  </div>
+
+              <form id="activityForm">
+                <input type="text" id="activityTitle" placeholder="Activity Title" required />
+                <input type="text" id="activityDesc" placeholder="Activity Description" required />
+                <select id="activityStatus" required>
+                    <option value="">Select Status</option>
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                <label for="activityDate">Date</label>
+<input type="date" id="activityDate" name="date" required />
+                
+                
+                <button type="submit">Add Activity</button>
+               </form>
+                <div class="activity-import">
+                  <input type="file" id="activityImport" accept=".xlsx,.xls" />
+                  <button id="importBtn" class="btn-primary">Import Excel</button>
+                </div>
+
+              </section>
+
+              
+<div class="activity-table-container">
+  <table id="activityTable">
+    <colgroup>
+      <col class="col-title" />
+      <col class="col-status" />
+      <col class="col-date" />
+      <col class="col-actions" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th data-sort="title">Activity</th>
+      <th data-sort="status">Status</th>
+      <th data-sort="date">Due Date</th>
+        <th class="actions">Actions</th>    <!-- note the class -->
+      </tr>
+    </thead>
+    <tbody>
+
+<td class="actions">
+      <button class="edit-btn">✎</button>
+      <button class="delete-btn">🗑</button>
+    </td>
+
+    </tbody>
+  </table>
+</div>
+      </section>
+
+
+
+          </div>
+
+<!-- Edit Activity Modal -->
+<div id="editActivityModal" class="custom-modal hidden">
+  <div class="custom-modal-content">
+    <!-- Header -->
+    <div class="modal-header">
+      <h3>Edit Activity</h3>
+      <button id="cancelEditActivityBtn" class="close-button">×</button>
+    </div>
+    <!-- Body (all fields together) -->
+    <div class="modal-body">
+      <form id="editActivityForm">
+        <label for="editActivityTitle">Title</label>
+        <input type="text" id="editActivityTitle" required />
+
+        <label for="editActivityDesc">Description</label>
+        <input type="text" id="editActivityDesc" required />
+
+        <label for="editActivityStatus">Status</label>
+        <select id="editActivityStatus" required>
+          <option value="">Select Status</option>
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+
+        <label for="editActivityDate">Due Date</label>
+        <input type="date" id="editActivityDate" required />
+      </form>
+    </div>
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button id="saveEditActivityBtn" class="btn-primary">Save</button>
+      <button id="cancelEditActivityBtn2" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+          <div class="rightside">
+            
+<!-- File Manager Section -->
+<section id="fileManagerContainer" class="card file-manager-section">
+  <div class="file-manager-header">
+
+    <div class="left-block">
+    <h2>📁 File Manager</h2>
+    <p>Use this component to communcate files creation and updates</p>
+    
+</div>
+<div class="right-block">
+
+<div class = "file-buttton-upload">    
+    <button id="openFileModal" class="btn-primary">Upload Files</button>
+  </div>
+
+    <div class="file-manager-filters">
+    <select id="filterUser"><option value="">All Users</option></select>
+    <select id="filterFileType"><option value="">All Types</option></select>
+  </div>
+</div>
+</div>
+
+  <div class="file-manager-table-wrapper">
+    <table id="fileTable">
+      <thead>
+        <tr>
+          <th data-sort="fileName">File Name</th>
+          <th data-sort="type">Type</th>
+          <th data-sort="size">Size</th>
+          <th data-sort="createdAt">Created Date</th>
+          <th data-sort="owner">Owner</th>
+          <th>Download</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="fileTableBody"></tbody>
+    </table>
+  </div>
+</section>
+
+
+ <!-- Q&A section -->
+<section class="card qna-section">
+  <!-- 1) Header -->
+  <div class="qna-header">
+    <h2>🧠 Project Q&amp;A Tracker</h2>
+    <p>Use this component to address any questions, comments, or concerns.</p>
+  </div>
+
+  <!-- 2) Controls row: form on left, filters on right -->
+  <div class="qna-controls">
+    <!-- Form -->
+    <form id="qnaForm" class="qna-form">
+      <textarea
+        id="qnaMessage"
+        rows="3"
+        placeholder="Enter your question or message…"
+        required
+      ></textarea>
+      <div class="qna-form-row">
+        
+        <select id="qnaType" required>
+          <option value="">Select Type</option>
+          <option value="question">Question</option>
+          <option value="task">Task</option>
+          <option value="note">Note</option>
+        </select>
+        <select id="qnaAssignedTo" required>
+          <option value="">Assign To</option>
+          <!-- options populated by JS -->
+        </select>
+        <button type="submit" class="primary">Add</button>
+      </div>
+    </form>
+
+    <!-- Filters, bottom-aligned -->
+    <div class="qna-filters">
+      <select id="filterDone">
+        <option value="">All Status</option>
+        <option value="notDone">Open</option>
+        <option value="done">Completed</option>
+      </select>
+
+      <select id="filterType">
+        <option value="">Filter by Type</option>
+        <!-- populated by JS -->
+      </select>
+      <select id="filterAssignedTo">
+        <option value="">Filter by Assigned</option>
+        <!-- populated by JS -->
+      </select>
+    </div>
+  </div>
+
+  <!-- 3) Table -->
+  <div class="qna-table-wrapper">
+    <table class="qna-table">
+      <thead>
+        <tr>
+          <th data-sort="type">Type</th>
+          <th data-sort="message">Message</th>
+          <th data-sort="assignedTo">Assigned</th>
+          <th data-sort="timestamp">Date</th>
+          <th data-sort="completed">Done</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="qnaTableBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Edit Modal -->
+<div id="editModal" class="custom-modal hidden">
+  <div class="custom-modal-content">
+    <div class="modal-header">
+      <h3>Edit Q&amp;A Entry</h3>
+      <button id="cancelEditBtn" class="close-button" title="Cancel">×</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="editMessage" rows="4" style="width:100%;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button id="saveEditBtn" class="btn-primary">Save</button>
+      <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="custom-modal hidden">
+  <div class="custom-modal-content">
+    <div class="modal-header">
+      <h3>Confirm Delete</h3>
+      <button id="cancelDelete" class="close-button" title="Cancel">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete this entry?</p>
+    </div>
+    <div class="modal-footer">
+      <button id="confirmDelete" class="btn-primary">Yes, Delete</button>
+      <button id="cancelDelete" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<!-- Upload Modal -->
+<div id="fileUploadModal" class="custom-modal hidden">
+  <div class="custom-modal-content">
+    <div class="modal-header">
+      <h3>Upload Files</h3>
+      <button id="closeFileUploadModal" class="close-button">×</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- hidden native file input -->
+     <input id="fileInput" type="file" multiple style="display:none;" />
+
+      <!-- our visible “Browse…” trigger + filename display -->
+      <div class="modal-row">
+       
+        <span id="selectedFilesText">No files selected</span>
+      </div>
+
+      <!-- status text -->
+      <p id="uploadStatus" class="status-text"></p>
+    </div>
+
+    <div class="modal-footer">
+      <button id="confirmFileUpload" class="btn-primary">Upload</button>
+      <button id="cancelFileUpload" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+  </main>
+
+  <!-- your modals here -->
+
+ <!-- Firebase modular SDKs -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js"></script>
+
+  <!-- Your init -->
+  <script type="module" src="JS/firebaseInit.js"></script>
+
+  <!-- Q&A (already working) -->
+  <script type="module" src="JS/dashboard-business-loader.js"></script>
+  <script type="module" src="JS/qna.js"></script>
+
+  <!-- **File Manager** (must come after firebaseInit!) -->
+  <script type="module" src="JS/filemanager.js"></script>
+   <script type="module" src="JS/milestone.js"></script>
+
+   <script type="module" src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs"></script>
+   <script type="module" src="JS/activity.js"></script>
+   <script type="module" src="JS/projectStatus.js"></script>
+ <script type="module" src="JS/projectProgress.js"></script>
+ 
+ <script type="module" src="JS/header.js"></script>
+
+
+<script type="module">
+  import { initProjectStatus } from './projectStatus.js';
+  const businessKey = new URLSearchParams(location.search).get('business');
+  initProjectStatus(businessKey);
+</script>
+
+
+
+
+</body>
+</html>

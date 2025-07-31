@@ -1,0 +1,33 @@
+
+/* QnA Table Scroll Container */
+.qna-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* QnA Table Styling */
+.qna-table {
+  width: 100%;
+  min-width: 900px;  /* Allows for horizontal scroll on smaller screens */
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Sticky Header Fix */
+.qna-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f9f9f9;
+  z-index: 2;
+}
+
+/* Responsive media query - maintain horizontal scroll */
+@media (max-width: 768px) {
+  .qna-table-scroll {
+    overflow-x: auto;
+  }
+
+  .qna-table {
+    min-width: 900px; /* Force scroll instead of shrinking columns */
+  }
+}

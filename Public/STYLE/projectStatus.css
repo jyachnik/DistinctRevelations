@@ -1,0 +1,58 @@
+/* Cleaned projectStatus.css — no duplicates, with highlight and current styles */
+
+.project-status {
+  /* Card styling */
+  background: #ffffff;
+  border-left: 6px solid #004e92;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 24px;
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.project-status h2 {
+  font-size: 1.25rem;
+  margin: 0 0 12px 0;
+}
+
+.project-status .status-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.project-status .status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-status .light {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: gray;           /* fallback color */
+  transition: box-shadow 0.2s ease;
+  /* pointer for owner interaction */
+  cursor: pointer;
+}
+
+/* Status colors */
+.project-status .light.red    { background-color: #e74c3c; }
+.project-status .light.yellow { background-color: #f1c40f; }
+.project-status .light.green  { background-color: #2ecc71; }
+
+/* Highlighted/selected state */
+.project-status .light.selected {
+  box-shadow: 0 0 0 4px #004e92;
+}

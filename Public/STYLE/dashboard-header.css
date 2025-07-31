@@ -1,0 +1,65 @@
+
+/* Dashboard Header Container */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(to right, #f4f4f4, #eaeaea);
+  border-bottom: 1px solid #ccc;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  flex-wrap: wrap;
+}
+
+/* Left: Distinct Revelations Logo */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.header-left img {
+  height: 40px;
+  width: auto;
+}
+.header-left a {
+  text-decoration: none;
+}
+
+/* Center: Title */
+.header-center {
+  text-align: center;
+  flex: 1;
+}
+.header-center h1 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 0;
+  color: #2c3e50;
+}
+
+/* Right: Client Logo */
+.header-right img {
+  height: 40px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .header-left, .header-right {
+    margin: 0.5rem 0;
+  }
+
+  .header-center h1 {
+    font-size: 1.5rem;
+  }
+}

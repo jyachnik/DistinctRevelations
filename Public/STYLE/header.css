@@ -1,0 +1,182 @@
+/* Sticky top header */
+#dashboardHeader {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(180deg, #004e92, #000428);
+  box-shadow: 0 4px 8px rgba(0,0,0.15);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  z-index: 1000;
+  color: #fff;
+}
+
+/* Left logo */
+#dashboardHeader .dr-logo {
+  height: 60px;
+}
+
+/* Center titles */
+#dashboardHeader .header-center {
+  text-align: center;
+  flex: 1;
+  margin: 0 1rem;
+}
+#dashboardHeader .header-center h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+#dashboardHeader .header-center h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* Right section */
+#dashboardHeader .header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#dashboardHeader .logo-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+#dashboardHeader .logo-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Upload button: hidden by default, shown when .owner is on the header */
+#uploadLogoBtn {
+  background: #00aaff;
+  border: none;
+  color: #fff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: none;
+}
+#uploadLogoBtn:hover {
+  background: #008fcc;
+}
+#dashboardHeader.owner #uploadLogoBtn {
+  display: inline-block;
+}
+/* Make the entire dashboard white */
+body, .container, .dashboard-container, .leftside, .middle, .rightside {
+  background: #fff !important;
+}
+
+/* Sticky top header */
+#dashboardHeader {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(0deg, #102841, #8e95d1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  z-index: 1000;
+  color: #fff;
+}
+
+/* Left logo */
+#dashboardHeader .dr-logo {
+  height: 40px;
+}
+
+/* Center titles */
+#dashboardHeader .header-center {
+  text-align: center;
+  flex: 1;
+  margin: 0 1rem;
+}
+#dashboardHeader .header-center h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color:whitesmoke;
+}
+#dashboardHeader .header-center h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  opacity: 0.85;
+  color:burlywood;
+}
+
+/* Right section */
+#dashboardHeader .header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#dashboardHeader .logo-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+#dashboardHeader .logo-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Upload button: hidden by default, shown when .owner is on the header */
+#uploadLogoBtn {
+  background: #00aaff;
+  border: none;
+  color: #fff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: none;
+}
+#uploadLogoBtn:hover {
+  background: #008fcc;
+}
+#dashboardHeader.owner #uploadLogoBtn {
+  display: inline-block;
+}
+/* make that 🌟 Upload Logo 🌟 label look like a button */
+.upload-logo-label {
+  background: #00aaff;
+  color: #fff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+  display: inline-block;
+}
+.upload-logo-label:hover {
+  background: #008fcc;
+}
+
+/* only show it for the owner */
+#dashboardHeader .upload-logo-label {
+  display: none;
+}
+#dashboardHeader.owner .upload-logo-label {
+  display: inline-block;
+}
