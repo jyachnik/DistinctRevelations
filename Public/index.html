@@ -273,5 +273,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 </script>
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    // clear login form
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) loginForm.reset();
+
+    // clear contact form
+    const contactForm = document.getElementById('contactForm');
+    if (contactForm) contactForm.reset();
+  });
+</script>
+
 </body>
 </html>
