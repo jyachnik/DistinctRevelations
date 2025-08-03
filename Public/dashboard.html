@@ -6,7 +6,7 @@
   <title>Client Dashboard</title>
   <link rel="stylesheet" href="style/filemanager.css" />
   <link rel="stylesheet" href="style/qna.css" />
-     <link rel="stylesheet" href="style/dashboard1.css" />
+   <link rel="stylesheet" href="style/dashboard(1).css" />
  <link rel="stylesheet" href="style/milestone.css" />
   <link rel="stylesheet" href="style/activity.css" />
    <link rel="stylesheet" href="style/projectStatus.css" />
@@ -52,7 +52,7 @@
       <div class="light yellow" data-status="caution"></div><span>Caution</span>
     </div>
     <div class="status-row">
-      <div class="light green"  data-status="onTrack"></div><span>To Plan</span>
+      <div class="light green"  data-status="onTrack"></div><span>On Plan</span>
     </div>
   </div>
 </section>
@@ -440,22 +440,20 @@
 
    <script type="module" src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs"></script>
    <script type="module" src="JS/activity.js"></script>
-   <script type="module" src="JS/projectStatus.js"></script>
+  
  <script type="module" src="JS/projectProgress.js"></script>
  
  <script type="module" src="JS/header.js"></script>
 
-
-<script type="module">
-  import { initProjectStatus } from './JS/projectStatus.js';
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    const status = params.get('businessStatus'); // or however you map business→status
-    initProjectStatus(status);
-  });
-</script>
-
+  
+ <script type="module" src="JS/projectStatus.js"></script>
+ 
+ <script type="module">
+  // point at the JS folder *relative to this file*
+   import { initProjectStatus } from './JS/projectStatus.js';
+    const businessKey = new URLSearchParams(location.search).get('business');
+    initProjectStatus(businessKey);
+  </script>
 
 
 
