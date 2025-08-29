@@ -1,0 +1,900 @@
+/* ========== Base ========== */
+:root{
+  --bg: #0b0c10;
+  --panel: #111218;
+  --panel-alt: #0f1117;
+  --card: #141622;
+  --text: #e9ecf1;
+  --muted: #b6bdc9;
+  --accent: #4c8bf5;
+  --border: #222433;
+  --shadow: 0 10px 24px rgba(0,0,0,.25);
+  --radius: 16px;
+
+  /* header sizing */
+  --header-h-desktop: 72px;
+  --m-head: 108px;    /* mobile header height */
+  --m-badge: 110px;   /* mobile white-circle size */
+  --m-logo:  76px;    /* mobile logo (inside circle) */
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body{
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1000px 600px at 70% -10%, #1b1d29 0%, #0b0c10 60%) no-repeat fixed;
+  line-height: 1.5;
+}
+img{ max-width:100%; height:auto; }
+a{ color:var(--text); text-decoration:none; }
+p{ color:var(--muted); margin:.25rem 0 1rem; }
+h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
+
+/* Layout helpers */
+.container{ width:min(1120px, 92%); margin-inline:auto; }
+.row{ display:flex; }
+.space-between{ justify-content:space-between; }
+.center-y{ align-items:center; }
+.gap-12{ gap:12px; }
+.w-100{ width:100%; }
+
+/* ========== Topbar ========== */
+.topbar{
+  position: sticky; top:0; z-index:2000;
+  background: rgba(11,12,16,.7);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar .container{
+  display:flex; align-items:center; gap:12px;
+  min-height: var(--header-h-desktop);
+  padding-block: 8px;
+}
+
+.brand{ display:inline-flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px; }
+.brand-badge{
+  display:grid; place-items:center;
+  width:56px; height:56px; border-radius:9999px;
+  background:#fff; border:1px solid rgba(0,0,0,.08); box-shadow:0 6px 18px rgba(0,0,0,.18);
+}
+.brand-logo, .brand-mark{ height:32px; width:auto; display:block; object-fit:contain; }
+.brand-text{ font-size:1.05rem; white-space:nowrap; }
+
+/* Desktop nav + buttons */
+.nav{ display:flex; gap:18px; align-items:center; margin-left:auto; }
+.nav a{ color:var(--muted); padding:8px 8px; }
+.nav a:hover{ color:var(--text); }
+
+.btn{
+  appearance:none; border:1px solid transparent;
+  padding:8px 12px; border-radius:999px; cursor:pointer;
+  font-weight:600; letter-spacing:.2px;
+}
+.btn-primary{ background:var(--accent); color:#0b1020; box-shadow:0 8px 22px rgba(76,139,245,.35); }
+.btn-primary:hover{ filter:brightness(1.05); }
+.btn-outline{ background:transparent; border-color:#365fb6; color:var(--text); }
+.btn-outline:hover{ background:rgba(76,139,245,.1); }
+
+/* Hamburger (hidden on desktop) */
+.hamburger{ display:none; flex-direction:column; gap:4px; background:transparent; border:0; cursor:pointer; }
+.hamburger .bar{ width:22px; height:2px; background:#fff; border-radius:1px; display:block; }
+
+/* Corner logo (desktop only, bleeds over hero) */
+.corner-logo{
+  position: fixed; left:16px; top:14px; z-index:1000;
+  filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
+}
+.corner-logo img{ height:156px; width:auto; display:block; }
+
+/* Desktop layout */
+@media (min-width:900px){
+  .topbar .container{ min-height: var(--header-h-desktop); }
+  .hamburger{ display:none; }
+  .nav{ display:flex; }
+}
+
+/* ===== Mobile header: center logo, menu on right, hide corner logo ===== */
+@media (max-width:899px){
+  /* hide floating corner badge on mobile */
+  .corner-logo, #cornerLogo{ display:none !important; }
+
+  .nav{ display:none !important; }                 /* no desktop nav on mobile */
+  .topbar{ background:#0e1220; }                  /* solid backdrop */
+  .topbar .container{ position:relative; min-height: var(--m-head); }
+
+  /* HARD-CENTER the brand inside header */
+  .topbar .brand{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width: var(--m-badge); height: var(--m-badge);
+    border-radius:9999px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.28);
+    display:grid; place-items:center; padding:10px; margin:0;
+  }
+  .topbar .brand-logo, .topbar .brand-mark{
+    height: var(--m-logo); width:auto; max-height:none; visibility:visible; opacity:1;
+  }
+
+  /* Hamburger pinned to the far right */
+  .hamburger{
+    display:inline-flex;
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; padding:8px; z-index:2100;
+  }
+}
+
+/* ========== Mobile drawer (slides from right; toggle aria-hidden) ========== */
+@media (max-width:899px){
+  .mobile-drawer{
+    position:fixed; top: var(--m-head); right:0; left:auto;
+    width:min(84vw, 360px); height:calc(100dvh - var(--m-head));
+    background:#0e1220; border-left:1px solid var(--border);
+    display:flex; flex-direction:column; gap:12px; padding:16px;
+    box-shadow:-24px 0 48px rgba(0,0,0,.35);
+    transform:translateX(110%); transition:transform .25s ease;
+    z-index:2050;
+  }
+  .mobile-drawer[aria-hidden="false"]{ transform:translateX(0); }
+
+  .mobile-drawer .drawer-close{
+    position:absolute; top:8px; right:8px; background:transparent; border:0;
+    color:var(--muted); font-size:24px; min-width:40px; min-height:40px; cursor:pointer;
+  }
+  .mobile-drawer a, .mobile-drawer button{ text-align:center; width:100%; }
+}
+
+/* ========== Hero ========== */
+.hero{
+  padding:84px 0 36px;
+  border-bottom:1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(11,12,16,.65) 0%, rgba(11,12,16,.65) 100%),
+    radial-gradient(700px 400px at -20% -30%, rgba(124,209,184,.12), transparent 60%),
+    radial-gradient(900px 500px at 120% -10%, rgba(76,139,245,.12), transparent 65%),
+    url("../images/wallpaper_consulting4.jpg");
+  background-size:auto,auto,auto,cover;
+  background-repeat:no-repeat;
+  background-position:center,left top,right top,center;
+  min-height:68vh;
+}
+.hero-grid{ display:grid; grid-template-columns:1fr; gap:28px; align-items:start; }
+.hero-copy h1{ font-size:clamp(2rem, 4vw, 3rem); }
+.hero-copy p{ font-size:1.05rem; }
+.accent-underline{ background:linear-gradient(transparent 65%, rgba(76,139,245,.35) 65%); padding:0 4px; }
+.hero-metrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px; }
+.hero-metrics div{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; text-align:center; }
+@media (min-width:900px){ .hero-grid{ grid-template-columns:1.25fr .9fr; gap:38px; } }
+
+/* ========== Sections / Cards ========== */
+.section{ padding:72px 0; }
+.section-alt{ background:var(--panel-alt); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.section-head{ text-align:center; margin-bottom:28px; }
+.section-head p{ max-width:720px; margin:.5rem auto 0; }
+
+.cards{ display:grid; gap:16px; }
+.cards.three{ grid-template-columns:1fr; }
+@media (min-width:900px){ .cards.three{ grid-template-columns:repeat(3,1fr); } }
+
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px;
+}
+
+/* Services: uniform thumbnails */
+:root{ --svc-aspect:16/9; --svc-radius:14px; }
+.cards.three{ align-items:stretch; }
+.service-card{ display:flex; flex-direction:column; height:100%; }
+.service-thumb{
+  display:block; width:100%; aspect-ratio:var(--svc-aspect); object-fit:cover; object-position:center;
+  border-radius:var(--svc-radius); margin-bottom:12px; border:1px solid var(--border); box-shadow:var(--shadow);
+}
+.service-card h3{ margin-top:2px; }
+.service-card .bullets{ padding-left:1rem; margin-top:auto; }
+.checklist{ padding-left:1.25rem; margin:.25rem 0 0; }
+.checklist li{ margin:.25rem 0; }
+
+/* ========== Logos Ticker ========== */
+:root{
+  --logo-w: clamp(160px, 18vw, 220px);
+  --logo-h: clamp(72px,  9vw, 108px);
+  --logo-gap: clamp(16px, 3vw, 28px);
+  --brand-speed: 28s;
+}
+.brand-ticker{ overflow:hidden; position:relative; }
+.brand-track{ display:flex; width:max-content; will-change:transform; animation:brandsMarquee var(--brand-speed) linear infinite; }
+.brand-set{ display:flex; gap:var(--logo-gap); flex:0 0 auto; white-space:nowrap; }
+.brand-logo{
+  display:block; width:var(--logo-w); height:var(--logo-h);
+  object-fit:contain; background:#fff; border-radius:14px; padding:10px 16px;
+  border:1px solid rgba(20,22,34,.14); box-shadow:0 6px 16px rgba(0,0,0,.18);
+}
+.brand-set::after{ content:""; flex:0 0 var(--logo-gap); width:var(--logo-gap); height:1px; }
+@keyframes brandsMarquee{ from{ transform:translateX(0) } to{ transform:translateX(-50%) } }
+@media (prefers-reduced-motion:reduce){ .brand-track{ animation:none; } }
+
+/* ========== About, Case Studies, Quotes ========== */
+.grid-2{ display:grid; grid-template-columns:1fr; gap:18px; }
+@media (min-width:900px){ .grid-2{ grid-template-columns:1.15fr .85fr; gap:24px; } }
+.pill-group{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.pill{ background:#13213a; border:1px solid #2b3e64; color:#d8e5ff; padding:6px 10px; border-radius:999px; font-size:.9rem; }
+
+.case .badge{
+  display:inline-block; font-size:.75rem; letter-spacing:.5px;
+  background:#15351f; color:#a3e3b3; border:1px solid #285c3a;
+  padding:4px 8px; border-radius:999px; margin-bottom:8px;
+}
+.link{ color:#a9c6ff; text-decoration:underline; text-decoration-color:rgba(169,198,255,.4); }
+.link[aria-disabled="true"]{ opacity:.6; pointer-events:none; }
+.quote p{ font-style:italic; }
+.quote cite{ display:block; margin-top:8px; color:var(--muted); }
+
+/* ========== Forms ========== */
+.form label{ display:grid; gap:6px; margin-bottom:12px; }
+.form input, .form textarea{
+  background:#0e1220; color:var(--text); border:1px solid #263051;
+  border-radius:10px; padding:10px 12px; outline:none;
+}
+.form input:focus, .form textarea:focus{ border-color:#3c58a8; box-shadow:0 0 0 3px rgba(76,139,245,.15); }
+.hint{ font-size:.85rem; color:var(--muted); margin-top:6px; }
+.form .error{ color:#ffb3b3; font-size:.9rem; margin:4px 0 0; min-height:1.1em; }
+.form .is-invalid{ border-color:#e57373 !important; box-shadow:0 0 0 3px rgba(229,115,115,.15); }
+.form .is-valid{ border-color:#7bd389; box-shadow:0 0 0 3px rgba(123,211,137,.15); }
+
+/* ========== Modals ========== */
+.modal{ position:fixed; inset:0; display:none; z-index:100; }
+.modal[aria-hidden="false"]{ display:block; }
+.modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(2px); }
+.modal__dialog{
+  position:relative; margin:5vh auto 0; width:min(720px,92%);
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px;
+}
+.modal__close{ position:absolute; top:8px; right:12px; background:transparent; border:0; color:var(--muted); font-size:24px; cursor:pointer; }
+.iframe-wrap{ position:relative; width:100%; padding-top:62%; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#0e1220; }
+.iframe-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+
+/* ========== Footer ========== */
+.footer{ padding:20px 0; border-top:1px solid var(--border); background:rgba(11,12,16,.6); }
+
+/* ===== Desktop modal fixes: make the modal sit above header + corner logo ===== */
+
+/* Put the modal layer above everything (header is z-index:2000 in your CSS) */
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none;                 /* shown via [aria-hidden="false"] */
+  z-index: 5000;                 /* <-- above topbar, corner logo, etc. */
+}
+.modal[aria-hidden="false"]{ display:block; }
+
+/* Backdrop should cover the whole page */
+.modal__backdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(2px);
+}
+
+/* Centered dialog with a sane width and scroll if content is tall */
+.modal__dialog{
+  position: relative;
+  width: min(720px, 92%);
+  margin: 6vh auto 4vh;          /* center horizontally, push down a bit */
+  max-height: 88vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+/* Keep the close button in the top-right of the dialog */
+.modal__close{
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* Make sure the corner/bleed logo never sits above the modal */
+.corner-logo{ z-index: 1200; }     /* modal is 5000; header is 2000 */
+
+/* Optional: desktop-only modal spacing refinements */
+@media (min-width: 900px){
+  .modal__dialog{ width: min(760px, 88%); }
+}
+
+/* IMPORTANT: scope full-width buttons to mobile drawer ONLY.
+   This prevents desktop header buttons from stretching. */
+.mobile-drawer a,
+.mobile-drawer button{ width:100%; text-align:center; }
+
+
+/* ===== RESCUE PATCH: stacking + visibility for drawer & modals ===== */
+
+/* Header stays below overlays */
+.topbar{ z-index: 2000; }
+
+/* Mobile drawer (right side) */
+@media (max-width: 899px){
+  #mobileNav.mobile-drawer{
+    position: fixed;
+    top: var(--m-head, 108px);
+    right: 0; left: auto;
+    width: min(84vw, 360px);
+    height: calc(100dvh - var(--m-head, 108px));
+    background: #0e1220;
+    border-left: 1px solid var(--border, #222433);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    box-shadow: -24px 0 48px rgba(0,0,0,.35);
+    transform: translateX(110%);          /* hidden by default */
+    transition: transform .25s ease;
+    z-index: 5000;                         /* ABOVE header */
+  }
+  #mobileNav[aria-hidden="false"]{ transform: translateX(0); }
+
+  /* hamburger must be on top to receive clicks */
+  #mobileMenuBtn.hamburger{
+    position: absolute;
+    right: 12px; top: 50%; transform: translateY(-50%);
+    display: inline-flex;
+    width: 44px; height: 44px; padding: 8px;
+    z-index: 5200;
+  }
+}
+
+/* Modals (centered, above everything) */
+.modal{
+  position: fixed; inset: 0;
+  display: none;
+  z-index: 6000;                         /* ABOVE drawer & header */
+}
+.modal[aria-hidden="false"]{ display: block; }
+.modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+.modal__dialog{
+  position: relative;
+  width: min(760px, 92%);
+  max-height: 88vh; overflow: auto;
+  margin: 6vh auto 4vh;
+  background: var(--panel, #111218);
+  border: 1px solid var(--border, #222433);
+  border-radius: var(--radius, 16px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  padding: 18px;
+}
+.modal__close{
+  position:absolute; top:8px; right:12px;
+  background:transparent; border:0; font-size:24px; color:var(--muted,#b6bdc9); cursor:pointer;
+}
+
+/* Prevent accidental full-width buttons outside the drawer */
+.mobile-drawer a, .mobile-drawer button{ width:100%; text-align:center; }
+
+/* ===== DESKTOP SAFETY: never show the mobile drawer on desktop ===== */
+.mobile-drawer{ display:none; }         /* base: hidden everywhere by default */
+
+/* ===== MOBILE DRAWER (only on small screens) ===== */
+@media (max-width: 899px){
+  .mobile-drawer{
+    position: fixed;
+    top: var(--m-head, 108px);
+    right: 0; left: auto;
+    width: min(84vw, 360px);
+    height: calc(100dvh - var(--m-head, 108px));
+    background:#0e1220;
+    border-left: 1px solid var(--border, #222433);
+    display: flex;                       /* visible (but off-screen) on mobile */
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    box-shadow: -24px 0 48px rgba(0,0,0,.35);
+    transform: translateX(110%);         /* hidden off the right */
+    transition: transform .25s ease;
+    z-index: 5000;                        /* above header */
+  }
+  .mobile-drawer[aria-hidden="false"]{ transform: translateX(0); }
+
+  /* Drawer-only controls (avoid affecting desktop header buttons) */
+  .mobile-drawer a, .mobile-drawer button{ width:100%; text-align:center; }
+  .mobile-drawer .drawer-close{
+    position:absolute; top:8px; right:8px;
+    background:transparent; border:0; color:#b6bdc9; font-size:24px;
+  }
+}
+
+/* ===== MODALS: always above header/corner logo; centered dialog ===== */
+.modal{
+  position: fixed; inset: 0; display: none; z-index: 6000;
+}
+.modal[aria-hidden="false"]{ display: block; }
+.modal__backdrop{
+  position:absolute; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(2px);
+}
+.modal__dialog{
+  position:relative; width:min(760px,92%); max-height:88vh; overflow:auto;
+  margin:6vh auto 4vh; background:var(--panel,#111218);
+  border:1px solid var(--border,#222433); border-radius:var(--radius,16px);
+  box-shadow:0 10px 24px rgba(0,0,0,.25); padding:18px;
+}
+.modal__close{ position:absolute; top:8px; right:12px; background:transparent; border:0; font-size:24px; color:var(--muted,#b6bdc9); cursor:pointer; }
+
+/* Header stays below overlays */
+.topbar{ z-index:2000; }
+
+/* ===== DESKTOP: show corner logo above the header; hide header logo ===== */
+@media (min-width: 900px){
+  /* float/bleed logo sits above the topbar */
+  .corner-logo{
+    display: block !important;
+    position: fixed;         /* stays pinned as you scroll */
+    left: 24px;              /* adjust to taste */
+    top: -35px;              /* negative pushes it above the header */
+    z-index: 3001;           /* higher than .topbar (which is 2000) */
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
+  }
+  .corner-logo img{
+    height: 160px;           /* size to taste */
+    width: auto;
+    display: block;
+  }
+
+  /* hide the logo that lives inside the header for desktop */
+  .topbar .brand,
+  .topbar .brand-badge,
+  .topbar .brand-logo,
+  .topbar .brand-mark{
+    display: none !important;
+  }
+}
+
+/* ===== MOBILE (kept as-is): hide corner logo, show centered header logo ===== */
+@media (max-width: 899px){
+  .corner-logo{ display:none !important; }
+  /* your existing mobile centering rules for .topbar .brand/.brand-mark remain */
+}
+
+/* Desktop: push the corner logo further down */
+@media (min-width: 900px){
+  :root{
+    /* increase this to move it lower (e.g., 40px, 56px, 72px) */
+    --corner-logo-top: 5px;
+  }
+  .corner-logo{
+    top: var(--corner-logo-top) !important;
+    left: 24px;                  /* keep as-is or adjust */
+    z-index: 3001;               /* stays above header */
+  }
+}
+
+/* ===== Sticky header (desktop + mobile) ===== */
+.topbar{
+  position: sticky;
+  position: -webkit-sticky;            /* iOS Safari */
+  top: 0;
+  z-index: 2000;                        /* above page content */
+  background: rgba(11,12,16,.85);       /* solid/blurred backdrop while scrolling */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* respect notches/status bars when present */
+@supports (height: env(safe-area-inset-top)){
+  .topbar{ top: max(0px, env(safe-area-inset-top)); }
+}
+
+/* keep first section from sliding under the sticky bar */
+@media (min-width: 900px){
+  .hero{ padding-top: calc(var(--header-h-desktop, 72px) + 16px) !important; }
+}
+@media (max-width: 899px){
+  .hero{ padding-top: calc(var(--m-head, 108px) + 12px) !important; }
+}
+
+/* overlays stay above sticky header */
+.modal{ z-index: 6000; }
+@media (max-width: 899px){
+  .mobile-drawer{ z-index: 5000; }
+}
+
+/* --- Keep the top bar sticky and above everything --- */
+.topbar{
+  position: sticky;            /* stays relative to viewport */
+  position: -webkit-sticky;
+  top: 0;
+  z-index: 5000;               /* higher than any section */
+  background: rgba(11,12,16,.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Make sure sections never paint over the header */
+.hero, .section, .section-alt { position: relative; z-index: 0; }
+
+/* Safety: common wrappers should not break sticky */
+.site, .page, .wrapper, main {
+  overflow: visible !important;
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+}
+
+/* Give in-page anchors room so the header doesn’t “eat” them */
+#services, #about, #case-studies, #contact {
+  scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
+}
+@media (max-width: 899px){
+  #services, #about, #case-studies, #contact {
+    scroll-margin-top: calc(var(--m-head, 108px) + 12px);
+  }
+}
+
+/* Optional: absolute insurance if some stylesheet still over-zindexes */
+*[style*="z-index"], .hero *, .section * { z-index: auto; }
+
+/* ===== FINAL HEADER + CORNER LOGO FIX ===== */
+
+/* 1) Force the header to stay visible on scroll (desktop + mobile) */
+.topbar{
+  position: fixed !important;
+  top: 0; left: 0; right: 0;
+  z-index: 5000;                       /* header sits above page content */
+  background: rgba(11,12,16,.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Give the page top padding equal to header height so content isn't hidden */
+@media (min-width: 900px){
+  body{ padding-top: var(--header-h-desktop, 72px) !important; }
+  .topbar .container{ min-height: var(--header-h-desktop, 72px) !important; }
+}
+@media (max-width: 899px){
+  body{ padding-top: var(--m-head, 108px) !important; }
+  .topbar .container{ min-height: var(--m-head, 108px) !important; }
+}
+
+/* 2) Corner logo ABOVE the header on desktop; hidden on mobile */
+@media (min-width: 900px){
+  :root{ --corner-logo-top: 32px; }     /* adjust this number to move it down/up */
+  .corner-logo{
+    position: fixed !important;
+    top: var(--corner-logo-top) !important;
+    left: 24px !important;
+    z-index: 6000 !important;           /* above the header (5000) */
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
+    display: block !important;
+  }
+}
+@media (max-width: 899px){
+  .corner-logo{ display: none !important; }  /* mobile uses centered header logo */
+}
+
+/* 3) Overlays always above header/corner logo */
+.modal{ z-index: 7000 !important; }
+@media (max-width: 899px){
+  .mobile-drawer{
+    top: var(--m-head, 108px) !important;
+    z-index: 6500 !important;           /* above header, below modal */
+    position: fixed !important;
+    right: 0; left: auto;
+    transform: translateX(110%);        /* keep your slide-in behavior */
+  }
+  .mobile-drawer[aria-hidden="false"]{ transform: translateX(0); }
+}
+
+/* 4) In-page anchors land below the fixed header */
+#services, #about, #case-studies, #contact{
+  scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
+}
+@media (max-width: 899px){
+  #services, #about, #case-studies, #contact{
+    scroll-margin-top: calc(var(--m-head, 108px) + 12px);
+  }
+}
+
+/* Desktop: move the corner logo a bit higher */
+@media (min-width: 900px){
+  :root{
+    /* smaller = higher; negatives make it bleed above the header */
+    --corner-logo-top: 8px;   /* try 8px, 0px, or -12px for a bigger lift */
+  }
+  .corner-logo{
+    top: var(--corner-logo-top) !important;
+  }
+}
+
+/* Mobile: put the drawer Close (×) in the extreme top-right */
+@media (max-width: 899px){
+  .mobile-drawer .drawer-close{
+    position: absolute !important;
+    top: max(8px, env(safe-area-inset-top));         /* play nice with notches */
+    right: max(8px, env(safe-area-inset-right));
+    left: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+
+    /* defeat "full-width button" styles inside the drawer */
+    width: auto !important;
+    min-width: 44px; min-height: 44px;               /* comfy tap target */
+
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 4px;
+    background: transparent; border: 0;
+    color: var(--muted, #b6bdc9); font-size: 24px; line-height: 1;
+    z-index: 1;                                       /* above drawer content */
+    cursor: pointer;
+  }
+
+  /* optional hover/focus */
+  .mobile-drawer .drawer-close:hover{ color:#fff; }
+  .mobile-drawer .drawer-close:focus-visible{
+    outline: 2px solid var(--accent, #4c8bf5); outline-offset: 2px;
+  }
+}
+
+/* ===== Mobile hero: responsive layout & typography ===== */
+@media (max-width: 899px){
+  .hero{
+    /* keep content clear of the fixed header */
+    padding-top: calc(var(--m-head, 108px) + 16px) !important;
+    padding-bottom: 24px !important;
+
+    /* make the background look good on tall/narrow screens */
+    background-position: center top, left top, right top, center !important;
+    background-size: auto, auto, auto, cover !important;
+
+    /* minimum height that feels “hero”, but not too tall */
+    min-height: calc(100svh - var(--m-head, 108px) - 24px);
+  }
+
+  /* one-column stack */
+  .hero-grid{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    align-items: start !important;
+  }
+
+  /* center the copy and make it readable */
+  .hero-copy{
+    text-align: center !important;
+  }
+  .hero-copy h1{
+    font-size: clamp(1.75rem, 6.5vw, 2.4rem) !important;
+    line-height: 1.15 !important;
+    letter-spacing: .2px;
+    margin-bottom: 8px;
+  }
+  .hero-copy p{
+    font-size: 1rem !important;
+    max-width: 36ch;
+    margin: 0 auto 10px;
+  }
+
+  /* buttons become full width & finger-friendly */
+  .hero-cta{ 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    align-items: stretch; 
+    margin-top: 8px;
+  }
+  .hero-cta .btn{
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  /* metrics reflow */
+  .hero-metrics{
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 8px !important;
+    margin-top: 14px;
+  }
+  .hero-metrics div{
+    padding: 10px 12px !important;
+  }
+}
+
+/* ultra-small devices: collapse metrics to 1 column */
+@media (max-width: 380px){
+  .hero-metrics{ grid-template-columns: 1fr !important; }
+}
+
+html { scroll-behavior: smooth; }
+
+#services, #about, #case-studies, #contact{
+  scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
+}
+@media (max-width: 899px){
+  #services, #about, #case-studies, #contact{
+    scroll-margin-top: calc(var(--m-head, 108px) + 12px);
+  }}
+
+
+ /* ===== Let's Talk (contact) — Mobile layout & no X-scroll ===== */
+@media (max-width: 899px){
+  /* If your section id/class differs, these cover the common ones */
+  #contact, .lets-talk, .section-contact{
+    overflow-x: clip;                 /* prevent side scroll from inner children */
+  }
+
+  /* Constrain the whole form block so it doesn't stretch too wide */
+  .contact-wrap, .contact-card, .contact-form{
+    max-width: 620px;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  /* Single-column stack */
+  .contact-grid, .grid-2, .contact-form{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Rows that used to be side-by-side (e.g., First/Last) now wrap */
+  .form .row{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+
+  /* Allow inputs to actually shrink when inside flex parents */
+  .form .field,
+  .form label,
+  .form .row > *{
+    flex: 1 1 240px;      /* each item can wrap to its own line */
+    min-width: 0;         /* CRITICAL: prevents overflow in flex */
+  }
+
+  /* Inputs/controls take the full width of their column */
+  .form input,
+  .form select,
+  .form textarea{
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Message box height + wrap long text to avoid overflow */
+  .form textarea{
+    min-height: 132px;
+    resize: vertical;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Error/help text should wrap instead of causing overflow */
+  .form .error,
+  .form .hint{
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Buttons: full-width, stacked */
+  .contact-actions,
+  .form .actions{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* If this section is inside a modal on mobile, ensure the dialog fits */
+  .modal__dialog{
+    width: min(560px, 92%) !important;
+    margin: 8vh auto 4vh !important;
+  }
+}
+
+/* Safety nets (won't hurt desktop) */
+html, body{ overflow-x: hidden; }        /* suppress any stray x-scroll */
+img, svg, video, iframe{ max-width:100%; height:auto; }  /* media can't overflow */ 
+
+/* ensure logos can receive pointer events and sit above content */
+.corner-logo{ pointer-events:auto !important; }
+.topbar .brand{ pointer-events:auto !important; }
+
+.corner-logo, .topbar .brand { pointer-events: auto !important; }
+
+
+/* page should always be scrollable unless a modal/drawer is open */
+html, body { min-height: 100%; overflow-y: auto; }
+body.no-scroll { overflow: hidden !important; }
+
+/* make sure logos are clickable above content */
+.corner-logo, .topbar .brand { pointer-events: auto !important; }
+
+html { scroll-behavior: smooth; }       /* nice scrolling */
+html, body { min-height: 100%; }        /* allow scrolling */
+body.no-scroll { overflow: hidden !important; }  /* while drawer/modals open */
+.corner-logo, .topbar .brand { pointer-events: auto !important; } /* clicks pass through */
+
+html, body { min-height: 100%; overflow-y: auto; }
+.site, .page, .wrapper, main { overflow: visible !important; }
+.corner-logo, .topbar .brand { pointer-events: auto !important; }
+
+/* PDF viewer sizing */
+.modal-pdf .modal__dialog{ width: min(1100px, 96%); }
+.modal-pdf .iframe-wrap{ height: min(82vh, 900px); }
+.modal-pdf .iframe-wrap iframe{ width: 100%; height: 100%; border: 0; }
+
+/* little toolbar for open/download */
+.modal-pdf .pdf-actions{
+  display: flex; gap: 12px; align-items: center; margin: 0 0 8px;
+}
+.modal-pdf .pdf-actions a{
+  font-size: .95rem; text-decoration: underline;
+}
+
+/* mobile tweaks */
+@media (max-width: 899px){
+  .modal-pdf .modal__dialog{ width: 96%; }
+  .modal-pdf .iframe-wrap{ height: 75vh; }
+}
+
+/* make PDF links look clickable */
+.link, .js-pdf, .pdf-actions a { cursor: pointer; }
+.link[aria-disabled="true"] { pointer-events: none; } /* keep disabled links truly disabled */
+
+/* safety: make sure nothing disables pointer events */
+.link, .js-pdf { pointer-events: auto; }
+
+html { scroll-behavior: smooth; }
+
+#services, #about, #case-studies, #contact{
+  scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
+}
+@media (max-width: 899px){
+  #services, #about, #case-studies, #contact{
+    scroll-margin-top: calc(var(--m-head, 108px) + 12px);
+  }
+}
+
+/* --- Make native anchors usable and unblocked --- */
+html { scroll-behavior: smooth; }
+#services, #about, #case-studies, #contact{
+  scroll-margin-top: calc(var(--header-h-desktop, 72px) + 12px);
+}
+@media (max-width: 899px){
+  #services, #about, #case-studies, #contact{
+    scroll-margin-top: calc(var(--m-head, 108px) + 12px);
+  }
+}
+
+/* Logos must be clickable and above content */
+.corner-logo, .topbar .brand{ pointer-events:auto !important; z-index: 6001 !important; }
+
+/* Hidden overlays must NOT catch clicks */
+.modal[aria-hidden="true"],
+.mobile-drawer[aria-hidden="true"]{ display:none !important; pointer-events:none !important; }
+
+/* Visible states (keep your existing styles) */
+.modal[aria-hidden="false"]{ display:block !important; }
+@media (max-width: 899px){
+  .mobile-drawer[aria-hidden="false"]{ transform: translateX(0) !important; pointer-events:auto !important; }
+}
+
+/* Page must be scrollable unless explicitly locked */
+html, body{ min-height:100%; overflow-y:auto; }
+body.no-scroll{ overflow:hidden !important; }
+
+
+html { scroll-behavior: smooth; }
+#services, #about, #case-studies, #contact {
+  scroll-margin-top: calc(var(--header-h-desktop, 72px) + 12px);
+}
+@media (max-width: 899px){
+  #services, #about, #case-studies, #contact {
+    scroll-margin-top: calc(var(--m-head, 108px) + 12px);
+  }
+}

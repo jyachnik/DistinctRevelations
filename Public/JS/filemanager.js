@@ -17,7 +17,7 @@ import {
   getDownloadURL,
   deleteObject
 } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
-import { db, auth } from "./firebaseInit.js";
+import { db, auth } from "../firebaseInit.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
 const OWNER_EMAIL = "john@distinctrevelations.com";

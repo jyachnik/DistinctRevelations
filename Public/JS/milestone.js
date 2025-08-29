@@ -1,6 +1,6 @@
 // milestone.js
 
-import { auth, db } from './firebaseInit.js';
+import { auth, db } from '../firebaseInit.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
 import {
   collection,

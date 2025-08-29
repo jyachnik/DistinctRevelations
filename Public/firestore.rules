@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ---------- Helpers ---------- */
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn()
+             && (request.auth.token.email == "john@distinctrevelations.com"
+                 || request.auth.token.admin == true);
+    }
+    function userProfile(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+    function userBusinessKey() {
+      return isSignedIn() ? userProfile(request.auth.uid).data.businessKey : null;
+    }
+    function belongsToBusiness(businessId) {
+      return isSignedIn() && userBusinessKey() == businessId;
+    }
+
+    /* ---------- BUSINESSES (top-level) ---------- *
+     * Used by the owner modal and as the root for all business data.
+     * Admin manages these docs; members can read their own business.
+     */
+    match /businesses/{businessId} {
+      // Read company doc if you're admin or a member of this business
+      allow read: if isAdmin() || belongsToBusiness(businessId);
+
+      // Create/update/delete are admin-only
+      allow create, update, delete: if isAdmin();
+
+      // Public “Let’s Talk” submissions live here
+      match /inquiries/{docId} {
+        allow create: if true;             // anyone can submit
+        allow read, update, delete: if isAdmin();
+      }
+
+      // Any other nested data under a business (any depth):
+      // e.g., dashboards, KPIs, projects, settings, etc.
+      match /{document=**} {
+        allow read:  if isAdmin() || belongsToBusiness(businessId);
+        allow write: if isAdmin();
+      }
+    }
+
+    /* ---------- USERS (login profile) ---------- *
+     * App reads /users/{uid} to get businessKey, etc.
+     */
+    match /users/{uid} {
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow read:   if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    /* ---------- Default deny ---------- */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

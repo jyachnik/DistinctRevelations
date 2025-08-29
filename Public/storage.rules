@@ -1,0 +1,57 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Client file uploads (downloads, deletes)
+    match /files/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Client logos
+    match /logos/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Deny everything else by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+   
+    // all buckets
+    match /{businessKey}/files/{allPaths=**} {
+      // allow any authenticated user to read & write
+      allow read, write: if request.auth != null;
+    }
+
+match /{businessKey}/files/{fileName} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 2 client logos under the same business
+    match /{businessKey}/logos/{logoName} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 3 catch-all: deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+ match /logos/{businessId}/{fileName} {
+      allow read: if true;
+      // Only the owner email can write
+      allow write: if request.auth != null
+                   && request.auth.token.email == "john@distinctrevelations.com";
+    }
+    // Lock down all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+ 
+ match /logos/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+ 
+   }
+}
+  }
+

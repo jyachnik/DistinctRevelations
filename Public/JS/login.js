@@ -1,60 +1,81 @@
 // login.js
-import { auth, db } from './firebaseInit.js';
+import { auth, db } from '../firebaseInit.js';
 import { signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
 
-const loginBtn = document.getElementById('loginBtn');
-const errorMsg = document.getElementById('errorMsg');
+const $ = (id) => document.getElementById(id);
 
-loginBtn.addEventListener('click', async () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  errorMsg.textContent = '';
-
-  try {
-    console.log('🔒 Attempting login for:', email);
-    const { user } = await signInWithEmailAndPassword(auth, email, password);
-    console.log('✅ Firebase signIn succeeded:', user.uid);
-
-    // --- OWNER BYPASS ---
-    if (email === 'john@distinctrevelations.com') {
-      // this function should pop up your business-select modal
-      window.showBusinessModalForOwner(user);
-      return;
-    }
-
-    // --- REGULAR USER PATH ---
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      throw new Error('No user profile found in Firestore.');
-    }
-    const { businessKey } = userSnap.data();
-    if (!businessKey) {
-      throw new Error('Your account is not yet assigned to a business.');
-    }
-
-    // Redirect to dashboard
-    window.location.href = `dashboard.html?business=${businessKey}`;
-
-  } catch (err) {
-    console.error('🔥 login error:', err.code, err.message);
-    let msg = 'Login failed. Please try again.';
-    switch (err.code) {
-      case 'auth/invalid-email':
-        msg = 'Invalid email format.';
-        break;
-      case 'auth/user-not-found':
-        msg = 'No account found with that email.';
-        break;
-      case 'auth/wrong-password':
-        msg = 'Incorrect password.';
-        break;
-      // Firestore lookup errors fall through below
-    }
-    if (err.message.startsWith('No user profile')) {
-      msg = err.message;
-    }
-    errorMsg.textContent = `❌ ${msg}`;
+document.addEventListener('DOMContentLoaded', () => {
+  const form = $('loginForm');
+  if (!form) {
+    console.warn('loginForm not found');
+    return;
   }
+
+  const emailEl = $('loginEmail');
+  const passEl  = $('loginPassword');
+
+  // feedback line (create if missing)
+  let msgEl = $('loginMsg');
+  if (!msgEl) {
+    msgEl = document.createElement('p');
+    msgEl.id = 'loginMsg';
+    msgEl.className = 'hint';
+    form.appendChild(msgEl);
+  }
+
+  const setMsg = (text, ok = false) => {
+    msgEl.textContent = text || '';
+    msgEl.style.color = ok ? '#7bd389' : '#ffb3b3';
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setMsg('');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const email = (emailEl?.value || '').trim();
+      const pass  = passEl?.value || '';
+      if (!email || !pass) { setMsg('Enter email and password.'); return; }
+
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      const user = cred.user;
+
+      // Owner bypass → show business selector modal if you have it
+      if (email.toLowerCase() === 'john@distinctrevelations.com') {
+        if (window.showBusinessModalForOwner) {
+          window.showBusinessModalForOwner(user);
+          return; // stay on page
+        }
+        // fallback: go to an owner dashboard
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      // Regular user → look up businessKey
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (!snap.exists()) throw new Error('no-profile');
+      const data = snap.data();
+      if (!data.businessKey) throw new Error('no-business');
+
+      // Redirect to company dashboard
+      window.location.href = `dashboard.html?business=${encodeURIComponent(data.businessKey)}`;
+    } catch (err) {
+      console.error('login error:', err);
+      const map = {
+        'auth/invalid-email':  'Invalid email address.',
+        'auth/user-not-found': 'No account with that email.',
+        'auth/wrong-password': 'Incorrect password.',
+        'auth/user-disabled':  'This account is disabled.',
+      };
+      if (map[err.code]) setMsg(`❌ ${map[err.code]}`);
+      else if (err.message === 'no-profile')  setMsg('❌ No user profile found in Firestore.');
+      else if (err.message === 'no-business') setMsg('❌ Your account isn’t assigned to a business yet.');
+      else setMsg('❌ Login failed. Please try again.');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
 });

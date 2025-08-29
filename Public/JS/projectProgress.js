@@ -3,7 +3,7 @@
 
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-import { db } from "./firebaseInit.js";
+import { db } from "../firebaseInit.js";
 
 const OWNER_EMAIL = "john@distinctrevelations.com";
 

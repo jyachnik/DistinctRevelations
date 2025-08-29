@@ -16,7 +16,7 @@
 
 /* Left logo */
 #dashboardHeader .dr-logo {
-  height: 60px;
+  height: 120px;
 }
 
 /* Center titles */
@@ -95,10 +95,7 @@ body, .container, .dashboard-container, .leftside, .middle, .rightside {
   color: #fff;
 }
 
-/* Left logo */
-#dashboardHeader .dr-logo {
-  height: 40px;
-}
+
 
 /* Center titles */
 #dashboardHeader .header-center {
