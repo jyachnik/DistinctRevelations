@@ -68,7 +68,7 @@ form.dataset.bound = '1';
       const bizKey = data.businessKey;
       if (!bizKey) throw new Error('no-business');
 
-      window.location.href = `dashboard.html?business=${encodeURIComponent(bizKey)}`;
+      window.location.href = `Public/dashboard.html?business=${encodeURIComponent(businessKey)}`;
 
     } catch (err) {
       console.error('login error:', err);
