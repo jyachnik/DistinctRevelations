@@ -1,5 +1,5 @@
 // /Public/forgot.js
-import { auth } from "../firebaseInit.js";
+const { auth, db } = window;
 import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
 const $ = (id) => document.getElementById(id);

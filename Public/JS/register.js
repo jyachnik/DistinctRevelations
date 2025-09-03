@@ -1,5 +1,5 @@
 // /Public/js/register.js
-import { auth, db } from "../firebaseInit.js";
+const { auth, db } = window;
 import {
   createUserWithEmailAndPassword,
   updateProfile,

@@ -13,6 +13,8 @@
      <link rel="stylesheet" href="style/projectProgress.css" />
       <link rel="stylesheet" href="style/qnaStats.css" />
        <link rel="stylesheet" href="style/header.css" />
+
+       <!-- dashboard.html -->
 </head>
 <body>
     <header id="dashboardHeader">
@@ -25,7 +27,7 @@
         </div>
         <div class="header-right owner">
              <div class="logo-wrapper">
-                <img id="companyLogo" src="default-logo.png" alt="Company Logo"/>
+                <img id="companyLogo" src="images/Distinct_Revelations_Logo_website.png" alt="Company Logo"/>
             </div>
                <label for="logoFileInput" class="upload-logo-label">Upload Logo</label>
               <input 
@@ -417,37 +419,40 @@
   </div>
 </div>
 
+
   </main>
 
   <!-- your modals here -->
 
  <!-- Firebase modular SDKs -->
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js"></script>
+<!-- 1) Firebase compat SDKs (NOT modules) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <!-- Your init -->
-  <script type="module" src="./firebaseInit.js"></script>
+<!-- Your initializer (note the capital I) -->
+<script src="./JS/firebaseInit.js"></script>
 
   <!-- Q&A (already working) -->
   <script type="module" src="./JS/dashboard-business-loader.js"></script>
-  <script type="module" src="./JS/qna.js"></script>
-
-  <!-- **File Manager** (must come after firebaseInit!) -->
-  <script type="module" src="./JS/filemanager.js"></script>
+   <script type="module" src="./JS/header.js"></script>
+ 
+  <script type="module" src="./JS/activity.js"></script>
    <script type="module" src="./JS/milestone.js"></script>
 
-   <script type="module" src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs"></script>
-   <script type="module" src="./JS/activity.js"></script>
-  
- <script type="module" src="./JS/projectProgress.js"></script>
- 
- <script type="module" src="./JS/header.js"></script>
+ <script type="module" src="./JS/projectStatus.js"></script>
+<script type="module" src="./JS/projectProgress.js"></script>
+  <script type="module" src="./JS/qna.js"></script>
+
+
 
   
- <script type="module" src="./JS/projectStatus.js"></script>
- 
+
+   <script type="module" src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs"></script>
+   
+  
+
  <script type="module">
   // point at the JS folder *relative to this file*
    import { initProjectStatus } from './JS/projectStatus.js';
@@ -456,6 +461,52 @@
   </script>
 
 
+
+<style>
+  /* hide body until we know auth state to avoid flashing private content */
+  body.auth-gate { visibility: hidden; }
+</style>
+
+
+<script>
+  // Hide everything until auth check completes
+  document.body.classList.add('auth-gate');
+
+  (function () {
+    const waitForAuth = () => new Promise((resolve) => {
+      if (window.auth) return resolve(window.auth);
+      const iv = setInterval(() => {
+        if (window.auth) { clearInterval(iv); resolve(window.auth); }
+      }, 50);
+      setTimeout(() => { clearInterval(iv); resolve(null); }, 5000);
+    });
+
+    (async () => {
+      const a = await waitForAuth();
+      if (!a) { location.replace('./index.html#client-login'); return; }
+
+      a.onAuthStateChanged((u) => {
+        if (!u) {
+          // not signed in → go to login
+          location.replace('./index.html#client-login');
+        } else {
+          // signed in → show dashboard
+          document.body.classList.remove('auth-gate');
+          // (optional) show who’s logged in
+          const who = document.getElementById('whoami');
+          if (who) who.textContent = u.email || u.uid;
+        }
+      });
+    })();
+  })();
+</script>
+
+<script>
+  auth.onAuthStateChanged((u) => {
+    if (!u) location.href = './index.html#client-login';
+    else console.log('Signed in as', u.email);
+  });
+</script>
 
 
 </body>

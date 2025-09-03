@@ -1,249 +1,289 @@
-// qna.js
-import { auth, db } from '../firebaseInit.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp
-} from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
+// /Public/JS/qna.js
+// Fully functional Q&A module using Firebase **compat** (window.auth, window.db).
+// Keeps original behavior and UI wiring, but now waits for the business key,
+// guards DOM lookups, and enforces permissions (owner or assignee can edit/complete/delete).
 
+/* ---------------- Firebase (compat) ---------------- */
+const { auth, db } = window; // provided by firebaseInit.js (compat)
 const OWNER_EMAIL = 'john@distinctrevelations.com';
 
-// — DOM refs —
+/* ---------------- Business key sync ---------------- */
+function getBizKeyImmediate() {
+  return new URL(location.href).searchParams.get('business') || window.BIZ_KEY || null;
+}
+function onBizReady(cb) {
+  const k = getBizKeyImmediate();
+  if (k) return cb(k);
+  // dashboard-business-loader.js dispatches this when it resolves the key
+  window.addEventListener('business:ready', (e) => cb(e.detail.businessKey), { once: true });
+}
+
+/* ---------------- DOM refs (original ids) ---------------- */
 const formEl         = document.getElementById('qnaForm');
 const msgEl          = document.getElementById('qnaMessage');
 const typeEl         = document.getElementById('qnaType');
 const assignFormEl   = document.getElementById('qnaAssignedTo');
 const filterDoneEl   = document.getElementById('filterDone');
-const filterTypeEl   = document.getElementById('filterType');    // now points to the FILTER dropdown :contentReference[oaicite:3]{index=3}
+const filterTypeEl   = document.getElementById('filterType');       // filter dropdown
 const filterAssignEl = document.getElementById('filterAssignedTo');
 const tableBodyEl    = document.getElementById('qnaTableBody');
 
-// Stats elements
+// Stats
 const openQnEl = document.getElementById('openQuestionsCount');
 const openTkEl = document.getElementById('openTasksCount');
 
-// Modal buttons
+// Modals / actions
 const saveEditBtn      = document.getElementById('saveEditBtn');
 const confirmDeleteBtn = document.getElementById('confirmDelete');
 
+/* ---------------- State ---------------- */
 let businessKey = null;
 let userEmail   = null;
 let entries     = [];
 let currentSort = { column: null, direction: 'desc' };
 let editingId   = null;
 let deletingId  = null;
+let unsub       = null;
 
-// — Auth & initialization —
-onAuthStateChanged(auth, async user => {
-  if (!user) return;
-  userEmail = user.email;
-  businessKey = new URLSearchParams(location.search).get('business');
-  if (!businessKey) return console.error('No business key in URL');
+/* ---------------- Utilities ---------------- */
+function safeText(v) { return (v ?? '').toString(); }
+function mmddyyyy(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${mm}/${dd}/${d.getFullYear()}`;
+}
+function canModify(entry) {
+  return userEmail === OWNER_EMAIL || userEmail === entry.assignedTo;
+}
 
-  await loadAssignDropdowns();
-  populateTypeFilter();                                       // populate filterTypeEl
-  startListener();
-  wireForm();
-  wireFiltersAndSorting();
-  wireModals();
-});
+/* ---------------- Data (compat) ---------------- */
+function qnaColl() {
+  return db.collection('businesses').doc(businessKey).collection('qna');
+}
 
-// — Populate “Assign To” dropdowns —
 async function loadAssignDropdowns() {
-  const snap   = await getDocs(collection(db, 'businesses', businessKey, 'users'));
-  const emails = [...new Set(snap.docs.map(d=>d.data().email).filter(Boolean))];
-  if (!emails.includes(OWNER_EMAIL)) emails.unshift(OWNER_EMAIL);
+  if (!assignFormEl || !filterAssignEl) return;
+  try {
+    const snap = await db.collection('businesses').doc(businessKey).collection('users').get();
+    const emails = [...new Set(snap.docs.map(d => d.data()?.email).filter(Boolean))];
+    if (!emails.includes(OWNER_EMAIL)) emails.unshift(OWNER_EMAIL);
 
-  assignFormEl.innerHTML   = '<option value="">Assign To</option>';
-  filterAssignEl.innerHTML = '<option value="">Filter by Assigned</option>';
-  for (const e of emails) {
-    assignFormEl.innerHTML   += `<option value="${e}">${e}</option>`;
-    filterAssignEl.innerHTML += `<option value="${e}">${e}</option>`;
+    assignFormEl.innerHTML   = '<option value="">Assign To</option>';
+    filterAssignEl.innerHTML = '<option value="">Filter by Assigned</option>';
+    for (const e of emails) {
+      assignFormEl.innerHTML   += `<option value="${e}">${e}</option>`;
+      filterAssignEl.innerHTML += `<option value="${e}">${e}</option>`;
+    }
+  } catch (e) {
+    console.warn('QnA: failed to load assigned users', e);
   }
 }
 
-// — Populate “Filter by Type” dropdown to match your stored e.type values —
 function populateTypeFilter() {
-  const types = ['question','task','note'];
+  if (!filterTypeEl) return;
+  const types = ['question', 'task', 'note'];
   filterTypeEl.innerHTML = '<option value="">Filter by Type</option>';
-  types.forEach(t => {
-    filterTypeEl.innerHTML += `<option value="${t}">${t[0].toUpperCase()+t.slice(1)}</option>`;
-  });
+  types.forEach(t => filterTypeEl.innerHTML += `<option value="${t}">${t[0].toUpperCase() + t.slice(1)}</option>`);
 }
 
-// — Real-time listener + stats update —
 function startListener() {
-  const q = query(
-    collection(db, 'businesses', businessKey, 'qna'),
-    orderBy('timestamp','desc')
-  );
-  onSnapshot(q, snap => {
-    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // update stats
-    let qCount=0, tCount=0;
-    entries.forEach(e => {
-      if (!e.completed) {
-        if (e.type==='question') qCount++;
-        else if (e.type==='task') tCount++;
-      }
-    });
-    openQnEl.textContent = qCount;
-    openTkEl.textContent = tCount;
+  if (!tableBodyEl) return;
+  if (typeof unsub === 'function') unsub();
 
-    renderTable();
-  }, err => console.error('QnA snapshot error', err));
+  unsub = qnaColl().orderBy('timestamp', 'desc').onSnapshot(
+    (snap) => {
+      entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Stats
+      let qCount = 0, tCount = 0;
+      for (const e of entries) {
+        if (!e.completed) {
+          if (e.type === 'question') qCount++;
+          else if (e.type === 'task') tCount++;
+        }
+      }
+      if (openQnEl) openQnEl.textContent = qCount;
+      if (openTkEl) openTkEl.textContent = tCount;
+
+      renderTable();
+    },
+    (err) => console.error('QnA snapshot error', err)
+  );
 }
 
-// — Wire “Add” form —
+/* ---------------- UI Wiring ---------------- */
 function wireForm() {
-  formEl.addEventListener('submit', async e => {
+  if (!formEl || formEl.dataset.bound === '1') return;
+  formEl.dataset.bound = '1';
+  formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!msgEl || !typeEl || !assignFormEl) return;
+
     const message    = msgEl.value.trim();
     const type       = typeEl.value;
     const assignedTo = assignFormEl.value;
     if (!message || !type || !assignedTo) return;
-    await addDoc(
-      collection(db, 'businesses', businessKey, 'qna'),
-      { message, type, assignedTo, completed: false, createdBy: userEmail, timestamp: serverTimestamp() }
-    );
-    formEl.reset();
+
+    try {
+      await qnaColl().add({
+        message,
+        type,
+        assignedTo,
+        completed: false,
+        createdBy: userEmail,
+        businessKey,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      formEl.reset();
+    } catch (err) {
+      console.error('Add QnA failed', err);
+    }
   });
 }
 
-// — Filters & Sorting —
 function wireFiltersAndSorting() {
-  filterDoneEl  .addEventListener('change', renderTable);
-  filterTypeEl  .addEventListener('change', renderTable);
-  filterAssignEl.addEventListener('change', renderTable);
+  filterDoneEl   && filterDoneEl  .addEventListener('change', renderTable);
+  filterTypeEl   && filterTypeEl  .addEventListener('change', renderTable);
+  filterAssignEl && filterAssignEl.addEventListener('change', renderTable);
 
   document.querySelectorAll('th[data-sort]').forEach(th => {
     th.style.cursor = 'pointer';
     th.addEventListener('click', () => {
-      const col = th.dataset.sort;
-      if (currentSort.column===col) {
-        currentSort.direction = currentSort.direction==='asc' ? 'desc' : 'asc';
+      const col = th.dataset.sort; // 'type' | 'message' | 'assignedTo' | 'timestamp'
+      if (currentSort.column === col) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
       } else {
-        currentSort.column    = col;
+        currentSort.column = col;
         currentSort.direction = 'asc';
       }
-      document.querySelectorAll('th[data-sort]').forEach(h=>h.classList.remove('asc','desc'));
+      document.querySelectorAll('th[data-sort]').forEach(h => h.classList.remove('asc', 'desc'));
       th.classList.add(currentSort.direction);
       renderTable();
     });
   });
 }
 
-// — Modal wiring (fixes Cancel buttons) —
 function wireModals() {
-  // Edit modal – header × and footer Cancel
-  document.querySelectorAll('#editModal #cancelEditBtn')
-    .forEach(btn => btn.addEventListener('click', () => {
-      document.getElementById('editModal').classList.add('hidden');
-    }));
-  saveEditBtn.addEventListener('click', saveEdit);
+  // Close edit modal
+  document.querySelectorAll('#editModal #cancelEditBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = document.getElementById('editModal');
+      m && m.classList.add('hidden');
+    });
+  });
+  saveEditBtn && saveEditBtn.addEventListener('click', saveEdit);
 
-  // Delete modal – header × and footer Cancel
-  document.querySelectorAll('#deleteConfirmModal #cancelDelete')
-    .forEach(btn => btn.addEventListener('click', () => {
-      document.getElementById('deleteConfirmModal').classList.add('hidden');
-    }));
-  confirmDeleteBtn.addEventListener('click', confirmDelete);
+  // Close delete modal
+  document.querySelectorAll('#deleteConfirmModal #cancelDelete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = document.getElementById('deleteConfirmModal');
+      m && m.classList.add('hidden');
+    });
+  });
+  confirmDeleteBtn && confirmDeleteBtn.addEventListener('click', confirmDelete);
 }
 
-// — Render table with filters, sorting & permissions —
+/* ---------------- Rendering ---------------- */
 function renderTable() {
   const tbody = tableBodyEl;
+  if (!tbody) return;
+
   tbody.innerHTML = '';
 
-  const fv = filterTypeEl.value.trim().toLowerCase();         // normalized filter
-  let list = entries
-    .filter(e => {
-      if (filterDoneEl.value==='done'   && !e.completed) return false;
-      if (filterDoneEl.value==='notDone'&&   e.completed) return false;
-      if (fv && e.type.toLowerCase()!==fv) return false;        // case-insensitive compare
-      if (filterAssignEl.value && e.assignedTo!==filterAssignEl.value) return false;
-      return true;
-    })
-    .sort((a,b) => {
-      if (!currentSort.column) return 0;
-      let av = a[currentSort.column], bv = b[currentSort.column];
-      if (currentSort.column==='timestamp') {
-        av = av.toDate().getTime(); bv = bv.toDate().getTime();
-        return currentSort.direction==='asc' ? av-bv : bv-av;
+  const doneFilter   = (filterDoneEl?.value || '').trim();
+  const typeFilter   = (filterTypeEl?.value || '').trim().toLowerCase();
+  const assignFilter = (filterAssignEl?.value || '').trim();
+
+  let list = entries.filter(e => {
+    if (doneFilter === 'done'    && !e.completed) return false;
+    if (doneFilter === 'notDone' &&  e.completed) return false;
+    if (typeFilter && String(e.type || '').toLowerCase() !== typeFilter) return false;
+    if (assignFilter && String(e.assignedTo || '') !== assignFilter) return false;
+    return true;
+  });
+
+  if (currentSort.column) {
+    const col = currentSort.column;
+    const dir = currentSort.direction;
+    list.sort((a, b) => {
+      if (col === 'timestamp') {
+        const av = a.timestamp?.toDate()?.getTime() || 0;
+        const bv = b.timestamp?.toDate()?.getTime() || 0;
+        return dir === 'asc' ? av - bv : bv - av;
       }
-      av = (av||'').toString().toLowerCase();
-      bv = (bv||'').toString().toLowerCase();
-      return currentSort.direction==='asc'
-        ? av.localeCompare(bv)
-        : bv.localeCompare(av);
+      const av = safeText(a[col]).toLowerCase();
+      const bv = safeText(b[col]).toLowerCase();
+      return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
     });
+  }
 
   for (const e of list) {
     const tr = document.createElement('tr');
     if (e.completed) tr.classList.add('completed');
 
     // Type / Message / Assigned
-    ['type','message','assignedTo'].forEach(field => {
-      const td = document.createElement('td');
-      td.textContent = e[field]||'';
-      tr.appendChild(td);
-    });
+    const tdType = document.createElement('td');      tdType.textContent = e.type || '';
+    const tdMsg  = document.createElement('td');      tdMsg.textContent  = e.message || '';
+    const tdAsg  = document.createElement('td');      tdAsg.textContent  = e.assignedTo || '';
+    tr.appendChild(tdType); tr.appendChild(tdMsg); tr.appendChild(tdAsg);
 
-    // Date (MM/DD/YYYY)
+    // Date
     const tdDate = document.createElement('td');
-    const dt = e.timestamp?.toDate();
-    tdDate.textContent = dt
-      ? `${String(dt.getMonth()+1).padStart(2,'0')}/`+
-        `${String(dt.getDate()).padStart(2,'0')}/`+
-        `${dt.getFullYear()}`
-      : '';
+    tdDate.textContent = mmddyyyy(e.timestamp);
     tdDate.style.whiteSpace = 'nowrap';
     tr.appendChild(tdDate);
 
-    // Done checkbox
+    // Done (only owner or assignee can toggle)
     const tdDone = document.createElement('td');
     const cb = document.createElement('input');
-    cb.type    = 'checkbox';
-    cb.checked = e.completed;
-    cb.disabled = !(userEmail===OWNER_EMAIL||userEmail===e.assignedTo);
-    cb.addEventListener('change', async ev => {
-      await updateDoc(
-        doc(db,'businesses',businessKey,'qna',e.id),
-        { completed: ev.target.checked }
-      );
-      tr.classList.toggle('completed', ev.target.checked);
+    cb.type = 'checkbox';
+    cb.checked = !!e.completed;
+    cb.disabled = !canModify(e);
+    cb.addEventListener('change', async (ev) => {
+      try {
+        await qnaColl().doc(e.id).update({ completed: ev.target.checked });
+        tr.classList.toggle('completed', ev.target.checked);
+      } catch (err) {
+        console.error('Toggle completed failed', err);
+        ev.target.checked = !ev.target.checked; // revert
+      }
     });
     tdDone.appendChild(cb);
     tr.appendChild(tdDone);
 
-    // Actions (owner or assigned user only)
+    // Actions (edit/delete)
     const tdAct = document.createElement('td');
     tdAct.style.textAlign = 'center';
-    if (userEmail===OWNER_EMAIL||userEmail===e.assignedTo) {
+    if (canModify(e)) {
       const editBtn = document.createElement('button');
-      editBtn.className   = 'edit-btn';
+      editBtn.className = 'edit-btn';
+      editBtn.title = 'Edit';
       editBtn.textContent = '✎';
       editBtn.addEventListener('click', () => {
-        document.getElementById('editModal').classList.remove('hidden');
-        msgEl.value   = e.message;
-        editingId     = e.id;
+        const modal = document.getElementById('editModal');
+        const input = document.getElementById('editMessage');
+        if (modal && input) {
+          input.value = e.message || '';
+          modal.classList.remove('hidden');
+          editingId = e.id;
+        }
       });
       tdAct.appendChild(editBtn);
 
       const delBtn = document.createElement('button');
-      delBtn.className   = 'delete-btn';
+      delBtn.className = 'delete-btn';
+      delBtn.title = 'Delete';
       delBtn.textContent = '🗑';
       delBtn.addEventListener('click', () => {
-        document.getElementById('deleteConfirmModal').classList.remove('hidden');
-        deletingId = e.id;
+        const modal = document.getElementById('deleteConfirmModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          deletingId = e.id;
+        } else if (confirm('Delete this Q&A?')) {
+          confirmDelete();
+        }
       });
       tdAct.appendChild(delBtn);
     }
@@ -253,21 +293,67 @@ function renderTable() {
   }
 }
 
-// — Save edits from Edit Modal —
+/* ---------------- Edit / Delete ---------------- */
 async function saveEdit() {
-  const newMsg = document.getElementById('editMessage').value.trim();
-  if (!newMsg) return;
-  await updateDoc(
-    doc(db,'businesses',businessKey,'qna',editingId),
-    { message: newMsg }
-  );
-  document.getElementById('editModal').classList.add('hidden');
+  const input = document.getElementById('editMessage');
+  if (!input) return;
+  const newMsg = input.value.trim();
+  if (!newMsg || !editingId) return;
+  try {
+    await qnaColl().doc(editingId).update({ message: newMsg });
+  } catch (err) {
+    console.error('Save edit failed', err);
+  } finally {
+    const m = document.getElementById('editModal');
+    m && m.classList.add('hidden');
+    editingId = null;
+  }
 }
 
-// — Confirm & perform delete —
 async function confirmDelete() {
-  await deleteDoc(
-    doc(db,'businesses',businessKey,'qna',deletingId)
-  );
-  document.getElementById('deleteConfirmModal').classList.add('hidden');
+  if (!deletingId) return;
+  try {
+    await qnaColl().doc(deletingId).delete();
+  } catch (err) {
+    console.error('Delete failed', err);
+  } finally {
+    const m = document.getElementById('deleteConfirmModal');
+    m && m.classList.add('hidden');
+    deletingId = null;
+  }
 }
+
+/* ---------------- Boot ---------------- */
+(function init() {
+  // If the QnA section isn't on this page, skip quietly
+  const hasUI = formEl || tableBodyEl;
+  if (!hasUI) return;
+
+  populateTypeFilter();
+  wireFiltersAndSorting();
+  wireModals();
+
+  onBizReady((biz) => {
+    businessKey = biz;
+
+    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+      console.warn('QnA: auth not available; continuing read-only');
+      startListener();
+      return;
+    }
+
+    auth.onAuthStateChanged((user) => {
+      if (!user) return;
+      userEmail = (user.email || '').toLowerCase();
+
+      // Everyone can read; only owner/assignee can modify (UI + rules)
+      startListener();
+      loadAssignDropdowns();
+      wireForm();
+    });
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (typeof unsub === 'function') unsub();
+  });
+})();

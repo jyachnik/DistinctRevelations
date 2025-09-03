@@ -2,61 +2,67 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /* ---------- Helpers ---------- */
-    function isSignedIn() { return request.auth != null; }
-    function isAdmin() {
-      return isSignedIn()
-             && (request.auth.token.email == "john@distinctrevelations.com"
-                 || request.auth.token.admin == true);
+    // -------- helpers --------
+    function signedIn() { return request.auth != null; }
+    function isOwner() {
+      return signedIn() && lower(request.auth.token.email) == 'john@distinctrevelations.com';
     }
-    function userProfile(uid) {
-      return get(/databases/$(database)/documents/users/$(uid));
+    function myBiz() {
+      return signedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessKey
+        : null;
     }
-    function userBusinessKey() {
-      return isSignedIn() ? userProfile(request.auth.uid).data.businessKey : null;
-    }
-    function belongsToBusiness(businessId) {
-      return isSignedIn() && userBusinessKey() == businessId;
-    }
+    function sameBiz(biz) { return isOwner() || (signedIn() && myBiz() == biz); }
 
-    /* ---------- BUSINESSES (top-level) ---------- *
-     * Used by the owner modal and as the root for all business data.
-     * Admin manages these docs; members can read their own business.
-     */
-    match /businesses/{businessId} {
-      // Read company doc if you're admin or a member of this business
-      allow read: if isAdmin() || belongsToBusiness(businessId);
-
-      // Create/update/delete are admin-only
-      allow create, update, delete: if isAdmin();
-
-      // Public “Let’s Talk” submissions live here
-      match /inquiries/{docId} {
-        allow create: if true;             // anyone can submit
-        allow read, update, delete: if isAdmin();
-      }
-
-      // Any other nested data under a business (any depth):
-      // e.g., dashboards, KPIs, projects, settings, etc.
-      match /{document=**} {
-        allow read:  if isAdmin() || belongsToBusiness(businessId);
-        allow write: if isAdmin();
-      }
-    }
-
-    /* ---------- USERS (login profile) ---------- *
-     * App reads /users/{uid} to get businessKey, etc.
-     */
+    // Users profile: user can see/edit their own profile; owner can see/edit all.
     match /users/{uid} {
-      allow create: if isSignedIn() && request.auth.uid == uid;
-      allow read:   if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow delete: if isAdmin();
+      allow read: if signedIn() && (uid == request.auth.uid || isOwner());
+      allow create: if signedIn() && uid == request.auth.uid;
+      allow update: if signedIn() && (uid == request.auth.uid || isOwner());
+      allow delete: if isOwner();
     }
 
-    /* ---------- Default deny ---------- */
-    match /{document=**} {
-      allow read, write: if false;
+    // Per-business scope
+    match /businesses/{biz} {
+      // Anyone in the same business (or owner) can read the business doc
+      allow read: if sameBiz(biz);
+
+      // Only owner can change top-level business fields (e.g., header/status/progress)
+      allow write: if isOwner();
+
+      // Activity — read for all; only owner can write
+      match /activities/{id} {
+        allow read: if sameBiz(biz);
+        allow create, update, delete: if isOwner();
+      }
+
+      // Milestones — read for all; only owner can write
+      match /milestones/{id} {
+        allow read: if sameBiz(biz);
+        allow create, update, delete: if isOwner();
+      }
+
+      // Q&A — read for all; user can CRUD their own; owner can do everything
+      match /qna/{id} {
+        allow read: if sameBiz(biz);
+        allow create: if sameBiz(biz) &&
+                      request.resource.data.ownerUid == request.auth.uid;
+        allow update, delete: if sameBiz(biz) && (
+                                isOwner() ||
+                                resource.data.ownerUid == request.auth.uid
+                              );
+      }
+
+      // File metadata — read for all; user can CRUD their own; owner can do everything
+      match /files/{id} {
+        allow read: if sameBiz(biz);
+        allow create: if sameBiz(biz) &&
+                      request.resource.data.ownerUid == request.auth.uid;
+        allow update, delete: if sameBiz(biz) && (
+                                isOwner() ||
+                                resource.data.ownerUid == request.auth.uid
+                              );
+      }
     }
   }
 }

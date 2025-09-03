@@ -1,5 +1,5 @@
 // /Public/select-business.js
-import { db } from '../firebaseInit.js';
+const { auth, db } = window;
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
 
 export async function showBusinessModalForOwner(user) {

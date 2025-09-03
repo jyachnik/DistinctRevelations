@@ -1,5 +1,5 @@
 // /Public/lets-talk.js
-import { db } from "../firebaseInit.js";
+const { auth, db } = window;
 import {
   collection, doc, setDoc, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";

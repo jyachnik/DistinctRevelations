@@ -1,55 +1,80 @@
-// projectStatus.js
-// Requires firebaseInit.js which exports { auth, db }
+// /Public/JS/projectStatus.js
+// Project Status controller using Firebase compat (window.auth, window.db).
+// Works with your HTML structure: .project-status .status-options [data-status]
 
-import { auth, db } from '../firebaseInit.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
-import {
-  doc,
-  onSnapshot,
-  setDoc
-} from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
+const { auth, db } = window;
+const OWNER_EMAIL = "john@distinctrevelations.com";
 
-const OWNER_EMAIL = 'john@distinctrevelations.com';
+/* business key sync */
+function getBizKeyImmediate() {
+  return new URL(location.href).searchParams.get("business") || window.BIZ_KEY || null;
+}
+function onBizReady(cb) {
+  const k = getBizKeyImmediate();
+  if (k) return cb(k);
+  window.addEventListener("business:ready", (e) => cb(e.detail.businessKey), { once: true });
+}
 
-export function initProjectStatus(businessKey) {
-  let userEmail = null;
+/* DOM */
+function getNodes() {
+  const optionsRoot = document.querySelector(".project-status .status-options");
+  const optionLights = optionsRoot ? optionsRoot.querySelectorAll("[data-status]") : [];
+  return { optionsRoot, optionLights };
+}
+function highlight(optionLights, status) {
+  optionLights.forEach(el => {
+    const active = String(el.dataset.status || "").toLowerCase() === String(status || "").toLowerCase();
+    el.classList.toggle("active", active);
+    el.classList.toggle("selected", active); // support either classname
+  });
+}
 
-  const statusDoc = doc(db, 'businesses', businessKey, 'settings', 'projectStatus');
-  const container = document.querySelector('.project-status');
-  const lights    = container.querySelectorAll('.light');
+/* FS helpers */
+function businessDoc(biz) {
+  return db.collection("businesses").doc(biz);
+}
 
-  function highlight(status) {
-    lights.forEach(light => {
-      if (light.dataset.status === status) light.classList.add('selected');
-      else light.classList.remove('selected');
-    });
+/* Boot */
+(function init() {
+  const { optionsRoot, optionLights } = getNodes();
+  if (!(optionsRoot && optionLights.length)) {
+    // Not on this page
+    return;
   }
 
-  onAuthStateChanged(auth, user => {
-    if (!user) return;
-    userEmail = user.email;
+  onBizReady((businessKey) => {
+    auth.onAuthStateChanged((user) => {
+      const isOwner = !!user && String(user.email || "").toLowerCase() === OWNER_EMAIL;
 
-    // Enable clicks only for owner
-    if (userEmail === OWNER_EMAIL) {
-      lights.forEach(light => {
-        light.style.cursor = 'pointer';
-        light.addEventListener('click', async () => {
-          const newStatus = light.dataset.status;
-          try {
-            await setDoc(statusDoc, { status: newStatus }, { merge: true });
-          } catch (e) {
-            console.error('Failed to save project status', e);
-          }
+      // Live updates
+      businessDoc(businessKey).onSnapshot(
+        (snap) => {
+          const data = snap.exists ? (snap.data() || {}) : {};
+          const status = data.status || "onTrack";
+          highlight(optionLights, status);
+        },
+        (err) => console.warn("projectStatus: listener error:", err && (err.message || err))
+      );
+
+      if (isOwner) {
+        optionsRoot.style.cursor = "pointer";
+        optionLights.forEach(light => {
+          light.addEventListener("click", async () => {
+            const newStatus = light.dataset.status;
+            try {
+              await businessDoc(businessKey).set({ status: newStatus }, { merge: true });
+            } catch (e) {
+              console.error("projectStatus: save failed", e);
+              alert("Failed to save project status.");
+            }
+          });
         });
-      });
-    }
+      } else {
+        optionsRoot.style.cursor = "default";
+      }
+    });
   });
+})();
 
-  // Listen for changes (owner & non-owner both see updates)
-  onSnapshot(statusDoc, snap => {
-    if (snap.exists()) {
-      const { status } = snap.data();
-      highlight(status);
-    }
-  }, err => console.error('ProjectStatus listener error', err));
-}
+/* legacy export to satisfy existing inline import */
+export function initProjectStatus() {}
