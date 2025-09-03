@@ -1,0 +1,44 @@
+name: pages build and deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: List files to be published (debug)
+        run: |
+          echo "Listing ./Public:"
+          ls -la ./Public || true
+          echo "Listing ./Public one level deep:"
+          find ./Public -maxdepth 2 -type f -print || true
+
+      - name: Upload Public folder
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./Public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
