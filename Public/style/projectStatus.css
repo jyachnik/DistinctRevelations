@@ -1,12 +1,12 @@
-/* Cleaned projectStatus.css — no duplicates, with highlight and current styles */
+/* Project Status traffic-light card */
 
 .project-status {
-  /* Card styling */
+  /* Card styling – keep same look as other cards */
   background: #ffffff;
   border-left: 6px solid #004e92;
   border-radius: 0 8px 8px 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 16px 18px;
   text-align: left;
   width: 100%;
   box-sizing: border-box;
@@ -15,44 +15,103 @@
   /* Layout */
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   justify-content: flex-start;
+  gap: 12px;
 }
 
 .project-status h2 {
-  font-size: 1.25rem;
-  margin: 0 0 12px 0;
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 700;
 }
 
-.project-status .status-options {
+.project-status-label {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+}
+
+/* Status list */
+.status-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 100%;
 }
 
-.project-status .status-row {
+.status-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-size: 14px;
+  color: #333333;
+  padding: 4px 2px;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
+.status-row span {
+  flex: 1;
+}
+
+/* Light base style - subtle glow for all */
 .project-status .light {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: gray;           /* fallback color */
-  transition: box-shadow 0.2s ease;
-  /* pointer for owner interaction */
-  cursor: pointer;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 4px rgba(0, 0, 0, 0.3),
+    0 0 6px rgba(255, 255, 255, 0.6);
+  opacity: 0.6;
+  transition:
+    opacity 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
-/* Status colors */
-.project-status .light.red    { background-color: #e74c3c; }
-.project-status .light.yellow { background-color: #f1c40f; }
-.project-status .light.green  { background-color: #2ecc71; }
+/* Status colors (base) */
+.project-status .light.red {
+  background-color: #ff5a5a;
+}
 
-/* Highlighted/selected state */
+.project-status .light.yellow {
+  background-color: #ffd95a;
+}
+
+.project-status .light.green {
+  background-color: #57d98b;
+}
+
+/* Selected / active state – brighter with blue ring */
 .project-status .light.selected {
-  box-shadow: 0 0 0 5px #004e92;
+  opacity: 1;
+  box-shadow:
+    0 0 8px rgba(0, 0, 0, 0.35),
+    0 0 10px rgba(255, 255, 255, 0.9),
+    0 0 0 4px #007bff;
+}
+
+/* Active row text emphasis */
+.status-row.active span {
+  font-weight: 600;
+}
+
+/* Hover effect for owner (JS sets cursor pointer for owner only) */
+.status-row:hover .light {
+  transform: scale(1.03);
+}
+
+/* Ensure the card aligns visually with Project Progress card */
+.dashboard-overview > .project-status.card {
+  margin-bottom: 16px;
+}
+/* Center & wrap H2 titles inside these cards */
+.project-status h2 {
+    text-align: center;
+    white-space: normal;       /* Allow wrapping */
+    word-wrap: break-word;
+    width: 100%;               /* Ensures proper centering */
+    display: block;            /* Forces full-width behavior */
+    margin: 0 auto 10px auto;  /* Center with clean spacing */
 }

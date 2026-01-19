@@ -27,12 +27,12 @@
 }
 #dashboardHeader .header-center h1 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 3.25rem;
+  font-weight: 1000;
 }
 #dashboardHeader .header-center h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 2rem;
   font-weight: 400;
   opacity: 0.85;
 }
@@ -103,19 +103,7 @@ body, .container, .dashboard-container, .leftside, .middle, .rightside {
   flex: 1;
   margin: 0 1rem;
 }
-#dashboardHeader .header-center h1 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color:whitesmoke;
-}
-#dashboardHeader .header-center h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 400;
-  opacity: 0.85;
-  color:burlywood;
-}
+
 
 /* Right section */
 #dashboardHeader .header-right {

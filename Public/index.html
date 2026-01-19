@@ -15,15 +15,36 @@
   <!-- ✅ home.css lives in /Public/style/ -->
   <link rel="stylesheet" href="style/home.css?v=1" />
 
+
 <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
 <link rel="manifest" href="images/site.webmanifest">
 
+
 </head>
 
-
 <body>
+<script>
+  (function(){
+    const TAG='[login-guard]';
+    try{
+      const urlKey = (new URLSearchParams(location.search).get('business')||'').trim();
+      const lsKey  = (sessionStorage.getItem('businessKey')||localStorage.getItem('businessKey')||'').trim();
+      console.log(TAG, { urlKey, lsKey, href: location.href });
+      // Kill any stale key at entry; owner must re-pick every explicit login
+      sessionStorage.removeItem('businessKey');
+      // If you want to also clear localStorage, uncomment next line:
+      // localStorage.removeItem('businessKey');
+      if (urlKey) {
+        const usp = new URLSearchParams(location.search);
+        usp.delete('business');
+        history.replaceState(null,'', location.pathname + (usp.toString()?('?'+usp.toString()):''));
+        console.log(TAG,'stripped ?business from URL');
+      }
+    }catch(e){ console.warn(TAG,'guard error', e); }
+  })();
+</script>
 
  <div id="top"></div>
 
@@ -245,42 +266,20 @@
           <div class="badge">SaaS</div>
           <h3>Pipeline Quality + Forecasting</h3>
           <p>Defined ICP, rebuilt stages, instituted MEDDICC‑lite; forecast accuracy ↑ and slip rate ↓ 28%.</p>
-          <a class="link" href="#" aria-disabled="true">Read summary (PDF)</a>
+         <a class="link js-pdf"    data-open="pdfViewer" data-pdf="Case_Studies/Case_Study_1.pdf">Read summary (PDF)</a>
         </article>
 
         <article class="card case">
           <div class="badge">Ops</div>
           <h3>Operating Cadence & KPIs</h3>
           <p>Weekly scorecards rolled up to QBRs; decision latency down 35%, initiative throughput up 22%.</p>
-          <a class="link" href="#" aria-disabled="true">Read summary (PDF)</a>
+          <a class="link js-pdf"    data-open="pdfViewer" data-pdf="Case_Studies/Case_Study_1.pdf">Read summary (PDF)</a>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- Testimonials -->
-  <!-- <section class="section section-alt">
-    <div class="container">
-      <div class="section-head">
-        <h2>What Clients Say</h2>
-      </div>
-      <div class="cards three">
-        <blockquote class="card quote">
-          <p>“The most pragmatic partner we’ve hired. Clear plan, real numbers, fast momentum.”</p>
-          <cite>— COO, Consumer Goods</cite>
-        </blockquote>
-        <blockquote class="card quote">
-          <p>“Finally, a dashboard and cadence our team actually uses to run the business.”</p>
-          <cite>— VP Ops, SaaS</cite>
-        </blockquote>
-        <blockquote class="card quote">
-          <p>“They connected strategy to execution and held us (kindly) accountable.”</p>
-          <cite>— CEO, Private Equity Portfolio</cite>
-        </blockquote>
-      </div>
-    </div>
-  </section>
- -->
+ 
 
   <!-- Contact -->
   <section id="contact" class="section">
@@ -412,13 +411,15 @@
           <input type="password" id="loginPassword" autocomplete="current-password" required />
         </label>
         <button class="btn btn-primary w-100" type="submit">Login</button>
-        <button class="btn btn-ghost w-100" type="button" data-open="registerModal" data-close="loginModal">Create an account</button>
+      <button type="button" class="btn btn-primary w-100" data-open="signupModal">
+  Create Account
+</button>
         <button class="btn btn-ghost w-100" type="button" data-open="forgotModal" data-close="loginModal">Forgot password</button>
       </form>
     </div>
   </div>
 
-  <div class="modal" id="registerModal" aria-hidden="true" role="dialog" aria-labelledby="registerTitle">
+  <!-- <div class="modal" id="registerModal" aria-hidden="true" role="dialog" aria-labelledby="registerTitle">
     <div class="modal__backdrop" data-close="registerModal"></div>
     <div class="modal__dialog">
       <button class="modal__close" aria-label="Close" data-close="registerModal">×</button>
@@ -443,7 +444,7 @@
   <p id="registerMsg" class="hint" aria-live="polite"></p>
 </form>
     </div>
-  </div>
+  </div> -->
 
   <div class="modal" id="forgotModal" aria-hidden="true" role="dialog" aria-labelledby="forgotTitle">
     <div class="modal__backdrop" data-close="forgotModal"></div>
@@ -453,53 +454,105 @@
       <form id="forgotForm" class="form">
         <label>
           <span>Email</span>
-          <input type="email" id="forgotEmail" autocomplete="username" required />
+          <input type="email"
+       id="forgotEmail"
+       name="email"
+       autocomplete="username"
+       required />
         </label>
         <button class="btn btn-primary w-100" type="submit">Send Reset Link</button>
+        <p id="forgotMsg" class="hint" aria-live="polite"></p>
       </form>
     </div>
   </div>
 
 <!-- Admin: Select Company Modal -->
-<div class="modal" id="businessSelectModal" aria-hidden="true" role="dialog" aria-labelledby="businessSelectTitle">
-  <div class="modal__backdrop" data-close="businessSelectModal"></div>
-  <div class="modal__dialog">
-    <button class="modal__close" aria-label="Close" data-close="businessSelectModal">×</button>
-    <h3 id="businessSelectTitle">Select a Company</h3>
-    <p class="hint">Choose a company to manage as admin.</p>
-
-    <label class="w-100">
-      <span>Company</span>
-      <select id="businessDropdown" class="input"></select>
-    </label>
-
-    <div class="row gap-12" style="justify-content:flex-end; margin-top:12px;">
-      <button class="btn btn-ghost" data-close="businessSelectModal">Cancel</button>
-      <button id="selectBusinessBtn" class="btn btn-primary" disabled>Open Dashboard</button>
+<!-- Select Business Modal (shown on login page for OWNER) -->
+<div id="businessSelectModal" aria-hidden="true" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);z-index:9999;">
+  <div style="background:#fff;min-width:320px;max-width:520px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;">
+      <h3 style="margin:0;font-size:1.1rem;">Select a Business</h3>
+      <button type="button" data-close="businessSelectModal" style="border:none;background:transparent;font-size:20px;line-height:1;cursor:pointer;">×</button>
+    </div>
+    <div style="padding:16px;">
+      <label for="businessDropdown" style="display:block;margin:0 0 6px;font-weight:600;">Business</label>
+      <select id="businessDropdown" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;">
+        <option disabled selected>Loading…</option>
+      </select>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" data-close="businessSelectModal" style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;">Cancel</button>
+      <button id="selectBusinessBtn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:#0b5cff;color:#fff;cursor:pointer;">Continue</button>
     </div>
   </div>
 </div>
 
-<!-- Shared PDF Viewer Modal -->
-<div class="modal modal-pdf" id="pdfViewer" aria-hidden="true">
-  <div class="modal__backdrop" data-close="pdfViewer"></div>
-  <div class="modal__dialog">
-    <button class="modal__close" data-close="pdfViewer" aria-label="Close">×</button>
+<!-- Create Account modal -->
+<div id="signupModal" class="modal hidden" aria-hidden="true">
+  <div class="register-modal">
+    <header class="modal-header">
+      <h2>Create Account</h2>
+      <button type="button" class="close-button" data-close="signupModal">&times;</button>
+    </header>
 
-    <div class="pdf-actions">
-      <a class="pdf-open-tab" target="_blank" rel="noopener">Open in new tab</a>
-      <a class="pdf-download" download>Download PDF</a>
-    </div>
+    <div class="modal-body">
+      <form id="signupForm" class="form-single">
+        <label for="su-first">First name</label>
+        <input id="su-first" type="text" required>
 
-    <div class="iframe-wrap">
-      <iframe id="pdfFrame" title="Case Study PDF" referrerpolicy="no-referrer"></iframe>
-    </div>
+        <label for="su-last">Last name</label>
+        <input id="su-last" type="text" required>
+
+        <label for="su-business">Business name</label>
+        <input id="su-business" type="text" required>
+
+        <label for="su-email">Email</label>
+        <input id="su-email" type="email" required>
+
+        <label for="su-phone">Phone number</label>
+        <input id="su-phone" type="tel" required>
+
+        <label for="su-pass">Password</label>
+        <input id="su-pass" type="password" required>
+
+        <label for="su-pass2">Confirm password</label>
+        <input id="su-pass2" type="password" required>
+
+        <div id="su-status" class="status"></div>
+
+        <button type="submit" class="btn-primary">Create Account</button>
+      <button type="button" class="modal-close" data-close="signupModal">Cancel</button>
+    </form>
+  </div>
   </div>
 </div>
 
 
 
 
+<script>
+  // minimal show/hide the modal (select-business.js expects aria-hidden)
+  (function(){
+    var m=document.getElementById('businessSelectModal');
+    if(!m) return;
+    m.show = function(){ m.style.display='flex'; m.setAttribute('aria-hidden','false'); };
+    m.hide = function(){ m.style.display='none'; m.setAttribute('aria-hidden','true'); };
+    (m.querySelectorAll('[data-close="businessSelectModal"]')||[]).forEach(function(el){
+      el.addEventListener('click', function(){ m.hide(); });
+    });
+  })();
+</script>
+
+<script>
+/* [ready-stub] install a promise-like onFirebaseReady on index.html too */
+window.onFirebaseReady = window.onFirebaseReady || (function(){
+  var p = new Promise(function(resolve){ window.__drResolve = resolve; });
+  function f(cb){ if(typeof cb==="function"){ p.then(function(DR){ try{ cb(DR); }catch(e){ console.error('[ready-stub]', e); } }); } return p; }
+  f.then = p.then.bind(p); f.catch = p.catch.bind(p); f.finally = p.finally.bind(p);
+  console.log('[ready-stub] installed (index.html)');
+  return f;
+})();
+</script>
 
 <!-- Firebase compat SDKs (NOT modules) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -507,35 +560,42 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-<!-- Your init: creates window.auth, window.db, window.storage -->
-<script src="JS/firebaseInit.js"></script>
 
-<!-- Small helper so your [data-open]/[data-close] modals still work -->
-<script src="./JS/modal-lite.js"></script>
+<script src="./JS/firebaseInit.js"></script>
 
-<!-- Then modules (paths relative to /Public/JS/, so no extra /JS) -->
-<script type="module" src="./JS/dashboard-business-loader.js"></script>
-<!-- and any others, e.g. -->
-<script type="module" src="./JS/filemanager.js"></script>
-<script type="module" src="./JS/qna.js"></script>
-<script type="module" src="./JS/activity.js"></script>
-<script type="module" src="./JS/milestone.js"></script>
-<script type="module" src="./JS/header.js"></script>
-
-<script type="module" src="./JS/lets-talk.js"></script>
-<script type="module" src="./JS/forgot.js"></script>
-<script type="module" src="./JS/select-business.js"></script>
-<script type="module" src="./JS/login.js"></script>
-<script type="module" src="./JS/contact-validate.js"></script>
-<script type="module" src="./JS/register.js"></script>
+<script src="./JS/app-config.js"></script>
 
 
-<script type="module" src="./JS/app.js" ></script>
+<script>
+  window.APP_CONFIG = window.APP_CONFIG || {};
+  window.APP_CONFIG.OWNER_EMAIL = "{{OWNER_EMAIL}}";  // filled on deploy
+</script>
 
 
-  <!-- (Later) Your Firebase + Auth scripts
-  <script type="module" src="/firebaseInit.js"></script>
-  <script type="module" src="/auth.js"></script>
-  -->
+
+
+<script src="./JS/session-classic.js"></script>
+<!-- optional legacy shim if old code expects it -->
+<script>window.waitForBusinessKey = () => DRSession.getSession().then(s => s.businessKey);</script>
+<script defer src="./JS/select-business.js"></script>
+<script defer src="./JS/login-simple.js"></script>
+
+<script defer src="./JS/lets-talk.js"></script>
+
+<script defer src="./JS/modal-lite.js"></script>
+
+<script defer src="./JS/forgot.js"></script>
+
+<script defer src="./JS/contact-validate.js"></script>
+<script defer src="./JS/register.js"></script>
+<script defer src="./JS/app.js" ></script>
+<script src="JS/modal-lite.js"></script>
+<script src="JS/signup.js"></script>
+
+
+ 
+
+
+
 </body>
 </html>

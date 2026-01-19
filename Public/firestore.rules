@@ -2,66 +2,94 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // -------- helpers --------
-    function signedIn() { return request.auth != null; }
-    function isOwner() {
-      return signedIn() && lower(request.auth.token.email) == 'john@distinctrevelations.com';
+    function isSignedIn() {
+      return request.auth != null;
     }
-    function myBiz() {
-      return signedIn()
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessKey
-        : null;
-    }
-    function sameBiz(biz) { return isOwner() || (signedIn() && myBiz() == biz); }
 
-    // Users profile: user can see/edit their own profile; owner can see/edit all.
+    function isOwnerEmail() {
+      return isSignedIn() && request.auth.token.email == "john@distinctrevelations.com";
+    }
+
+    // Per-user profile / mapping docs
     match /users/{uid} {
-      allow read: if signedIn() && (uid == request.auth.uid || isOwner());
-      allow create: if signedIn() && uid == request.auth.uid;
-      allow update: if signedIn() && (uid == request.auth.uid || isOwner());
-      allow delete: if isOwner();
+      // Any signed-in user can read user mappings so that dashboards
+      // can resolve which business they belong to.
+      allow read: if isSignedIn();
+
+      // Only the signed-in user can create/update/delete their own user doc.
+      allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // Per-business scope
+    // Top-level business document. Holds metadata and summary fields
+    // like projectStatus and projectProgress.
     match /businesses/{biz} {
-      // Anyone in the same business (or owner) can read the business doc
-      allow read: if sameBiz(biz);
+      // All signed-in users with access to the app can read business docs.
+      allow read: if isSignedIn();
 
-      // Only owner can change top-level business fields (e.g., header/status/progress)
-      allow write: if isOwner();
+      // Only the owner can create or modify a business document
+      // (this covers projectStatus + projectProgress updates).
+      allow create, update, delete: if isOwnerEmail();
 
-      // Activity — read for all; only owner can write
-      match /activities/{id} {
-        allow read: if sameBiz(biz);
-        allow create, update, delete: if isOwner();
+      // ===== Subcollections under each business =====
+
+      // Q&A tracker items
+      match /qna/{qnaId} {
+        // All signed-in users can see Q&A items for their business.
+        allow read: if isSignedIn();
+
+        // Any signed-in user can create a new Q&A item.
+        allow create: if isSignedIn();
+
+        // Updates / deletes are restricted:
+        // - Owner can change anything
+        // - Assignee (assignedTo email) can update/delete their own item
+        allow update, delete: if isSignedIn() &&
+          ( isOwnerEmail() ||
+            request.auth.token.email == resource.data.assignedTo );
       }
 
-      // Milestones — read for all; only owner can write
-      match /milestones/{id} {
-        allow read: if sameBiz(biz);
-        allow create, update, delete: if isOwner();
+      // File metadata entries for the File Manager
+      match /files/{fileId} {
+        // All signed-in users can see file metadata.
+        allow read: if isSignedIn();
+
+        // Any signed-in user can upload (the JS sets uploadedBy on create).
+        allow create: if isSignedIn();
+
+        // Only the owner or the original uploader can update/delete.
+        allow update, delete: if isSignedIn() &&
+          ( isOwnerEmail() ||
+            request.auth.token.email == resource.data.uploadedBy );
       }
 
-      // Q&A — read for all; user can CRUD their own; owner can do everything
-      match /qna/{id} {
-        allow read: if sameBiz(biz);
-        allow create: if sameBiz(biz) &&
-                      request.resource.data.ownerUid == request.auth.uid;
-        allow update, delete: if sameBiz(biz) && (
-                                isOwner() ||
-                                resource.data.ownerUid == request.auth.uid
-                              );
-      }
+      // Activity log entries
+      match /activity/{activityId} {
+        // Everyone signed in can see the activity history.
+        allow read: if isSignedIn();
 
-      // File metadata — read for all; user can CRUD their own; owner can do everything
-      match /files/{id} {
-        allow read: if sameBiz(biz);
-        allow create: if sameBiz(biz) &&
-                      request.resource.data.ownerUid == request.auth.uid;
-        allow update, delete: if sameBiz(biz) && (
-                                isOwner() ||
-                                resource.data.ownerUid == request.auth.uid
-                              );
+        // Any signed-in user can log a new activity.
+        allow create: if isSignedIn();
+
+        // Only the owner can update or delete activity entries.
+        allow update, delete: if isOwnerEmail();
+      }
+// Milestones: owner can create/update/delete, all signed-in users in the
+// business can read.
+match /businesses/{bizId}/milestones/{milestoneId} {
+  allow read: if isSignedIn() && isUserInBusiness(bizId);
+
+  allow create, update, delete: if isSignedIn() && isOwner(bizId);
+}
+      // Milestones / meetings / events
+      match /milestones/{milestoneId} {
+        // All signed-in users can see milestones for the business.
+        allow read: if isSignedIn();
+
+        // Only the owner can create milestones.
+        allow create: if isOwnerEmail();
+
+        // Only the owner can update or delete milestones.
+        allow update, delete: if isOwnerEmail();
       }
     }
   }

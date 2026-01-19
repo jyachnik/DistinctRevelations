@@ -1,66 +1,124 @@
-// /Public/select-business.js
-const { auth, db } = window;
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
+/* ========================================================================
+   select-business.js — owner picks business BEFORE dashboard (final)
+   ======================================================================== */
+(function () {
+  const TAG = '[select-business]';
+  const OWNER =
+  (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
+  window.ownerEmail ||
+  '';
+  const L = (...a)=>console.log(TAG, ...a);
+  const W = (...a)=>console.warn(TAG, ...a);
+  const E = (...a)=>console.error(TAG, ...a);
+  const $ = (id)=>document.getElementById(id);
 
-export async function showBusinessModalForOwner(user) {
-  if (!user?.email || user.email.toLowerCase() !== 'john@distinctrevelations.com') return;
+  // --- guards ---
+  const IS_DASH = /\/dashboard\.html(\?|$)/i.test(location.pathname);
+  if (IS_DASH) L('loaded on dashboard; will not open modal here.');
+  if (window.__bizPicked) L('__bizPicked set; will not open modal again.');
 
-  const modal     = document.getElementById('businessSelectModal');
-  const dropdown  = document.getElementById('businessDropdown');
-  const selectBtn = document.getElementById('selectBusinessBtn');
-  const closeEls  = modal?.querySelectorAll('[data-close="businessSelectModal"]') || [];
-
-  if (!modal || !dropdown || !selectBtn) {
-    console.warn('Admin modal elements missing');
-    return;
+  function showModal(){
+    const m = $('businessSelectModal');
+    L('showModal()', { hasModal: !!m });
+    if (!m) return;
+    if (typeof m.show === 'function') m.show();
+    else { m.style.display='flex'; m.setAttribute('aria-hidden','false'); }
+  }
+  function hideModal(){
+    const m = $('businessSelectModal');
+    if (!m) return;
+    if (typeof m.hide === 'function') m.hide();
+    else { m.style.display='none'; m.setAttribute('aria-hidden','true'); }
   }
 
-  // open modal
-  modal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('no-scroll');
+  function waitForFirebase(ms=15000){
+    return new Promise((resolve)=>{
+      const ok = ()=> !!(window.db && window.auth);
+      if (ok()) { L('waitForFirebase: immediate'); return resolve({ db:window.db, auth:window.auth }); }
+      const tick = ()=>{ if (ok()){ cleanup(); L('waitForFirebase: ready via poll'); resolve({ db:window.db, auth:window.auth }); } };
+      function cleanup(){ try{ document.removeEventListener('firebase-ready', tick); }catch{} try{ clearInterval(iv); }catch{} try{ clearTimeout(to); }catch{} }
+      document.addEventListener('firebase-ready', tick);
+      const iv = setInterval(tick, 100);
+      const to = setTimeout(()=>{ cleanup(); L('waitForFirebase: timeout fallback'); resolve({ db:window.db, auth:window.auth }); }, ms);
+    });
+  }
 
-  // loading state
-  dropdown.innerHTML = '<option disabled selected>Loading…</option>';
-  selectBtn.disabled = true;
+  function persistKey(biz){
+    try{ localStorage.setItem('businessKey', biz); }catch{}
+    try{ sessionStorage.setItem('businessKey', biz); }catch{}
+    try{
+      window.BIZ_KEY = biz;
+      window.__bizPicked = true;  // prevent reopening
+      window.dispatchEvent(new CustomEvent('business:ready', { detail:{ businessKey: biz } }));
+    }catch{}
+  }
 
-  try {
-    const snap = await getDocs(collection(db, 'businesses'));
-    dropdown.innerHTML = ''; // clear
+ window.showBusinessModalForOwner = async function(user){
+  // never open modal on dashboard or if already picked
+  if (IS_DASH) return W('blocked: picker not allowed on dashboard');
+  if (window.__bizPicked) return W('blocked: already picked in this session');
 
-    if (snap.empty) {
-      dropdown.innerHTML = '<option disabled selected>No companies found</option>';
-      selectBtn.disabled = true;
-    } else {
-      snap.forEach(docSnap => {
-        const id   = docSnap.id;
-        const name = docSnap.data()?.name || id;
+  const email = (user && user.email) || '';
+  const isOwner = !!(user && user.isOwner);   // trust caller flag
+
+  L('invoke', { email, isOwner });
+  if (!isOwner) return W('blocked: not owner');
+
+    showModal();  // visible immediately
+    const { db } = await waitForFirebase();
+    if (!db) { E('Firebase not ready; cannot list businesses.'); return; }
+
+    const modal = $('businessSelectModal');
+    const dropdown = $('businessDropdown');
+    const btn = $('selectBusinessBtn');
+    L('DOM check', { modal: !!modal, dropdown: !!dropdown, btn: !!btn });
+    if (!modal || !dropdown || !btn) return E('Modal DOM missing (IDs).');
+
+    btn.disabled = true;
+    dropdown.innerHTML = '<option disabled selected>Loading…</option>';
+
+    try{
+      L('query: /businesses');
+      const qs = await db.collection('businesses').get();
+      dropdown.innerHTML = '';
+      let count = 0;
+      qs.forEach(doc=>{
+        const d = doc.data()||{};
         const opt = document.createElement('option');
-        opt.value = id;
-        opt.textContent = name;
+        opt.value = doc.id;
+        opt.textContent = d.name || doc.id;
         dropdown.appendChild(opt);
+        count++;
       });
-      selectBtn.disabled = false;
+      L('loaded businesses:', count);
+      if (!count) dropdown.innerHTML = '<option disabled selected>No companies found</option>';
+      btn.disabled = (count === 0);
+    }catch(e){
+      E('error loading businesses:', e?.code || e?.message || e);
+      W('If code is "permission-denied", update Firestore rules to allow owner reads on /businesses/*');
+      dropdown.innerHTML = '<option disabled selected>Permission denied loading companies</option>';
+      btn.disabled = true;
+      return;
     }
-  } catch (e) {
-    console.error('Failed to load businesses:', e);
-    dropdown.innerHTML = '<option disabled selected>Error loading companies</option>';
-    selectBtn.disabled = true;
-  }
 
-  // handlers
-  const close = () => {
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('no-scroll');
+    // close handlers
+    (modal.querySelectorAll('[data-close="businessSelectModal"]')||[]).forEach(el=>{
+      el.addEventListener('click', ()=>{ L('close clicked'); hideModal(); }, { once:true });
+    });
+
+    // Continue: persist and navigate
+    btn.onclick = function(){
+      const biz = (dropdown && dropdown.value || '').trim();
+      L('Continue clicked →', { biz });
+      if (!biz) return W('no business selected');
+
+      persistKey(biz);
+      hideModal();
+      const url = 'dashboard.html?business=' + encodeURIComponent(biz) + '&admin=1';
+      L('redirect:', url);
+      window.location.href = url;
+    };
   };
-  closeEls.forEach(btn => btn.addEventListener('click', close, { once: true }));
 
-  selectBtn.onclick = () => {
-    const bizKey = dropdown.value;
-    if (!bizKey) return;
-    close();
-    window.location.href = `dashboard.html?business=${encodeURIComponent(bizKey)}&admin=1`;
-  };
-}
-
-// expose globally so login.js can call it safely
-window.showBusinessModalForOwner = showBusinessModalForOwner;
+  L('ready');
+})();

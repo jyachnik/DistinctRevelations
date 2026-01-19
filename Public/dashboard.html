@@ -1,512 +1,582 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+ 
+ <script>
+(function(){
+  const urlKey = (new URLSearchParams(location.search).get('business')||'').trim();
+  const lsKey  = (sessionStorage.getItem('businessKey')||localStorage.getItem('businessKey')||'').trim();
+  const hasKey = !!(urlKey || lsKey);
+  console.log('[dash-guard]', { urlKey, lsKey, hasKey, href: location.href });
+  if(!hasKey){
+    console.warn('[dash-guard] missing business key → sending back to login for selection');
+    location.replace('index.html?needBiz=1');
+  }
+})();
+</script>
+ 
+ 
+ 
+ 
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Client Dashboard</title>
-  <link rel="stylesheet" href="style/filemanager.css" />
-  <link rel="stylesheet" href="style/qna.css" />
-   <link rel="stylesheet" href="style/dashboard1.css" />
- <link rel="stylesheet" href="style/milestone.css" />
-  <link rel="stylesheet" href="style/activity.css" />
-   <link rel="stylesheet" href="style/projectStatus.css" />
-     <link rel="stylesheet" href="style/projectProgress.css" />
-      <link rel="stylesheet" href="style/qnaStats.css" />
-       <link rel="stylesheet" href="style/header.css" />
 
-       <!-- dashboard.html -->
+  <!-- styles -->
+  <link rel="stylesheet" href="style/filemanager.css"/>
+  <link rel="stylesheet" href="style/qna.css"/>
+  <link rel="stylesheet" href="style/dashboard1.css"/>
+  <link rel="stylesheet" href="style/milestone.css"/>
+  <link rel="stylesheet" href="style/activity.css"/>
+  <link rel="stylesheet" href="style/projectStatus.css"/>
+  <link rel="stylesheet" href="style/projectProgress.css"/>
+  <link rel="stylesheet" href="style/qnaStats.css"/>
+  <link rel="stylesheet" href="style/header.css"/>
+
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+<link rel="manifest" href="images/site.webmanifest">
+
+
+<script>
+/* DASH-GATE v1 — decide if we should load widgets now or wait for a business key */
+(function () {
+  const TAG = '[dash-gate]';
+  function urlKey(){ try { return (new URLSearchParams(location.search).get('business')||'').trim(); } catch(e){ return ''; } }
+  function storeKey(){ try { return (sessionStorage.getItem('businessKey')||localStorage.getItem('businessKey')||'').trim(); } catch(e){ return ''; } }
+  const hasKey = !!(urlKey() || storeKey());
+
+  // Make a global for later checks
+  window.__HAS_BIZ_KEY__ = hasKey;
+
+  // Cosmetic: hide main until we decide to load (avoids flicker)
+  try { document.documentElement.classList.add('gated'); } catch(e){}
+
+  console.log(TAG, { hasKey, url: location.href, urlKey: urlKey(), storeKey: storeKey() });
+})();
+</script>
+<!-- <style>
+/* optional: keep layout but hide content while gated */
+html.gated main { visibility:hidden; }
+</style> -->
+
+
 </head>
 <body>
-    <header id="dashboardHeader">
-        <div class="header-left">
-                <img src="images/Distinct_Revelations_Logo_website.png" alt="Distinct Revelations" class="dr-logo"/>
-        </div>
-        <div class="header-center">
-                <h1>Project Dashboard</h1>
-                <h2 id="companyName">Loading…</h2>
-        </div>
-        <div class="header-right owner">
-             <div class="logo-wrapper">
-                <img id="companyLogo" src="images/Distinct_Revelations_Logo_website.png" alt="Company Logo"/>
-            </div>
-               <label for="logoFileInput" class="upload-logo-label">Upload Logo</label>
-              <input 
-                type="file" 
-                id="logoFileInput" 
-                accept="image/*" 
-                style="position:absolute; left:-9999px;"/>
-            </div>
-      </header>
+
+  <!-- HEADER -->
+  <header id="dashboardHeader">
+    <div class="header-left">
+      <img src="images/Distinct_Revelations_Logo_website.png" class="dr-logo" alt="Distinct Revelations"/>
+    </div>
+    <div class="header-center">
+      <h1>Project Dashboard</h1>
+      <h2 id="companyName">Loading…</h2>
+    </div>
+    <div class="header-right owner">
+      <div class="logo-wrapper">
+        <img id="companyLogo" src="images/Distinct_Revelations_Logo_website.png" alt="Company Logo"/>
+      </div>
+      <label for="logoFileInput" class="upload-logo-label">Upload Logo</label>
+      <input id="logoFileInput" type="file" accept="image/*" style="position:absolute;left:-9999px;"/>
+    </div>
+  </header>
+
+  <!-- MAIN (your existing sections unchanged) -->
   <main>
+    <!-- left column -->
+    <section class="card dashboard-container">
+      <div class="leftside">
+        <div class="dashboard-overview">
+             <!-- PROJECT STATUS (traffic light) -->
+          <section id="projectStatusCard" class="project-status card">
+            <h2>Project Status</h2>
+           
+            <div class="status-options">
+              <div class="status-row" data-code="critical">
+                <div class="light red" data-status="critical"></div>
+                <span>Critical</span>
+              </div>
+              <div class="status-row" data-code="caution">
+                <div class="light yellow" data-status="caution"></div>
+                <span>Caution</span>
+              </div>
+              <div class="status-row" data-code="onTrack">
+                <div class="light green" data-status="onTrack"></div>
+                <span>On Plan</span>
+              </div>
+            </div>
+          </section>
+           <!-- PROJECT PROGRESS CARD (vertical cylinder) -->
+        <section class="card project-progress">
+          <h2>Project Progress</h2>
+          <div id="progress-bar-container">
+            <div id="progress-bar-fill"></div>
+            <span id="progress-label">0%</span>
+          </div>
+        </section>
 
-<section class="card dashboard-container">  
-     <div class="leftside">
-            
-      <div class="dashboard-overview">
-
-            <section class="project-status card">
-  <h2>Project Status</h2>
-  <div class="status-options">
-    <div class="status-row">
-      <div class="light red"    data-status="critical"></div><span>Critical</span>
-    </div>
-    <div class="status-row">
-      <div class="light yellow" data-status="caution"></div><span>Caution</span>
-    </div>
-    <div class="status-row">
-      <div class="light green"  data-status="onTrack"></div><span>On Plan</span>
-    </div>
-  </div>
-</section>
-      <!-- <p id="status-label">Status: Not Set</p> -->
-      
-      <section class="card project-progress owner">
-           <h1>Project Progress</h1>
-
-  <!-- wrapper MUST be the positioning context -->
-  <div
-    id="progress-bar-container"
-    style="position: relative; width:40px; height:200px; background:#eee; border-radius:8px; overflow:visible; margin:0 auto 1rem; cursor:pointer;"
-  >
-    <!-- the blue fill -->
-    <div
-      id="progress-bar-fill"
-      style="position:absolute; bottom:0; left:0; width:100%; height:0; background:linear-gradient(to top, #007bff, #00aaff); transition:height 0.3s ease;"
-    ></div>
-    <!-- the percentage label INSIDE the wrapper -->
-    <span
-      id="progress-label"
-      style="position:absolute; left:100%; transform:translateX(6px) translateY(50%); background:rgba(255,255,255,0.9); padding:2px 6px; border-radius:3px; font-size:0.85rem; font-weight:600; white-space:nowrap; pointer-events:none; z-index:1;"
-    >0%</span>
-  </div>
-</section>
-
-   <section class="card qna-stats-vertical">
+          <section class="qna-stats-vertical">
   <div class="qna-stat-block">
-    <h1>OPEN</h1>
     <div class="qna-label">Questions</div>
-    <div class="qna-number" id="openQuestionsCount">0</div>
+    <div class="qna-number" id="qna-stat-questions">0</div>
   </div>
   <div class="qna-stat-block">
     <div class="qna-label">Tasks</div>
-    <div class="qna-number"   id="openTasksCount">0</div>
+    <div class="qna-number" id="qna-stat-tasks">0</div>
+  </div>
+  <div class="qna-stat-block">
+    <div class="qna-label">Issues</div>
+    <div class="qna-number" id="qna-stat-issues">0</div>
+  </div>
+  <div class="qna-stat-block">
+    <div class="qna-label">Risks</div>
+    <div class="qna-number" id="qna-stat-risks">0</div>
   </div>
 </section>
+        </div>
+      </div>
 
-</div>
+      <!-- middle -->
+      <div class="middle">
+      <section class="card milestone-section">
+    <div class="refined-table-header">
+      <!-- Different icon than Activity, same position -->
+      <h2>📌Project Milestones/Meetings/Events</h2>
+      <p class="section-subtext">Track key project milestones and their status</p>
+    </div>
 
+    <form id="milestoneForm">
+      <input id="milestoneTitle" type="text" placeholder="Milestone Title" required />
+      <select id="milestoneStatus" required>
+        <option value="">Select Venue</option>
+        <option>On-site</option>
+        <option>Virtual</option>
+        <option>Other</option>
+      </select>
+      <input id="milestoneDueDate" type="date" required />
+      <button type="submit">Add Milestone</button>
+    </form>
 
-          </div>
+    <div class="milestone-table-container">
+      <table id="milestoneTable">
+        <colgroup>
+          <col class="col-title" />
+          <col class="col-status" />
+          <col class="col-date" />
+          <col class="col-actions" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Date</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
-          <div class="middle">
-            
-<section class="card milestone-section">
-  <div class="refined-table-header">
-    <h2><span class="icon">🎯</span> Project Milestones/Meetings/Events</h2>
-    <p class="section-subtext">Track key project milestones and their status</p>
-  </div>
-  <form id="milestoneForm">
-    <input type="text" id="milestoneTitle" placeholder="Milestone Title" required />
-    <select id="milestoneStatus" required>
-      <option value="">Select Venue</option>
-      <option value="On-site">On-Site</option>
-      <option value="Virtual">Virtual</option>
-      <option value="Other">Other</option>
-    </select>
-    <input type="date" id="milestoneDueDate" required />
-    <button type="submit">Add Milestone</button>
-  </form>
-  <div class="milestone-table-container">
-    <table id="milestoneTable">
-  <colgroup>
-    <col class="col-title" />
-    <col class="col-status" />
-    <col class="col-date" />
-    <col class="col-actions" />
-  </colgroup>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Location</th>
-          <th>Date</th>
-          <th class="actions">Actions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-<section class="card activity-panel">
-  
-            <section id="activityContainer" class="card activity-section">
-              <div class="section-header">
-  
-    <h2><span class="icom">📝</span>Activity Log</h2>
+  <section class="card activity-panel">
+  <div class="section-header">
+    <h2>📝Activity Log</h2>
     <p class="section-subtext">Track project actions and team updates.</p>
   </div>
 
-              <form id="activityForm">
-                <input type="text" id="activityTitle" placeholder="Activity Title" required />
-                <input type="text" id="activityDesc" placeholder="Activity Description" required />
-                <select id="activityStatus" required>
-                    <option value="">Select Status</option>
-                    <option value="Not Started">Not Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                <label for="activityDate">Date</label>
-<input type="date" id="activityDate" name="date" required />
-                
-                
-                <button type="submit">Add Activity</button>
-               </form>
-                <div class="activity-import">
-                  <input type="file" id="activityImport" accept=".xlsx,.xls" />
-                  <button id="importBtn" class="btn-primary">Import Excel</button>
-                </div>
+  <!-- Owner-only controls (activity.js + CSS hide these for non-owners) -->
+  <form id="activityForm" class="activity-form">
+  <input id="activityTitle" type="text" placeholder="Activity Title" required>
+  <input id="activityDesc"  type="text" placeholder="Activity Description" required>
 
-              </section>
+  <select id="activityStatus">
+    <option value="">Select Status</option>
+    <option value="Not Started">Not Started</option>
+    <option value="In Progress">In Progress</option>
+    <option value="Completed">Completed</option>
+  </select>
 
-              
-<div class="activity-table-container">
-  <table id="activityTable">
-    <colgroup>
-      <col class="col-title" />
-      <col class="col-status" />
-      <col class="col-date" />
-      <col class="col-actions" />
-    </colgroup>
-    <thead>
-      <tr>
-        <th data-sort="title">Activity</th>
-      <th data-sort="status">Status</th>
-      <th data-sort="date">Due Date</th>
-        <th class="actions">Actions</th>    <!-- note the class -->
-      </tr>
-    </thead>
-    <tbody>
-
-<td class="actions">
-      <button class="edit-btn">✎</button>
-      <button class="delete-btn">🗑</button>
-    </td>
-
-    </tbody>
-  </table>
-</div>
-      </section>
-
-
-
-          </div>
-
-<!-- Edit Activity Modal -->
-<div id="editActivityModal" class="custom-modal hidden">
-  <div class="custom-modal-content">
-    <!-- Header -->
-    <div class="modal-header">
-      <h3>Edit Activity</h3>
-      <button id="cancelEditActivityBtn" class="close-button">×</button>
-    </div>
-    <!-- Body (all fields together) -->
-    <div class="modal-body">
-      <form id="editActivityForm">
-        <label for="editActivityTitle">Title</label>
-        <input type="text" id="editActivityTitle" required />
-
-        <label for="editActivityDesc">Description</label>
-        <input type="text" id="editActivityDesc" required />
-
-        <label for="editActivityStatus">Status</label>
-        <select id="editActivityStatus" required>
-          <option value="">Select Status</option>
-          <option>Not Started</option>
-          <option>In Progress</option>
-          <option>Completed</option>
-        </select>
-
-        <label for="editActivityDate">Due Date</label>
-        <input type="date" id="editActivityDate" required />
-      </form>
-    </div>
-    <!-- Footer -->
-    <div class="modal-footer">
-      <button id="saveEditActivityBtn" class="btn-primary">Save</button>
-      <button id="cancelEditActivityBtn2" class="btn-secondary">Cancel</button>
-    </div>
+  <div class="activity-date-inline">
+    <label for="activityDate">Date</label>
+    <input id="activityDate" type="date" required>
   </div>
+
+  <button type="submit">Add Activity</button>
+</form>
+
+  <div class="activity-import">
+    <input id="activityImport"
+           type="file"
+           accept=".xlsx,.xls" />
+    <button id="importBtn"
+            class="btn-primary"
+            type="button">
+      Import Excel
+    </button>
+  </div>
+
+  <div class="activity-table-container">
+    <table id="activityTable">
+      <colgroup>
+        <col class="col-title" />
+        <col class="col-status" />
+        <col class="col-date" />
+        <col class="col-actions" />
+      </colgroup>
+      <thead>
+  <tr>
+    <th data-sort="title">Activity</th>
+    <th data-sort="status">Status</th>
+    <th data-sort="date">Due Date</th>
+    <th class="actions">Actions</th>
+  </tr>
+</thead>
+      <tbody>
+        <!-- Rows are rendered dynamically by activity.js -->
+      </tbody>
+    </table>
+  </div>
+</section>
 </div>
 
-
-
-
-          <div class="rightside">
-            
-<!-- File Manager Section -->
-<section id="fileManagerContainer" class="card file-manager-section">
-  <div class="file-manager-header">
-
-    <div class="left-block">
+      <!-- right -->
+      <div class="rightside">
+        <section class="card file-panel">
+  <div class="section-header">
     <h2>📁 File Manager</h2>
-    <p>Use this component to communcate files creation and updates</p>
-    
-</div>
-<div class="right-block">
-
-<div class = "file-buttton-upload">    
-    <button id="openFileModal" class="btn-primary">Upload Files</button>
+    <p class="section-subtext">
+      Use this component to upload, share, and track project files.
+    </p>
   </div>
 
-    <div class="file-manager-filters">
-    <select id="filterUser"><option value="">All Users</option></select>
-    <select id="filterFileType"><option value="">All Types</option></select>
-  </div>
-</div>
-</div>
+  <!-- One-line controls row -->
+  <div class="file-controls-row">
+    <div class="file-controls-left">
+      <label>
+        User:
+        <select id="fileUserFilter">
+          <option value="">All Users</option>
+        </select>
+      </label>
+      <label>
+        Type:
+        <select id="fileTypeFilter">
+          <option value="">All Types</option>
+        </select>
+      </label>
+    </div>
 
-  <div class="file-manager-table-wrapper">
+    <div class="file-controls-right">
+      <input id="fileInput" type="file" />
+      <button id="fileUploadBtn" type="button">Upload</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="file-table-container">
     <table id="fileTable">
+      <colgroup>
+        <col class="col-name" />
+        <col class="col-type" />
+        <col class="col-size" />
+        <col class="col-created" />
+        <col class="col-owner" />
+        <col class="col-download" />
+        <col class="col-delete" />
+      </colgroup>
       <thead>
         <tr>
-          <th data-sort="fileName">File Name</th>
+          <th data-sort="name">File Name</th>
           <th data-sort="type">Type</th>
           <th data-sort="size">Size</th>
-          <th data-sort="createdAt">Created Date</th>
+          <th data-sort="created">Created Date</th>
           <th data-sort="owner">Owner</th>
           <th>Download</th>
           <th>Delete</th>
         </tr>
       </thead>
-      <tbody id="fileTableBody"></tbody>
+      <tbody id="fileTableBody">
+        <!-- rows rendered by filemanager.js -->
+      </tbody>
     </table>
   </div>
 </section>
 
-
- <!-- Q&A section -->
-<section class="card qna-section">
-  <!-- 1) Header -->
+        <!-- Q&A -->
+        <section class="qna-section">
   <div class="qna-header">
     <h2>🧠 Project Q&amp;A Tracker</h2>
     <p>Use this component to address any questions, comments, or concerns.</p>
   </div>
 
-  <!-- 2) Controls row: form on left, filters on right -->
   <div class="qna-controls">
-    <!-- Form -->
-    <form id="qnaForm" class="qna-form">
-      <textarea
-        id="qnaMessage"
-        rows="3"
-        placeholder="Enter your question or message…"
-        required
-      ></textarea>
+    <!-- Left: form -->
+    <form class="qna-form" onsubmit="return false;">
+      <textarea id="qna-message"
+                placeholder="Enter question, comment, or task..."></textarea>
+
+                 <textarea id="qna-response"
+            placeholder="Enter response or notes..."></textarea>
+
       <div class="qna-form-row">
-        
-        <select id="qnaType" required>
-          <option value="">Select Type</option>
-          <option value="question">Question</option>
-          <option value="task">Task</option>
-          <option value="note">Note</option>
+        <select id="qna-type">
+          <option value="">Type</option>
+          <option value="Question">Question</option>
+          <option value="Task">Task</option>
+          <option value="Risk">Risk</option>
+          <option value="Issue">Issue</option>   <!-- NEW -->
         </select>
-        <select id="qnaAssignedTo" required>
-          <option value="">Assign To</option>
-          <!-- options populated by JS -->
+
+        <select id="qna-assigned">
+          <!-- options populated by qna.js -->
         </select>
-        <button type="submit" class="primary">Add</button>
+
+        <button id="qna-add" type="button" class="primary">Add</button>
       </div>
     </form>
 
-    <!-- Filters, bottom-aligned -->
+    <!-- Right: filters -->
     <div class="qna-filters">
-      <select id="filterDone">
-        <option value="">All Status</option>
+      <select id="qna-filter-done">
+        <option value="">All items</option>
         <option value="notDone">Open</option>
-        <option value="done">Completed</option>
+        <option value="done">Done</option>
       </select>
 
-      <select id="filterType">
-        <option value="">Filter by Type</option>
-        <!-- populated by JS -->
+      <select id="qna-filter-type">
+        <option value="">All types</option>
+        <!-- dynamic options from data -->
       </select>
-      <select id="filterAssignedTo">
-        <option value="">Filter by Assigned</option>
-        <!-- populated by JS -->
+
+      <select id="qna-filter-assigned">
+        <option value="">All assignees</option>
+        <!-- dynamic options from data -->
       </select>
     </div>
   </div>
 
-  <!-- 3) Table -->
   <div class="qna-table-wrapper">
-    <table class="qna-table">
-      <thead>
-        <tr>
-          <th data-sort="type">Type</th>
-          <th data-sort="message">Message</th>
-          <th data-sort="assignedTo">Assigned</th>
-          <th data-sort="timestamp">Date</th>
-          <th data-sort="completed">Done</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="qnaTableBody"></tbody>
-    </table>
+    <table id="qna-table" class="qna-table">
+  <thead>
+    <tr>
+      <th data-sort="type">Type</th>
+<th data-sort="message">Message</th>
+<th data-sort="response">Response</th>
+<th data-sort="assignedTo">Assigned To</th>
+<th data-sort="date">Date</th>
+<th>Done</th>
+<th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
   </div>
 </section>
 
-<!-- Edit Modal -->
-<div id="editModal" class="custom-modal hidden">
-  <div class="custom-modal-content">
-    <div class="modal-header">
-      <h3>Edit Q&amp;A Entry</h3>
-      <button id="cancelEditBtn" class="close-button" title="Cancel">×</button>
-    </div>
-    <div class="modal-body">
-      <textarea id="editMessage" rows="4" style="width:100%;"></textarea>
-    </div>
-    <div class="modal-footer">
-      <button id="saveEditBtn" class="btn-primary">Save</button>
-      <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
-    </div>
-  </div>
-</div>
 
-<!-- Delete Confirmation Modal -->
-<div id="deleteConfirmModal" class="custom-modal hidden">
-  <div class="custom-modal-content">
-    <div class="modal-header">
-      <h3>Confirm Delete</h3>
-      <button id="cancelDelete" class="close-button" title="Cancel">×</button>
-    </div>
-    <div class="modal-body">
-      <p>Are you sure you want to delete this entry?</p>
-    </div>
-    <div class="modal-footer">
-      <button id="confirmDelete" class="btn-primary">Yes, Delete</button>
-      <button id="cancelDelete" class="btn-secondary">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Upload Modal -->
-<!-- Upload Modal -->
-<div id="fileUploadModal" class="custom-modal hidden">
-  <div class="custom-modal-content">
-    <div class="modal-header">
-      <h3>Upload Files</h3>
-      <button id="closeFileUploadModal" class="close-button">×</button>
-    </div>
-
-    <div class="modal-body">
-      <!-- hidden native file input -->
-     <input id="fileInput" type="file" multiple style="display:none;" />
-
-      <!-- our visible “Browse…” trigger + filename display -->
-      <div class="modal-row">
-       
-        <span id="selectedFilesText">No files selected</span>
-      </div>
-
-      <!-- status text -->
-      <p id="uploadStatus" class="status-text"></p>
-    </div>
-
-    <div class="modal-footer">
-      <button id="confirmFileUpload" class="btn-primary">Upload</button>
-      <button id="cancelFileUpload" class="btn-secondary">Cancel</button>
-    </div>
-  </div>
-</div>
-
+ 
 
   </main>
 
-  <!-- your modals here -->
+<script>
+/* Minimal stub so code can call:
+     onFirebaseReady(cb)         // callback style
+     onFirebaseReady.then(cb)    // promise style
+   BEFORE firebaseInit.js loads.
+   firebaseInit.js will later resolve this via window.__drResolve(DR).
+*/
+window.onFirebaseReady = window.onFirebaseReady || (function(){
+  var p = new Promise(function(resolve){ window.__drResolve = resolve; });
+  function f(cb){ if (typeof cb === "function") { p.then(function(DR){ try{ cb(DR); }catch(e){ console.error(e); } }); } return p; }
+  f.then    = p.then.bind(p);
+  f.catch   = p.catch.bind(p);
+  f.finally = p.finally.bind(p);
+  console.log("[ready-stub] installed");
+  return f;
+})();
+</script>
 
- <!-- Firebase modular SDKs -->
-<!-- 1) Firebase compat SDKs (NOT modules) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-<!-- Your initializer (note the capital I) -->
-<script src="./JS/firebaseInit.js"></script>
-
-  <!-- Q&A (already working) -->
-  <script type="module" src="./JS/dashboard-business-loader.js"></script>
-   <script type="module" src="./JS/header.js"></script>
+  <!-- Your init -->
+  <script src="./JS/firebaseInit.js"></script>
+ <!-- <script  src="./JS/app.js"></script> -->
  
-  <script type="module" src="./JS/activity.js"></script>
-   <script type="module" src="./JS/milestone.js"></script>
-
- <script type="module" src="./JS/projectStatus.js"></script>
-<script type="module" src="./JS/projectProgress.js"></script>
-  <script type="module" src="./JS/qna.js"></script>
-
-
-
+   <script  src="./JS/session-classic.js"></script>
+  <script  src="./JS/requireAuth.js"></script>
+  <script src="./JS/waitForBusinessKey-shim.js"></script>
+  <script  src="./JS/auth-helpers-email.js"></script>
+   <!-- <script  src="./JS/dashboard-guard.js"></script> -->
+  <script  src="./JS/dashboard-business-loader.js"></script>
+  <!-- <script defer src="./JS/qna-migrate.js"></script> -->
   
-
-   <script type="module" src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs"></script>
-   
-  
-
- <script type="module">
-  // point at the JS folder *relative to this file*
-   import { initProjectStatus } from './JS/projectStatus.js';
-    const businessKey = new URLSearchParams(location.search).get('business');
-    initProjectStatus(businessKey);
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+ 
+ <script>
+    console.log("[ready-stub] installed");
   </script>
 
-
-
-<style>
-  /* hide body until we know auth state to avoid flashing private content */
-  body.auth-gate { visibility: hidden; }
-</style>
-
-
 <script>
-  // Hide everything until auth check completes
-  document.body.classList.add('auth-gate');
+  window.APP_CONFIG = window.APP_CONFIG || {};
+  window.APP_CONFIG.OWNER_EMAIL = "{{OWNER_EMAIL}}";  // filled on deploy
+</script>
 
-  (function () {
-    const waitForAuth = () => new Promise((resolve) => {
-      if (window.auth) return resolve(window.auth);
-      const iv = setInterval(() => {
-        if (window.auth) { clearInterval(iv); resolve(window.auth); }
-      }, 50);
-      setTimeout(() => { clearInterval(iv); resolve(null); }, 5000);
-    });
+ <script>
+(function () {
+  const TAG = '[dash-loader]';
+  const L = (...a) => console.log(TAG, ...a);
+  const W = (...a) => console.warn(TAG, ...a);
+  const E = (...a) => console.error(TAG, ...a);
 
-    (async () => {
-      const a = await waitForAuth();
-      if (!a) { location.replace('./index.html#client-login'); return; }
+  // Get business key from URL or storage (same logic as dash-guard)
+  function getBizKey() {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const q =
+        (params.get('business') ||
+          params.get('biz') ||
+          params.get('company') ||
+          '').trim();
+      const s = (
+        sessionStorage.getItem('businessKey') ||
+        localStorage.getItem('businessKey') ||
+        ''
+      ).trim();
+      const key = q || s;
+      L('biz key sources:', { q, s, key });
+      return key;
+    } catch (err) {
+      E('getBizKey error:', err);
+      return '';
+    }
+  }
 
-      a.onAuthStateChanged((u) => {
-        if (!u) {
-          // not signed in → go to login
-          location.replace('./index.html#client-login');
-        } else {
-          // signed in → show dashboard
-          document.body.classList.remove('auth-gate');
-          // (optional) show who’s logged in
-          const who = document.getElementById('whoami');
-          if (who) who.textContent = u.email || u.uid;
+  // Robust: wait until auth.currentUser is available, then call cb(user)
+  function whenUserReady(cb, maxMs) {
+    maxMs = maxMs || 8000;
+    const start = Date.now();
+
+    function check() {
+      const a = window.auth;
+      const elapsed = Date.now() - start;
+
+      if (!a) {
+        if (elapsed > maxMs) {
+          E('whenUserReady: auth not available after timeout');
+          cb(null);
+          return;
+        }
+        W('whenUserReady: auth not ready yet, retrying…');
+        setTimeout(check, 150);
+        return;
+      }
+
+      // If user already there, done
+      if (a.currentUser) {
+        L('whenUserReady: got user', { email: a.currentUser.email });
+        cb(a.currentUser);
+        return;
+      }
+
+      // Otherwise subscribe once
+      const unsub = a.onAuthStateChanged((user) => {
+        if (user) {
+          L('whenUserReady: onAuthStateChanged user', { email: user.email });
+          unsub && unsub();
+          cb(user);
+        } else if (Date.now() - start > maxMs) {
+          E('whenUserReady: timeout waiting for user');
+          unsub && unsub();
+          cb(null);
         }
       });
-    })();
-  })();
+
+
+
+      
+      // Safety timeout in case callback never fires
+      setTimeout(() => {
+        if (!a.currentUser && Date.now() - start > maxMs) {
+          E('whenUserReady: timeout (no user in callback)');
+          try { unsub && unsub(); } catch (e) {}
+          cb(null);
+        }
+      }, maxMs + 200);
+    }
+
+    check();
+  }
+
+  function loadScript(path, onload) {
+    const s = document.createElement('script');
+    s.src = path;
+    s.defer = true;
+    if (onload) s.onload = onload;
+    document.body.appendChild(s);
+  }
+
+  function loadWidgets(bizKey, user) {
+    L('loading widgets…', {
+      bizKey,
+      email: user && user.email,
+    });
+
+    // First: header.js, then initialize header, then other widgets
+    loadScript('./JS/header.js', function () {
+      if (window.initDashboardHeader) {
+        window.initDashboardHeader(bizKey, user);
+      } else {
+        W('initDashboardHeader not defined after header.js load');
+      }
+
+      // The rest of your dashboard modules
+      loadScript('./JS/app-config.js');
+      loadScript('./JS/activity.js');
+      loadScript('./JS/milestone.js');
+      loadScript('./JS/projectStatus.js');
+      loadScript('./JS/projectProgress.js');
+      loadScript('./JS/Dashboard-business-loader.js');
+      loadScript('./JS/qna.js', function () {
+  if (window.initQna) {
+    window.initQna({
+      biz: bizKey,
+      user: {
+        email: user && user.email,
+        uid: user && user.uid
+      }
+    });
+  } else {
+    W('initQna not defined after qna.js load');
+  }
+});
+      loadScript('./JS/filemanager.js');
+    });
+  }
+
+  const key = getBizKey();
+  if (!key) {
+    W('no business key → redirecting to index for selection');
+    location.replace('index.html?needBiz=1');
+    return;
+  }
+
+  // Make key globally reachable for any other code
+  window.BIZ_KEY = key;
+
+  // We **know** firebaseInit.js ran just before this (see [firebaseInit] logs),
+  // so window.auth should appear shortly. Just wait for user and then load widgets.
+  whenUserReady((user) => {
+    loadWidgets(key, user);
+  });
+})();
 </script>
 
-<script>
-  auth.onAuthStateChanged((u) => {
-    if (!u) location.href = './index.html#client-login';
-    else console.log('Signed in as', u.email);
-  });
-</script>
 
 
 </body>

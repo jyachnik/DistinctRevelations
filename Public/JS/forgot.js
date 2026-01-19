@@ -1,49 +1,52 @@
-// /Public/forgot.js
-const { auth, db } = window;
-import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+/* /JS/forgot.js */
 
-const $ = (id) => document.getElementById(id);
-const ok = (el, msg) => { el.textContent = msg; el.style.color = "#7bd389"; };
-const err = (el, msg) => { el.textContent = msg; el.style.color = "#ffb3b3"; };
+console.log('[forgot] script loaded');
 
-document.addEventListener("DOMContentLoaded", () => {
-  const form = $("forgotForm");
-  if (!form) return;
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.getElementById('forgotForm');
+  var msg  = document.getElementById('forgotMsg');
 
-  const emailEl = $("forgotEmail");
-  let msgEl = $("forgotMsg");
-  if (!msgEl) {
-    msgEl = document.createElement("p");
-    msgEl.id = "forgotMsg";
-    msgEl.className = "hint";
-    form.appendChild(msgEl);
+  if (!form) {
+    console.error('[forgot] form not found');
+    return;
   }
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = (emailEl?.value || "").trim();
-    if (!email) return err(msgEl, "Please enter your email.");
-
-    try {
-      // default hosted reset page (no redirect needed)
-      await sendPasswordResetEmail(auth, email);
-      ok(msgEl, "Reset link sent. Check your inbox (and spam).");
-
-      // Optional: auto-close modal after a short pause
-      setTimeout(() => {
-        const modal = document.getElementById("forgotModal");
-        if (modal) modal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("no-scroll");
-      }, 1200);
-    } catch (e) {
-      const map = {
-        "auth/invalid-email": "That email address looks invalid.",
-        "auth/user-not-found": "No account with that email.",
-        "auth/too-many-requests": "Too many attempts. Try again shortly.",
-        "auth/network-request-failed": "Network error. Please try again."
-      };
-      err(msgEl, map[e.code] || `Could not send reset email (${e.code}).`);
-      console.error("Forgot password error:", e);
+  function setMsg(t, ok) {
+    if (msg) {
+      msg.textContent = t;
+      msg.style.color = ok ? '#2f9e44' : '#d33';
     }
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    var emailInput = form.querySelector('[name="email"]');
+    var email = emailInput ? emailInput.value.trim() : '';
+    console.log('[forgot] submitting', email);
+
+    if (!email) {
+      setMsg('Please enter your email.');
+      return;
+    }
+
+    var auth = window.auth;
+    if (!auth) {
+      console.error('[forgot] window.auth is missing');
+      setMsg('Auth not ready.');
+      return;
+    }
+
+    setMsg('Sending…');
+
+    auth.sendPasswordResetEmail(email)
+      .then(function () {
+        console.log('[forgot] reset email sent');
+        setMsg('Reset email sent.', true);
+      })
+      .catch(function (err) {
+        console.error('[forgot] error', err);
+        setMsg(err.message || 'Could not send reset email.');
+      });
   });
 });

@@ -501,3 +501,51 @@ footer .footer-links a { color: #002b45; }
     gap: 0.5rem;
   }
 }
+
+/* Secondary buttons (Create Account, Forgot password) */
+.btn-secondary {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: #f2f2f2;
+  color: #002b45;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e5e5;
+}
+
+/* Full-screen overlay: centers the modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;   /* vertical center */
+  justify-content: center; /* horizontal center */
+  padding: 1rem;
+  z-index: 11000;
+}
+
+/* Hidden state – used by .hidden class */
+.modal.hidden {
+  display: none;
+}
+
+/* Inner card – controls width & left/right position */
+.register-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;     /* narrower card, stays centered */
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}

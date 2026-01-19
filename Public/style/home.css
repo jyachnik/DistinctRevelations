@@ -302,8 +302,36 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
   cursor: pointer;
   z-index: 1;
 }
-
-/* Make sure the corner/bleed logo never sits above the modal */
+ #businessSelectModal * { color: #0f172a; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  #businessSelectModal h3 { margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; letter-spacing: .2px; }
+  #businessSelectModal label { display: block; margin: 0 0 6px; font-weight: 700; color: #111827; }
+  #businessSelectModal select {
+    width: 100%; padding: 10px 12px;
+    font-size: 15px; font-weight: 700; line-height: 1.25;
+    color: #0f172a; background: #fff;
+    border: 1px solid #cbd5e1; border-radius: 10px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.02) inset;
+  }
+  #businessSelectModal .modal-head {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 16px; border-bottom: 1px solid #e5e7eb; background:#f8fafc;
+  }
+  #businessSelectModal .modal-foot {
+    padding: 12px 16px; border-top: 1px solid #e5e7eb; display:flex; gap:8px; justify-content:flex-end; background:#fafafa;
+  }
+  #businessSelectModal [data-close="businessSelectModal"] {
+    border: 1px solid #cbd5e1; border-radius: 10px; background:#fff;
+    padding: 10px 14px; font-weight: 700; cursor: pointer;
+  }
+  #businessSelectModal [data-close="businessSelectModal"]:hover { background:#f3f4f6; }
+  #selectBusinessBtn {
+    border: none; border-radius: 10px; padding: 10px 14px;
+    background: #0b5cff; color: #fff; font-weight: 800; cursor: pointer;
+    box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 6px 16px rgba(11,92,255,.25);
+  }
+  #selectBusinessBtn:disabled { opacity: .55; cursor: not-allowed; box-shadow: none;
+  }
+    /* Make sure the corner/bleed logo never sits above the modal */
 .corner-logo{ z-index: 1200; }     /* modal is 5000; header is 2000 */
 
 /* Optional: desktop-only modal spacing refinements */
@@ -897,4 +925,180 @@ html { scroll-behavior: smooth; }
   #services, #about, #case-studies, #contact {
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }
+}
+/* ───────── MODAL BASE ───────── */
+
+/* Full-screen overlay */
+.modal {
+  position: fixed;
+  inset: 0;                      /* top:0; right:0; bottom:0; left:0 */
+  background: rgba(0, 0, 0, 0.6);/* dark overlay */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 11000;
+}
+
+/* Hidden state (used by `.hidden` class) */
+.modal.hidden {
+  display: none;
+}
+
+/* Inner card (Create Account, Forgot Password, etc.) */
+.register-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Header row */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ececec;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #002b45;
+}
+
+/* Close button (×) */
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+}
+
+.close-button:hover {
+  color: #000;
+}
+
+/* Body area */
+.modal-body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+/* Single-column form layout */
+.form-single {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-single label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #002b45;
+}
+
+.form-single input,
+.form-single select,
+.form-single textarea {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.form-single input:focus,
+.form-single select:focus,
+.form-single textarea:focus {
+  border-color: #004080;
+  outline: none;
+}
+
+/* Primary button inside modal */
+.form-single .btn-primary {
+  margin-top: 1rem;
+  padding: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: #e07a5f;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.form-single .btn-primary:hover {
+  background-color: #d06a50;
+}
+
+/* Small screens: slightly tighter padding */
+@media (max-width: 480px) {
+  .register-modal {
+    max-width: 90%;
+  }
+
+  .modal-body {
+    padding: 0.75rem 1rem 1rem;
+  }
+}
+
+/* Secondary buttons (Create Account, Forgot password) */
+.btn-secondary {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: #f2f2f2;
+  color: #002b45;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e5e5;
+}
+
+/* Overlay stays as-is */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 11000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+/* Make the inner card a centered, fixed-width box */
+.register-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;      /* adjust width as desired */
+  max-height: 90vh;
+  margin: 0 auto;        /* center if any width remains */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }

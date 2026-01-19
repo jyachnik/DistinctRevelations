@@ -116,3 +116,34 @@ document.addEventListener('click', (e) => {
   const frame = document.getElementById('pdfFrame');
   if (frame) setTimeout(() => { frame.src = 'about:blank'; }, 150);
 });
+(function () {
+  try {
+    const raw = sessionStorage.getItem('dr:lastKick');
+    if (!raw) return;
+    sessionStorage.removeItem('dr:lastKick'); // consume it
+
+    const info = JSON.parse(raw);
+    const ago  = Math.round((Date.now() - (info.when || Date.now())) / 1000);
+    const msg =
+      ['Dashboard access denied:',
+       `• Reason: ${info.reason}`,
+       info.businessKey ? `• Business: ${info.businessKey}` : '',
+       info.uid ? `• UID: ${info.uid}` : '',
+       info.email ? `• Email: ${info.email}` : '',
+       info.ownerUid ? `• Owner UID: ${info.ownerUid}` : '',
+       info.graceMs ? `• Grace waited: ${info.graceMs} ms` : '',
+       `• Seen ${ago}s ago`]
+      .filter(Boolean).join('\n');
+
+    // Non-blocking banner; change to alert(msg) if you want a modal
+    console.warn(msg);
+    const bar = document.createElement('div');
+    bar.style.cssText =
+      'position:fixed;inset:auto 0 0 0;z-index:99999;padding:12px 16px;' +
+      'background:#231942;color:#fff;font:14px/1.4 system-ui,Segoe UI,Arial;' +
+      'box-shadow:0 -4px 16px rgba(0,0,0,.28)';
+    bar.textContent = msg;
+    document.body.appendChild(bar);
+    setTimeout(() => bar.remove(), 12000);
+  } catch (_) {}
+})();

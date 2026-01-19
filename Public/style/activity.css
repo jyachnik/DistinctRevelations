@@ -1,8 +1,7 @@
-/* activity.css - unified, no CSS variables */
+/* activity.css – cleaned for Activity Log */
 
-/* Base typography for activity panels */
-.card.activity-panel,
-.card.activity-section {
+/* Panel base */
+.card.activity-panel {
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   color: #333333;
@@ -11,108 +10,95 @@
   padding: 1rem;
   border: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  
-  border-radius: 0 8px 8px 0;
-}
-
-.card.activity-panel{
-
-border-radius: 8px;
+  border-radius: 8px;
   border-left: 6px solid #004e92;
-
-
 }
-.card.activity-section .section-header,
+
+/* Section header */
 .card.activity-panel .section-header {
-  /* remove any extra left/right padding… */
-  padding-left: 0;
-  padding-right: 0;
-}
-
-    .card.activity-panel .section-header,
-    .card.activity-section .section-header {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      text-align: left;
-      background-color: #fbfafd;
-      margin-left: -12px;
-      width: 100%;
-      line-height: 20px;
-      margin-top: -20px;
-
-    
-    }
-    
-    .card.activity-panel .section-header .section-subtext,
-   .card.activity-section .section-header .section-subtext {
-      margin-top: 4px;
-      align-self: flex-start;
-      font-size: 14px;
-      color: #666666;
-      text-align: left;
-      text-indent: 5%;
-      text-wrap: no wrap;
-    }
-    
-
-.card.activity-section .section-header .section-subtext p.no-wrap {
-  white-space: nowrap;        /* Don’t wrap text */
-  overflow: hidden;           /* Hide anything that overflows the container */
-  text-overflow: ellipsis;    /* (Optional) Show “…” if text is too long */
-}
-
-
-
-
-    /* .card.activity-panel .section-header p,
-    .card.activity-section .section-header p {
-      margin: 4px 0 0 0;
-      align-self: flex-start;
-      align-items: left;
-      text-align: left;
-      font-size: 14px;
-      color: #666666;
-    }
-.card.activity-section .section-header {
   display: flex;
-  align-items: left;
-  background-color: #f9f9f9;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background-color: #fbfafd;
+  margin-left: -12px;
+  width: 100%;
+  line-height: 20px;
+  margin-top: -20px;
   padding: 8px 16px;
-  margin: 0;
-  border-left: 6px solid #004e92;
-  border-radius: 0 8px 8px 0;
 }
-.card.activity-panel .section-header h2,
-.card.activity-section .section-header h2 {
+
+.card.activity-panel .section-header h2 {
   font-size: 18px;
   font-weight: 600;
   color: #002b45;
   margin: 0;
+  white-space: nowrap;
 }
-.card.activity-panel .section-header .section-subtext,
-.card.activity-section .section-header .section-subtext {
+
+.card.activity-panel .section-header .section-subtext {
+  margin-top: 4px;
   font-size: 14px;
   color: #666666;
-  margin-left: auto;
-  text-align: left;
 }
- */
 
+/* Hide Activity form + import bar for non-owners */
+.card.activity-panel:not(.owner) #activityForm,
+.card.activity-panel:not(.owner) .activity-import {
+  display: none;
+}
+
+/* --- Activity form layout --- */
+
+.activity-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.activity-form > input,
+.activity-form > select {
+  flex: 1 1 180px;
+}
+
+/* Status + Date inline on same row */
+.activity-date-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.activity-date-inline input[type="date"] {
+  min-width: 140px;
+}
+
+/* Import bar */
+.activity-import {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- Activity table and sticky header --- */
+
+/* Scroll container */
 .activity-table-container {
-  width: 100%;
   max-height: 350px;
-  overflow-y: auto;
-  margin-top: 16px;
+  overflow-y: auto;   /* scrolling happens here */
 }
 
-/* Table base styling */
+/* Table base */
 #activityTable {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
   font-family: 'Inter', sans-serif;
 }
+
 #activityTable th,
 #activityTable td {
   padding: 12px;
@@ -120,39 +106,23 @@ border-radius: 8px;
   color: #333333;
   border-bottom: 1px solid #e0e0e0;
   word-wrap: break-word;
+  background-color: #ffffff;
 }
 
-/* Sticky header styling */
+/* Make ALL header cells sticky together */
 #activityTable thead th {
-  position: sticky;
+  position: sticky !important;
   top: 0;
+  z-index: 5;
   background-color: #007bff;
   color: #ffffff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   user-select: none;
-  z-index: 1;
-}
-#activityTable thead th:hover {
-  background-color: #0056b3;
 }
 
-/* Sort indicators */
-#activityTable thead th[data-sort]::after {
-  content: "↕";
-  margin-left: 8px;
-  font-size: 12px;
-  opacity: 0.7;
-}
-#activityTable thead th.sorted-asc::after {
-  content: "↑";
-}
-#activityTable thead th.sorted-desc::after {
-  content: "↓";
-}
-
-/* Hide actions column for non-owner */
+/* Hide Actions column for non-owner */
 #activityTable:not(.owner) th.actions,
 #activityTable:not(.owner) td.actions {
   display: none;
@@ -168,28 +138,47 @@ border-radius: 8px;
 #activityTable:not(.owner) col.col-status { width: 35%; }
 #activityTable:not(.owner) col.col-date   { width: 25%; }
 
-.card.activity-panel .section-header h2 + p {
-  margin: 0;                 /* reset any default top/bottom margins */
-  padding: 0;                /* if you want no extra padding */
-  font-size: 14px;
+/* Empty state */
+#activityTable td.empty {
+  text-align: center;
+  color: #777777;
+  font-style: italic;
+}
+
+/* Description under title */
+.activity-desc {
+  margin-top: 4px;
+  font-size: 13px;
   color: #666666;
-  text-align: left;
-}
-p.no-wrap {
-  white-space: nowrap;
 }
 
-/* Ensure the paragraph always sits under the H2, full width, left-aligned */
-.card.activity-panel .section-header h2 + p.section-subtext {
-  display: block;        /* Block so it spans the full width */
-  margin: 4px 0 0;       /* Small gap above, none below */
-  padding: 0;            /* No extra padding */
-  text-align: left;      /* Left-justify text */
-  width: 100%;           /* Full container width */
-  white-space: normal;   /* Allow wrapping normally */
+/* --- Sort arrows --- */
+
+/* Reserve space and position arrow on right */
+#activityTable thead th[data-sort] {
+  padding-right: 24px;
+  position: relative;
 }
 
-h2 {
-  white-space: nowrap;
+/* Base indicator */
+#activityTable thead th[data-sort]::after {
+  content: "↕";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  opacity: 1;
 }
 
+/* Ascending */
+#activityTable thead th.sorted-asc::after {
+  content: "↑";
+}
+
+/* Descending */
+#activityTable thead th.sorted-desc::after {
+  content: "↓";
+}

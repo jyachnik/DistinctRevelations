@@ -1,359 +1,600 @@
-// /Public/JS/qna.js
-// Fully functional Q&A module using Firebase **compat** (window.auth, window.db).
-// Keeps original behavior and UI wiring, but now waits for the business key,
-// guards DOM lookups, and enforces permissions (owner or assignee can edit/complete/delete).
+/* ============================================================================
+   Q&A Tracker – wired to existing dashboard.html / qna.css
+   Firestore: businesses/{biz}/qna/{doc}
+   Fields: { type, message, response, assignedTo, completed,
+             createdBy, createdByUid, timestamp }
+   ============================================================================ */
 
-/* ---------------- Firebase (compat) ---------------- */
-const { auth, db } = window; // provided by firebaseInit.js (compat)
-const OWNER_EMAIL = 'john@distinctrevelations.com';
+(function () {
+  'use strict';
 
-/* ---------------- Business key sync ---------------- */
-function getBizKeyImmediate() {
-  return new URL(location.href).searchParams.get('business') || window.BIZ_KEY || null;
-}
-function onBizReady(cb) {
-  const k = getBizKeyImmediate();
-  if (k) return cb(k);
-  // dashboard-business-loader.js dispatches this when it resolves the key
-  window.addEventListener('business:ready', (e) => cb(e.detail.businessKey), { once: true });
-}
+  var ns = '[qna]';
 
-/* ---------------- DOM refs (original ids) ---------------- */
-const formEl         = document.getElementById('qnaForm');
-const msgEl          = document.getElementById('qnaMessage');
-const typeEl         = document.getElementById('qnaType');
-const assignFormEl   = document.getElementById('qnaAssignedTo');
-const filterDoneEl   = document.getElementById('filterDone');
-const filterTypeEl   = document.getElementById('filterType');       // filter dropdown
-const filterAssignEl = document.getElementById('filterAssignedTo');
-const tableBodyEl    = document.getElementById('qnaTableBody');
+  // ---------------------------------------------------------------------------
+  // Context
+  // ---------------------------------------------------------------------------
+  var ctx = {
+    biz: null,
+    userEmail: '',
+    userUid: '',
+    isOwner: false,
+    rows: [],
+    editingId: null,
+    sort: { key: null, dir: 'asc' } // for header sorting
+  };
 
-// Stats
-const openQnEl = document.getElementById('openQuestionsCount');
-const openTkEl = document.getElementById('openTasksCount');
-
-// Modals / actions
-const saveEditBtn      = document.getElementById('saveEditBtn');
-const confirmDeleteBtn = document.getElementById('confirmDelete');
-
-/* ---------------- State ---------------- */
-let businessKey = null;
-let userEmail   = null;
-let entries     = [];
-let currentSort = { column: null, direction: 'desc' };
-let editingId   = null;
-let deletingId  = null;
-let unsub       = null;
-
-/* ---------------- Utilities ---------------- */
-function safeText(v) { return (v ?? '').toString(); }
-function mmddyyyy(ts) {
-  if (!ts) return '';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  if (Number.isNaN(d.getTime())) return '';
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${mm}/${dd}/${d.getFullYear()}`;
-}
-function canModify(entry) {
-  return userEmail === OWNER_EMAIL || userEmail === entry.assignedTo;
+ // Read owner email from a global or environment config
+var OWNER_EMAIL = '';
+if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_CONFIG.OWNERS.length) {
+  OWNER_EMAIL = window.APP_CONFIG.OWNERS[0];  // primary owner from app-config.js
+} else if (window.ownerEmail) {
+  OWNER_EMAIL = window.ownerEmail;
 }
 
-/* ---------------- Data (compat) ---------------- */
-function qnaColl() {
-  return db.collection('businesses').doc(businessKey).collection('qna');
-}
-
-async function loadAssignDropdowns() {
-  if (!assignFormEl || !filterAssignEl) return;
-  try {
-    const snap = await db.collection('businesses').doc(businessKey).collection('users').get();
-    const emails = [...new Set(snap.docs.map(d => d.data()?.email).filter(Boolean))];
-    if (!emails.includes(OWNER_EMAIL)) emails.unshift(OWNER_EMAIL);
-
-    assignFormEl.innerHTML   = '<option value="">Assign To</option>';
-    filterAssignEl.innerHTML = '<option value="">Filter by Assigned</option>';
-    for (const e of emails) {
-      assignFormEl.innerHTML   += `<option value="${e}">${e}</option>`;
-      filterAssignEl.innerHTML += `<option value="${e}">${e}</option>`;
-    }
-  } catch (e) {
-    console.warn('QnA: failed to load assigned users', e);
+  // ---------------------------------------------------------------------------
+  // DOM helpers
+  // ---------------------------------------------------------------------------
+  function $(sel, root) {
+    return (root || document).querySelector(sel);
   }
-}
 
-function populateTypeFilter() {
-  if (!filterTypeEl) return;
-  const types = ['question', 'task', 'note'];
-  filterTypeEl.innerHTML = '<option value="">Filter by Type</option>';
-  types.forEach(t => filterTypeEl.innerHTML += `<option value="${t}">${t[0].toUpperCase() + t.slice(1)}</option>`);
-}
+  // ---------------------------------------------------------------------------
+  // DOM references
+  // ---------------------------------------------------------------------------
+  var tbody;
+  var typeSel;
+  var assignedSel;
+  var msgInput;
+  var responseInput;
+  var addBtn;
+  var filterDoneSel;
+  var filterTypeSel;
+  var filterAssignedSel;
 
-function startListener() {
-  if (!tableBodyEl) return;
-  if (typeof unsub === 'function') unsub();
-
-  unsub = qnaColl().orderBy('timestamp', 'desc').onSnapshot(
-    (snap) => {
-      entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Stats
-      let qCount = 0, tCount = 0;
-      for (const e of entries) {
-        if (!e.completed) {
-          if (e.type === 'question') qCount++;
-          else if (e.type === 'task') tCount++;
-        }
-      }
-      if (openQnEl) openQnEl.textContent = qCount;
-      if (openTkEl) openTkEl.textContent = tCount;
-
-      renderTable();
-    },
-    (err) => console.error('QnA snapshot error', err)
-  );
-}
-
-/* ---------------- UI Wiring ---------------- */
-function wireForm() {
-  if (!formEl || formEl.dataset.bound === '1') return;
-  formEl.dataset.bound = '1';
-  formEl.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!msgEl || !typeEl || !assignFormEl) return;
-
-    const message    = msgEl.value.trim();
-    const type       = typeEl.value;
-    const assignedTo = assignFormEl.value;
-    if (!message || !type || !assignedTo) return;
-
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+  function fmtDate(ts) {
+    if (!ts) return '';
     try {
-      await qnaColl().add({
-        message,
-        type,
-        assignedTo,
-        completed: false,
-        createdBy: userEmail,
-        businessKey,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-      formEl.reset();
-    } catch (err) {
-      console.error('Add QnA failed', err);
+      var d = ts.toDate ? ts.toDate() : (ts instanceof Date ? ts : new Date(ts));
+      return d.toLocaleString();
+    } catch (_) {
+      return '';
     }
-  });
-}
-
-function wireFiltersAndSorting() {
-  filterDoneEl   && filterDoneEl  .addEventListener('change', renderTable);
-  filterTypeEl   && filterTypeEl  .addEventListener('change', renderTable);
-  filterAssignEl && filterAssignEl.addEventListener('change', renderTable);
-
-  document.querySelectorAll('th[data-sort]').forEach(th => {
-    th.style.cursor = 'pointer';
-    th.addEventListener('click', () => {
-      const col = th.dataset.sort; // 'type' | 'message' | 'assignedTo' | 'timestamp'
-      if (currentSort.column === col) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort.column = col;
-        currentSort.direction = 'asc';
-      }
-      document.querySelectorAll('th[data-sort]').forEach(h => h.classList.remove('asc', 'desc'));
-      th.classList.add(currentSort.direction);
-      renderTable();
-    });
-  });
-}
-
-function wireModals() {
-  // Close edit modal
-  document.querySelectorAll('#editModal #cancelEditBtn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const m = document.getElementById('editModal');
-      m && m.classList.add('hidden');
-    });
-  });
-  saveEditBtn && saveEditBtn.addEventListener('click', saveEdit);
-
-  // Close delete modal
-  document.querySelectorAll('#deleteConfirmModal #cancelDelete').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const m = document.getElementById('deleteConfirmModal');
-      m && m.classList.add('hidden');
-    });
-  });
-  confirmDeleteBtn && confirmDeleteBtn.addEventListener('click', confirmDelete);
-}
-
-/* ---------------- Rendering ---------------- */
-function renderTable() {
-  const tbody = tableBodyEl;
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-
-  const doneFilter   = (filterDoneEl?.value || '').trim();
-  const typeFilter   = (filterTypeEl?.value || '').trim().toLowerCase();
-  const assignFilter = (filterAssignEl?.value || '').trim();
-
-  let list = entries.filter(e => {
-    if (doneFilter === 'done'    && !e.completed) return false;
-    if (doneFilter === 'notDone' &&  e.completed) return false;
-    if (typeFilter && String(e.type || '').toLowerCase() !== typeFilter) return false;
-    if (assignFilter && String(e.assignedTo || '') !== assignFilter) return false;
-    return true;
-  });
-
-  if (currentSort.column) {
-    const col = currentSort.column;
-    const dir = currentSort.direction;
-    list.sort((a, b) => {
-      if (col === 'timestamp') {
-        const av = a.timestamp?.toDate()?.getTime() || 0;
-        const bv = b.timestamp?.toDate()?.getTime() || 0;
-        return dir === 'asc' ? av - bv : bv - av;
-      }
-      const av = safeText(a[col]).toLowerCase();
-      const bv = safeText(b[col]).toLowerCase();
-      return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
   }
 
-  for (const e of list) {
-    const tr = document.createElement('tr');
-    if (e.completed) tr.classList.add('completed');
+  function canEdit(row) {
+    return (
+      ctx.isOwner ||
+      String(row.createdBy || '').toLowerCase() === ctx.userEmail.toLowerCase()
+    );
+  }
 
-    // Type / Message / Assigned
-    const tdType = document.createElement('td');      tdType.textContent = e.type || '';
-    const tdMsg  = document.createElement('td');      tdMsg.textContent  = e.message || '';
-    const tdAsg  = document.createElement('td');      tdAsg.textContent  = e.assignedTo || '';
-    tr.appendChild(tdType); tr.appendChild(tdMsg); tr.appendChild(tdAsg);
+  function canDelete(row) {
+    return canEdit(row);
+  }
 
-    // Date
-    const tdDate = document.createElement('td');
-    tdDate.textContent = mmddyyyy(e.timestamp);
-    tdDate.style.whiteSpace = 'nowrap';
-    tr.appendChild(tdDate);
+  // ---------------------------------------------------------------------------
+  // Filters
+  // ---------------------------------------------------------------------------
+  function rebuildFilters() {
+    if (!filterTypeSel || !filterAssignedSel) return;
 
-    // Done (only owner or assignee can toggle)
-    const tdDone = document.createElement('td');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !!e.completed;
-    cb.disabled = !canModify(e);
-    cb.addEventListener('change', async (ev) => {
-      try {
-        await qnaColl().doc(e.id).update({ completed: ev.target.checked });
-        tr.classList.toggle('completed', ev.target.checked);
-      } catch (err) {
-        console.error('Toggle completed failed', err);
-        ev.target.checked = !ev.target.checked; // revert
-      }
+    var types = new Set();
+    var assignees = new Set();
+
+    ctx.rows.forEach(function (r) {
+      if (r.type) types.add(r.type);
+      if (r.assignedTo) assignees.add(r.assignedTo);
     });
-    tdDone.appendChild(cb);
-    tr.appendChild(tdDone);
 
-    // Actions (edit/delete)
-    const tdAct = document.createElement('td');
-    tdAct.style.textAlign = 'center';
-    if (canModify(e)) {
-      const editBtn = document.createElement('button');
-      editBtn.className = 'edit-btn';
-      editBtn.title = 'Edit';
-      editBtn.textContent = '✎';
-      editBtn.addEventListener('click', () => {
-        const modal = document.getElementById('editModal');
-        const input = document.getElementById('editMessage');
-        if (modal && input) {
-          input.value = e.message || '';
-          modal.classList.remove('hidden');
-          editingId = e.id;
-        }
+    // Type filter
+    filterTypeSel.innerHTML = '';
+    var optAllT = document.createElement('option');
+    optAllT.value = '';
+    optAllT.textContent = 'All types';
+    filterTypeSel.appendChild(optAllT);
+
+    Array.from(types)
+      .sort()
+      .forEach(function (t) {
+        var opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        filterTypeSel.appendChild(opt);
       });
-      tdAct.appendChild(editBtn);
 
-      const delBtn = document.createElement('button');
-      delBtn.className = 'delete-btn';
-      delBtn.title = 'Delete';
-      delBtn.textContent = '🗑';
-      delBtn.addEventListener('click', () => {
-        const modal = document.getElementById('deleteConfirmModal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          deletingId = e.id;
-        } else if (confirm('Delete this Q&A?')) {
-          confirmDelete();
-        }
+    // Assigned filter
+    filterAssignedSel.innerHTML = '';
+    var optAllA = document.createElement('option');
+    optAllA.value = '';
+    optAllA.textContent = 'All assignees';
+    filterAssignedSel.appendChild(optAllA);
+
+    Array.from(assignees)
+      .sort()
+      .forEach(function (a) {
+        var opt2 = document.createElement('option');
+        opt2.value = a;
+        opt2.textContent = a;
+        filterAssignedSel.appendChild(opt2);
       });
-      tdAct.appendChild(delBtn);
-    }
-    tr.appendChild(tdAct);
-
-    tbody.appendChild(tr);
   }
-}
 
-/* ---------------- Edit / Delete ---------------- */
-async function saveEdit() {
-  const input = document.getElementById('editMessage');
-  if (!input) return;
-  const newMsg = input.value.trim();
-  if (!newMsg || !editingId) return;
-  try {
-    await qnaColl().doc(editingId).update({ message: newMsg });
-  } catch (err) {
-    console.error('Save edit failed', err);
-  } finally {
-    const m = document.getElementById('editModal');
-    m && m.classList.add('hidden');
-    editingId = null;
+  // ---------------------------------------------------------------------------
+  // Firestore refs
+  // ---------------------------------------------------------------------------
+  function getDB() {
+    return (
+      window.db ||
+      (window.firebase &&
+        window.firebase.firestore &&
+        window.firebase.firestore())
+    );
   }
-}
 
-async function confirmDelete() {
-  if (!deletingId) return;
-  try {
-    await qnaColl().doc(deletingId).delete();
-  } catch (err) {
-    console.error('Delete failed', err);
-  } finally {
-    const m = document.getElementById('deleteConfirmModal');
-    m && m.classList.add('hidden');
-    deletingId = null;
+  function qnaRef() {
+    var db = getDB();
+    if (!db || !ctx.biz) return null;
+    return db.collection('businesses').doc(ctx.biz).collection('qna');
   }
-}
 
-/* ---------------- Boot ---------------- */
-(function init() {
-  // If the QnA section isn't on this page, skip quietly
-  const hasUI = formEl || tableBodyEl;
-  if (!hasUI) return;
+  function usersRef() {
+    var db = getDB();
+    if (!db || !ctx.biz) return null;
+    return db.collection('businesses').doc(ctx.biz).collection('users');
+  }
 
-  populateTypeFilter();
-  wireFiltersAndSorting();
-  wireModals();
+  // ---------------------------------------------------------------------------
+  // Assignees
+  // ---------------------------------------------------------------------------
+ console.log('[qna] OWNER_EMAIL at load =', OWNER_EMAIL);
+ 
+  function loadAssignees() {
+    if (!assignedSel || !ctx.biz) return;
+ console.log('[qna] loadAssignees biz=', ctx.biz, 'owner=', OWNER_EMAIL);
 
-  onBizReady((biz) => {
-    businessKey = biz;
+    var ref = usersRef();
+    if (!ref) return;
 
-    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
-      console.warn('QnA: auth not available; continuing read-only');
-      startListener();
+    assignedSel.innerHTML = '';
+
+    var optNone = document.createElement('option');
+    optNone.value = '';
+    optNone.textContent = 'Assign To'; 
+    assignedSel.appendChild(optNone);
+
+    var seen = new Set();
+
+  // Always include owner if configured correctly
+  var ownerEmail = OWNER_EMAIL;
+  if (ownerEmail && ownerEmail.indexOf('{') === -1) {
+    seen.add(ownerEmail.toLowerCase());
+    var ownerOpt = document.createElement('option');
+    ownerOpt.value = ownerEmail;
+    ownerOpt.textContent = ownerEmail;
+    assignedSel.appendChild(ownerOpt);
+  }
+
+    ref
+      .get()
+      .then(function (snap) {
+        snap.forEach(function (doc) {
+          var u = doc.data();
+          if (!u || !u.email) return;
+          var email = String(u.email).trim();
+          if (!email) return;
+          var key = email.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          var opt = document.createElement('option');
+          opt.value = email;
+          opt.textContent = email;
+          assignedSel.appendChild(opt);
+        });
+      })
+      .catch(function (err) {
+        console.error(ns, 'loadAssignees error', err);
+      });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+  function paint() {
+    if (!tbody) {
+      console.warn(ns, 'no tbody found; cannot render qna');
       return;
     }
 
-    auth.onAuthStateChanged((user) => {
-      if (!user) return;
-      userEmail = (user.email || '').toLowerCase();
+    var fd = filterDoneSel ? filterDoneSel.value : '';
+    var ft = filterTypeSel ? filterTypeSel.value : '';
+    var fa = filterAssignedSel ? filterAssignedSel.value : '';
 
-      // Everyone can read; only owner/assignee can modify (UI + rules)
-      startListener();
-      loadAssignDropdowns();
-      wireForm();
+    var rows = ctx.rows.filter(function (r) {
+      var okD =
+        !fd ||
+        (fd === 'done' && !!r.completed) ||
+        (fd === 'notDone' && !r.completed);
+      var okT = !ft || String(r.type || '') === ft;
+      var okA = !fa || String(r.assignedTo || '') === fa;
+      return okD && okT && okA;
     });
+
+    // Sort
+    if (ctx.sort && ctx.sort.key) {
+      var key = ctx.sort.key;
+      var dir = ctx.sort.dir === 'desc' ? -1 : 1;
+
+      rows = rows.slice().sort(function (a, b) {
+        var av, bv;
+
+        if (key === 'date') {
+          av =
+            a.timestamp && a.timestamp.toDate
+              ? a.timestamp.toDate().getTime()
+              : a.timestamp instanceof Date
+              ? a.timestamp.getTime()
+              : 0;
+          bv =
+            b.timestamp && b.timestamp.toDate
+              ? b.timestamp.toDate().getTime()
+              : b.timestamp instanceof Date
+              ? b.timestamp.getTime()
+              : 0;
+        } else {
+          av = (a[key] || '').toString().toLowerCase();
+          bv = (b[key] || '').toString().toLowerCase();
+        }
+
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      });
+    }
+
+    tbody.innerHTML = rows
+      .map(function (r) {
+        var canE = canEdit(r);
+        var canD = canDelete(r);
+
+        var chk =
+          '<input type="checkbox" class="qna-done" data-id="' +
+          r.id +
+          '"' +
+          (r.completed ? ' checked' : '') +
+          '>';
+
+        var editBtn = canE
+          ? '<button type="button" class="edit-btn qna-edit" data-id="' +
+            r.id +
+            '">✏️</button>'
+          : '—';
+
+        var delBtn = canD
+          ? '<button type="button" class="delete-btn qna-del" data-id="' +
+            r.id +
+            '">🗑️</button>'
+          : '—';
+
+        return (
+          '<tr data-id="' +
+          r.id +
+          '">' +
+          '<td>' +
+          (r.type || '') +
+          '</td>' +
+          '<td>' +
+          (r.message || '') +
+          '</td>' +
+          '<td>' +
+          (r.response || '') +
+          '</td>' +
+          '<td>' +
+  (r.assignedTo || '') +
+'</td>' +
+          '<td>' +
+          fmtDate(r.timestamp) +
+          '</td>' +
+          '<td>' +
+          chk +
+          '</td>' +
+          '<td>' +
+          editBtn +
+          delBtn +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+  }
+function updateStats() {
+  var qs = 0, ts = 0, is = 0, rs = 0;
+
+  (ctx.rows || []).forEach(function (r) {
+    var t = (r.type || '').toLowerCase();
+    if (t === 'question') qs++;
+    else if (t === 'task') ts++;
+    else if (t === 'issue') is++;
+    else if (t === 'risk') rs++;
   });
 
-  window.addEventListener('beforeunload', () => {
-    if (typeof unsub === 'function') unsub();
-  });
+  var elQ = document.getElementById('qna-stat-questions');
+  var elT = document.getElementById('qna-stat-tasks');
+  var elI = document.getElementById('qna-stat-issues');
+  var elR = document.getElementById('qna-stat-risks');
+
+  if (elQ) elQ.textContent = qs;
+  if (elT) elT.textContent = ts;
+  if (elI) elI.textContent = is;
+  if (elR) elR.textContent = rs;
+}
+  // ---------------------------------------------------------------------------
+  // CRUD
+  // ---------------------------------------------------------------------------
+  function addItem() {
+    if (!msgInput) return;
+
+    var msg = msgInput.value.trim();
+    var response = responseInput ? responseInput.value.trim() : '';
+    var type = (typeSel && typeSel.value) || '';
+    var assignedTo = (assignedSel && assignedSel.value) || '';
+
+    if (!msg) return;
+
+    var ref = qnaRef();
+    if (!ref) return;
+
+    var ts =
+      (window.firebase &&
+        window.firebase.firestore &&
+        window.firebase.firestore.FieldValue &&
+        window.firebase.firestore.FieldValue.serverTimestamp &&
+        window.firebase.firestore.FieldValue.serverTimestamp()) || new Date();
+
+    ref
+      .add({
+        type: type,
+        message: msg,
+        response: response,
+        assignedTo: assignedTo,
+        completed: false,
+        createdBy: ctx.userEmail || '',
+        createdByUid: ctx.userUid || '',
+        timestamp: ts
+      })
+      .catch(function (err) {
+        console.error(ns, 'addItem error', err);
+      });
+
+    msgInput.value = '';
+    if (responseInput) responseInput.value = '';
+  }
+
+  function startEdit(id) {
+    var row = ctx.rows.find(function (r) {
+      return r.id === id;
+    });
+    if (!row || !msgInput) return;
+
+    ctx.editingId = id;
+    msgInput.value = row.message || '';
+    if (responseInput) responseInput.value = row.response || '';
+    if (typeSel) typeSel.value = row.type || '';
+    if (assignedSel) assignedSel.value = row.assignedTo || '';
+    if (addBtn) addBtn.textContent = 'Update';
+  }
+
+  function saveEdit() {
+    if (!ctx.editingId) return;
+
+    var ref = qnaRef();
+    if (!ref || !msgInput) return;
+
+    var msg = msgInput.value.trim();
+    var response = responseInput ? responseInput.value.trim() : '';
+    var type = (typeSel && typeSel.value) || '';
+    var assignedTo = (assignedSel && assignedSel.value) || '';
+
+    ref
+      .doc(ctx.editingId)
+      .update({
+        message: msg,
+        response: response,
+        type: type,
+        assignedTo: assignedTo
+      })
+      .catch(function (err) {
+        console.error(ns, 'saveEdit error', err);
+      });
+
+    ctx.editingId = null;
+    if (addBtn) addBtn.textContent = 'Add';
+    msgInput.value = '';
+    if (responseInput) responseInput.value = '';
+  }
+
+  function deleteItem(id) {
+    var ref = qnaRef();
+    if (!ref) return;
+    if (!window.confirm('Delete this item?')) return;
+
+    ref
+      .doc(id)
+      .delete()
+      .catch(function (err) {
+        console.error(ns, 'deleteItem error', err);
+      });
+  }
+
+  function updateCompleted(id, done) {
+    var ref = qnaRef();
+    if (!ref) return;
+    ref
+      .doc(id)
+      .update({ completed: !!done })
+      .catch(function (err) {
+        console.error(ns, 'updateCompleted error', err);
+      });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Event wiring
+  // ---------------------------------------------------------------------------
+  function bindTableEvents() {
+    if (!tbody) return;
+
+    tbody.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (!t) return;
+
+      if (t.classList.contains('qna-edit')) {
+        startEdit(t.getAttribute('data-id'));
+      } else if (t.classList.contains('qna-del')) {
+        deleteItem(t.getAttribute('data-id'));
+      }
+    });
+
+    tbody.addEventListener('change', function (ev) {
+      var t = ev.target;
+      if (!t) return;
+      if (t.classList.contains('qna-done')) {
+        updateCompleted(t.getAttribute('data-id'), !!t.checked);
+      }
+    });
+  }
+
+  function bindFilters() {
+    if (filterDoneSel) filterDoneSel.addEventListener('change', paint);
+    if (filterTypeSel) filterTypeSel.addEventListener('change', paint);
+    if (filterAssignedSel) filterAssignedSel.addEventListener('change', paint);
+  }
+
+  function bindAdd() {
+    if (!addBtn) return;
+    addBtn.addEventListener('click', function () {
+      if (ctx.editingId) {
+        saveEdit();
+      } else {
+        addItem();
+      }
+    });
+  }
+
+  function bindSortHeader() {
+    var thead = document.querySelector('#qna-table thead');
+    if (!thead) return;
+
+    thead.addEventListener('click', function (ev) {
+      var th = ev.target.closest('th[data-sort]');
+      if (!th) return;
+
+      var key = th.getAttribute('data-sort');
+      if (ctx.sort.key === key) {
+        ctx.sort.dir = ctx.sort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        ctx.sort.key = key;
+        ctx.sort.dir = 'asc';
+      }
+
+      // update CSS classes for arrows
+      Array.prototype.forEach.call(
+        thead.querySelectorAll('th[data-sort]'),
+        function (el) {
+          el.classList.remove('asc', 'desc');
+        }
+      );
+      th.classList.add(ctx.sort.dir);
+
+      paint();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Snapshot listener
+  // ---------------------------------------------------------------------------
+  function listenQna() {
+    var ref = qnaRef();
+    if (!ref) return;
+
+    ref
+      .orderBy('timestamp', 'desc')
+      .onSnapshot(function (snap) {
+        var rows = [];
+        snap.forEach(function (doc) {
+          var d = doc.data() || {};
+          d.id = doc.id;
+          rows.push(d);
+        });
+        ctx.rows = rows;
+        rebuildFilters();
+        updateStats();      // NEW: drive counts from current rows
+        paint();
+      });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Context detection
+  // ---------------------------------------------------------------------------
+  function detectContextFromDOM() {
+    tbody = $('#qna-table tbody');
+    typeSel = $('#qna-type');
+    assignedSel = $('#qna-assigned');
+    msgInput = $('#qna-message');
+    responseInput = $('#qna-response');
+    addBtn = $('#qna-add');
+    filterDoneSel = $('#qna-filter-done');
+    filterTypeSel = $('#qna-filter-type');
+    filterAssignedSel = $('#qna-filter-assigned');
+
+    // Biz and user from globals / auth
+    ctx.biz = window.BIZ_KEY || window.businessKey || null;
+
+    var user =
+      (window.auth && window.auth.currentUser) ||
+      (window.firebase &&
+        window.firebase.auth &&
+        window.firebase.auth().currentUser) ||
+      null;
+
+    ctx.userEmail = (user && user.email) || '';
+    ctx.userUid = (user && user.uid) || '';
+
+    ctx.isOwner =
+      !!ctx.userEmail &&
+      ctx.userEmail.toLowerCase() === OWNER_EMAIL.toLowerCase();
+
+    console.log(ns, 'context:', {
+      biz: ctx.biz,
+      email: ctx.userEmail,
+      isOwner: ctx.isOwner
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------------
+  function init() {
+    console.log(ns, 'init called');
+
+    detectContextFromDOM();
+    if (!ctx.biz) {
+      console.warn(ns, 'no biz context; qna disabled');
+      return;
+    }
+
+    bindTableEvents();
+    bindFilters();
+    bindAdd();
+    bindSortHeader();
+    loadAssignees();
+    listenQna();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

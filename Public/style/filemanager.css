@@ -1,302 +1,233 @@
-/*──────────────────────────────────────
-  File Manager — Unified Stylesheet
-──────────────────────────────────────*/
+/* filemanager.css – cleaned */
 
-/* ─── Card Container & Header ─── */
-.file-manager-section {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-  margin-bottom: var(--space-md);
+/* Panel base */
+.card.file-panel {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: #333333;
+  background-color: white;
+  margin: 0;
+  padding: 1rem;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  border-left: 6px solid #004e92;
 }
 
-/* Header: title + upload button + filters */
-.file-manager-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 0 !important;
-  margin: 0 !important;
-  gap: var(--space-sm);
-}
-
-.file-manager-header .left-block {
+/* Section header */
+.card.file-panel .section-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs);
+  align-items: flex-start;
+  text-align: left;
+  background-color: #fbfafd;
+  margin-left: -12px;
+  width: 100%;
+  line-height: 20px;
+  margin-top: -20px;
+  padding: 8px 16px;
 }
 
-.file-manager-header .left-block h2 {
+.card.file-panel .section-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #002b45;
   margin: 0;
-  font-size: var(--font-size-lg);
-  color: var(--color-primary);
+  white-space: nowrap;
 }
 
-.file-manager-header .left-block p {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.card.file-panel .section-header .section-subtext {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #666666;
 }
 
-/* Upload-Files button */
-#openFileModal {
-  background: #004e92 !important;
-  color: #fff !important;
-  font-size: 1rem !important;
-  padding: 0.75rem 1.5rem !important;
-  border: none !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-  display: inline-block !important;
-  transition: background 0.2s ease !important;
+/* Filters */
+.file-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 8px;
 }
 
-#openFileModal:hover {
-  background: #00306b !important;
+.file-filters label {
+  font-size: 14px;
+  color: #333333;
 }
 
-/* Filters to the right of the button */
-.file-manager-header .file-manager-filters {
+/* Upload */
+.file-upload {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
-.file-manager-header .file-manager-filters select {
-  font-size: 0.9rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  background: #fff;
-}
-
-/* ─── Table Wrapper & Styles ─── */
-.file-manager-table-wrapper {
-  max-height: 225px;
+/* Table container */
+.file-table-container {
+  width: 100%;
+  max-height: 350px;
   overflow-y: auto;
-  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
 }
 
+/* Table base */
 #fileTable {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-family: 'Inter', sans-serif;
 }
 
 #fileTable th,
 #fileTable td {
-  padding: var(--space-xxs) var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
+  padding: 10px;
+  font-size: 14px;
+  color: #333333;
+  border-bottom: 1px solid #e0e0e0;
+  word-wrap: break-word;
+  background-color: #ffffff;
 }
 
+/* Center table headings */
 #fileTable thead th {
+  text-align: center;
   position: sticky;
   top: 0;
-  background: var(--color-primary);
-  color: #fff;
-  cursor: pointer;
+  z-index: 5;
+  background-color: #007bff;
+  color: #ffffff;
+  font-weight: 600;
 }
 
-#fileTable tbody tr:hover {
-  background: var(--color-background);
+/* Sort arrows – white, centered on right side */
+#fileTable thead th[data-sort] {
+  padding-right: 24px;
+  position: relative;
+}
+
+#fileTable thead th[data-sort]::after {
+  content: "↕";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+#fileTable thead th.sorted-asc::after {
+  content: "↑";
+}
+
+#fileTable thead th.sorted-desc::after {
+  content: "↓";
+}
+
+/* Name and download links */
+#fileTable td a {
+  color: #0069d9;
+  text-decoration: none;
+}
+
+#fileTable td a:hover {
+  text-decoration: underline;
+}
+
+/* Delete button */
+.file-delete-btn {
+  border: none;
+  background: transparent;
+  color: #c53030;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.file-delete-btn[disabled] {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* Column widths */
-#fileTable th:nth-child(1), #fileTable td:nth-child(1) { width: 30%; }
-#fileTable th:nth-child(2), #fileTable td:nth-child(2) { width: 7%; }
-#fileTable th:nth-child(3), #fileTable td:nth-child(3) { width: 8%; }
-#fileTable th:nth-child(4), #fileTable td:nth-child(4) { width: 17%; }
-#fileTable th:nth-child(5), #fileTable td:nth-child(5) { width: 21%; }
-#fileTable th:nth-child(6), #fileTable td:nth-child(6) { width: 9%; text-align: center; }
-#fileTable th:nth-child(7), #fileTable td:nth-child(7) { width: 8%; text-align: center; }
-
-/* Action icons */
-.icon-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0;
+#fileTable col.col-name    { width: 25% !important; }
+#fileTable col.col-type    { width: 8% !important; }
+#fileTable col.col-size    { width: 10% !important; }
+#fileTable col.col-created { width: 17% !important; }
+#fileTable col.col-owner   { width: 20% !important; }
+#fileTable col.col-download{ width: 10% !important; }
+#fileTable col.col-delete  { width: 10% !important; }
+/* Empty state */
+#fileTable td.empty {
+  text-align: center;
+  font-style: italic;
+  color: #777777;
 }
-
-/* ─── Modal Overlay & Common Content ─── */
-.custom-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  display: none;
+.file-upload {
+  display: flex;
+  flex-wrap: nowrap;   /* force single line */
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
-
-.custom-modal:not(.hidden) {
+.file-filters {
   display: flex;
-}
-
-.custom-modal-content {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  max-width: 480px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Modal header */
-.custom-modal-content .modal-header {
-  background: #004e92;
-  color: #fff;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.custom-modal-content .modal-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-}
-
-.custom-modal-content .modal-header .close-button {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.25rem;
-  cursor: pointer;
-}
-
-/* Modal body */
-.custom-modal-content .modal-body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
+  flex-wrap: nowrap;
   gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 8px;
 }
-
-/* hide native file input */
-.custom-modal-content .modal-body input[type="file"] {
-  display: none;
+/* make ALL header cells sticky */
+#fileTable thead th {
+  position: sticky !important;
+  top: 0;
+  z-index: 5;
+  background-color: #007bff;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: center;
 }
-
-/* ─── Upload-Modal Specific ─── */
-#fileUploadModal .modal-body .modal-row {
+.file-controls-row {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 6px 0;
 }
 
-#fileUploadModal .modal-body #browseFilesBtn {
-  background: #004e92;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-#fileUploadModal .modal-body #browseFilesBtn:hover {
-  background: #00306b;
-}
-
-#fileUploadModal .modal-body #selectedFilesText {
-  font-size: 0.9rem;
-  color: #333;
-}
-
-/* status text */
-#fileUploadModal .modal-body .status-text {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #333;
-}
-
-/* Modal footer */
-.custom-modal-content .modal-footer {
-  padding: 12px 16px;
-  border-top: 1px solid #e0e0e0;
+.file-controls-left {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-controls-left label {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.file-controls-left select {
+  margin-left: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.file-controls-right {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
 }
 
-.custom-modal-content .modal-footer .btn-primary,
-.custom-modal-content .modal-footer .btn-secondary {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+/* Optional: limit file input width so filename stays on the row */
+#fileInput {
+  max-width: 260px;
+}
+
+#fileUploadBtn {
+  padding: 0.35rem 0.9rem;
   font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.custom-modal-content .modal-footer .btn-primary {
-  background: #004e92;
-  color: #fff;
-  border: none;
-}
-
-.custom-modal-content .modal-footer .btn-primary:hover {
-  background: #00306b;
-}
-
-.custom-modal-content .modal-footer .btn-secondary {
-  background: transparent;
-  color: #004e92;
-  border: 1px solid #004e92;
-}
-
-.custom-modal-content .modal-footer .btn-secondary:hover {
-  background: #004e92;
-  color: #fff;
-}
-/* ── 1) Sortable headers: arrows via ::after ── */
-th[data-sort] {
-  position: relative;
-  font-size: 1.1rem;     /* Bigger text */
-  line-height: 1.5;      /* More vertical breathing room */
-  padding: 0.75rem 1rem; /* Tweak as needed */
-  cursor: pointer;
-  user-select: none;
-}
-
-/* Unsorted state: both‐way arrow */
-th[data-sort]::after {
-  content: '⇵';
-  position: absolute;
-  right: 0.5rem;
-  font-size: 0.8rem;
-  color: #888;
-  pointer-events: none;
-}
-
-/* When you add a class “sorted-asc” in JS on the <th>... */
-th[data-sort].sorted-asc::after {
-  content: '▲';
-  color: #333;
-}
-th[data-sort].sorted-desc::after {
-  content: '▼';
-  color: #333;
-}
-
-/* ── 2) Global table‐header tweaks ── */
-th {
-  /* If you have other tables besides the file‐manager you want to style too */
-  font-size: 1.1rem !important;
-  line-height: 1.5 !important;
-}
-
-
-
-
-/* Ensure File Manager has the same bottom gap as Milestones */
-.file-manager-section {
-  margin-bottom: 2rem; /* match milestone-section spacing */
 }

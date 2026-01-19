@@ -1,86 +1,144 @@
-/// /Public/JS/projectProgress.js
-/// Vertical progress bar (owner can click to set 0–100); live updates for everyone.
-/// Uses Firebase **compat** globals from firebaseInit.js: window.auth, window.db
+// /Public/JS/projectProgress.js
+// Vertical cylinder project progress linked to businesses/{biz}.projectProgress
 
-const { auth, db } = window;
-const OWNER_EMAIL = "john@distinctrevelations.com";
 
-/* ---------------- business key sync ---------------- */
-function getBizKeyImmediate() {
-  return new URL(location.href).searchParams.get("business") || window.BIZ_KEY || null;
-}
-function onBizReady(cb) {
-  const k = getBizKeyImmediate();
-  if (k) return cb(k);
-  window.addEventListener("business:ready", (e) => cb(e.detail.businessKey), { once: true });
-}
+(function () {
+  var LOG = "[projectProgress]";
+  // Read owner email from a global or environment config
+var OWNER_EMAIL =
+  (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
+  (window.ownerEmail) ||
+  '';
 
-/* ---------------- DOM (same ids you already use) ---- */
-function getNodes() {
-  const container = document.getElementById("progress-bar-container") || document.querySelector("[data-progress-container]");
-  const fillElem  = document.getElementById("progress-bar-fill")       || document.querySelector("[data-progress-fill]");
-  const labelElem = document.getElementById("progress-label")          || document.querySelector("[data-progress-label]");
-  return { container, fillElem, labelElem };
-}
-function updateUI(fillElem, labelElem, value) {
-  if (!fillElem || !labelElem) return;
-  const v = Math.max(0, Math.min(100, Number(value) || 0));
-  fillElem.style.height = v + "%";
-  labelElem.textContent = v + "%";
-  labelElem.style.bottom = v + "%";
-}
-
-/* ---------------- Firestore helpers ----------------- */
-function businessDoc(biz) {
-  return db.collection("businesses").doc(biz);
-}
-
-/* ---------------- Boot ------------------------------ */
-(function init() {
-  const { container, fillElem, labelElem } = getNodes();
-  if (!container || !fillElem || !labelElem) {
-    // Not on this page — do nothing
-    return;
+  function clamp(num, min, max) {
+    return Math.min(max, Math.max(min, num));
   }
 
-  onBizReady((businessKey) => {
-    auth.onAuthStateChanged((user) => {
-      const isOwner = !!user && String(user.email || "").toLowerCase() === OWNER_EMAIL;
+  function waitForFirebase(cb) {
+    if (window.firebase && window.auth && window.db) {
+      cb({ firebase: firebase, auth: auth, db: db });
+      return;
+    }
+    setTimeout(function () { waitForFirebase(cb); }, 150);
+  }
 
-      // Initial load + live updates
-      businessDoc(businessKey).onSnapshot(
-        (snap) => {
-          const data = snap.exists ? (snap.data() || {}) : {};
-          // Support both field names to stay compatible with your older header.js
-          const pct = Number(data.progress ?? data.projectProgress ?? 0);
-          updateUI(fillElem, labelElem, pct);
-        },
-        (err) => console.warn("Progress: listener error", err && (err.message || err))
-      );
+  function waitForBusinessKey(cb) {
+    if (window.BIZ_KEY) {
+      cb(window.BIZ_KEY);
+      return;
+    }
+    if (typeof window.waitForBusinessKey === "function") {
+      window.waitForBusinessKey(function (bizKey) {
+        window.BIZ_KEY = bizKey;
+        cb(bizKey);
+      });
+      return;
+    }
+    setTimeout(function () { waitForBusinessKey(cb); }, 150);
+  }
 
-      // Owner only: click to set new % and persist to both fields (keeps header in sync)
-      if (isOwner) {
-        container.style.cursor = "pointer";
-        container.addEventListener("click", async (e) => {
-          const rect = container.getBoundingClientRect();
-          const clickY = e.clientY - rect.top;
-          let newPct = Math.round(((rect.height - clickY) / rect.height) * 100);
-          newPct = Math.max(0, Math.min(100, newPct));
-          try {
-            await businessDoc(businessKey).set(
-              { progress: newPct, projectProgress: newPct },
-              { merge: true }
-            );
-            // UI will catch up via onSnapshot, but we can reflect immediately too
-            updateUI(fillElem, labelElem, newPct);
-          } catch (err) {
-            console.error("Progress: save failed", err);
-            alert("Failed to save progress.");
-          }
+  function renderProgress(percent, card, fillEl, labelEl) {
+    var p = clamp(Math.round(percent || 0), 0, 100);
+
+    if (fillEl) fillEl.style.height = p + "%";
+    if (labelEl) labelEl.textContent = p + "%";
+    if (card) card.setAttribute("data-progress", String(p));
+
+    console.log(LOG, "renderProgress →", p);
+  }
+
+  function init() {
+    console.log(LOG, "init called");
+
+    waitForFirebase(function (DR) {
+      waitForBusinessKey(function (bizKey) {
+        var user = DR.auth.currentUser || {};
+        var email = (user.email || "").toLowerCase();
+        var isOwner = email === OWNER_EMAIL;
+
+        console.log(LOG, "context:", {
+          bizKey: bizKey,
+          email: user.email || "",
+          isOwner: isOwner
         });
-      } else {
-        container.style.cursor = "default";
-      }
+
+        // DOM lookups
+        var card =
+          document.querySelector("section.project-progress") ||
+          document.querySelector(".project-progress.card");
+
+        var container = document.getElementById("progress-bar-container");
+        var fillEl = document.getElementById("progress-bar-fill");
+        var labelEl = document.getElementById("progress-label");
+
+        if (!card || !container || !fillEl || !labelEl) {
+          console.warn(LOG, "Required DOM not found", {
+            hasCard: !!card,
+            hasContainer: !!container,
+            hasFill: !!fillEl,
+            hasLabel: !!labelEl
+          });
+          return;
+        }
+
+        // Tag owner vs non-owner on the card for CSS
+        if (isOwner) card.classList.add("owner");
+        else card.classList.remove("owner");
+
+        var docRef = DR.db.collection("businesses").doc(bizKey);
+
+        // Live Firestore listener
+        docRef.onSnapshot(function (snap) {
+          if (!snap.exists) {
+            console.warn(LOG, "businesses/" + bizKey + " does not exist yet, defaulting to 0%");
+            renderProgress(0, card, fillEl, labelEl);
+            return;
+          }
+          var data = snap.data() || {};
+          var raw = data.projectProgress;
+          var value = typeof raw === "number" ? raw : parseFloat(raw || "0");
+          if (!isFinite(value)) value = 0;
+          renderProgress(value, card, fillEl, labelEl);
+        }, function (err) {
+          console.error(LOG, "Snapshot failed:", err);
+        });
+
+        function persistProgress(percent) {
+          if (!isOwner) return;
+          var p = clamp(Math.round(percent || 0), 0, 100);
+          console.log(LOG, "Saving projectProgress", p, "for", bizKey);
+
+          docRef.update({ projectProgress: p }).catch(function (err) {
+            console.error(LOG, "Update failed:", err);
+            try {
+              alert("Could not update Project Progress: " + (err && err.message ? err.message : err));
+            } catch (e) {}
+          });
+        }
+
+        // Owner can click inside the cylinder to set progress
+        if (isOwner) {
+          container.addEventListener("click", function (evt) {
+            var rect = container.getBoundingClientRect();
+            var y = evt.clientY - rect.top;
+            var height = rect.height || 1;
+
+            // y from top; 0 → 100%, height → 0%
+            var percent = 100 - (y / height) * 100;
+            var clamped = clamp(percent, 0, 100);
+
+            console.log(LOG, "click →", { y: y, height: height, percent: clamped });
+            renderProgress(clamped, card, fillEl, labelEl);
+            persistProgress(clamped);
+          });
+        }
+      });
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();

@@ -1,26 +1,64 @@
 // /Public/JS/dashboard-business-loader.js
-// Minimal loader that exposes the business key and starts File Manager.
-// Uses Firebase compat globals from firebaseInit.js via window.auth.
-
-import { loadFileManager } from "./filemanager.js"; // ✅ fixed path
+// Persists businessKey and broadcasts it for all components.
 
 (function () {
+  if (window.__bizLoader__) return; window.__bizLoader__ = true;
+
   const params = new URLSearchParams(location.search);
-  const biz = params.get("business") || window.BIZ_KEY || null;
+  const fromUrl = (params.get('business') || '').trim();
+  const fromLS  = (localStorage.getItem('businessKey') || '').trim();
+  const biz = fromUrl || fromLS || null;
 
   if (biz) {
+    try { localStorage.setItem('businessKey', biz); } catch (_) {}
     window.BIZ_KEY = biz;
-    window.dispatchEvent(new CustomEvent("business:ready", { detail: { businessKey: biz }}));
+
+    // Minimal session facade (supports waitforbusinesskey-shim.js)
+    window.DRSession = window.DRSession || {
+      _session: { businessKey: biz },
+      getSession() { return Promise.resolve(this._session); },
+      setBusinessKey(k) {
+        this._session.businessKey = k;
+        try { localStorage.setItem('businessKey', k); } catch {}
+      }
+    };
+
+    window.dispatchEvent(new CustomEvent('business:ready', { detail: { businessKey: biz } }));
   } else {
-    console.warn("dashboard-business-loader: no ?business= in URL");
+    console.warn('[business-loader] No business key found (URL or localStorage)');
   }
 
+  // Optional: kick File Manager after auth (keeps your previous behavior)
   const { auth } = window;
-  if (auth && typeof auth.onAuthStateChanged === "function" && biz) {
-    auth.onAuthStateChanged((user) => {
+  if (auth && typeof auth.onAuthStateChanged === 'function' && biz) {
+    auth.onAuthStateChanged(user => {
       if (!user) return;
-      try { loadFileManager(biz, user.email || ""); }
-      catch (e) { console.warn("dashboard-business-loader: loadFileManager failed:", e); }
+      try { loadFileManager(biz, (user.email || '').toLowerCase()); }
+      catch (e) { /* ignore if not present on page */ }
     });
   }
+
+console.log('[dash-loader]', 'about to initQna', { bizKey, userEmail: user.email });
+if (window.initQna) {
+  window.initQna({
+    biz: bizKey,
+    user: {
+      email: user.email,
+      uid: user.uid
+    }
+  });
+} else {
+  console.log('[dash-loader]', 'initQna not defined');
+}
+// After you have bizKey and user from onAuthStateChanged
+if (window.initQna) {
+  window.initQna({
+    biz: bizKey,
+    user: {
+      email: user.email,
+      uid: user.uid
+    }
+  });
+}
+
 })();
