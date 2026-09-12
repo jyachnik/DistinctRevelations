@@ -1,0 +1,152 @@
+/* Public/style/change-report.css */
+
+.dr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 4, 40, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease;
+  z-index: 10000;
+  padding: 20px;
+}
+.dr-modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.dr-modal-box {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface, #fff);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 20px 60px rgba(0, 4, 40, 0.35);
+  overflow: hidden;
+}
+.dr-modal-box-wide {
+  max-width: 900px;
+}
+
+.dr-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e5ea;
+  background: linear-gradient(180deg, #004e92, #000428);
+  color: #fff;
+}
+.dr-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.dr-modal-close {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.dr-modal-close:hover {
+  opacity: 1;
+}
+
+.dr-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+.dr-modal-subtext {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #5a6472;
+}
+
+.dr-modal-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #5a6472;
+}
+.dr-modal-filter-row select {
+  padding: 4px 8px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Category badges — reuse this app's established chart colors so a
+   category means the same color everywhere, not a new palette. */
+.change-category-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+.change-category-schedule { background: #2a78d6; }
+.change-category-progress { background: #2f9e44; }
+.change-category-cost { background: #4a3aa7; }
+.change-category-lifecycle { background: #eb6834; }
+.change-category-identity { background: #898781; }
+.change-category-other { background: #898781; }
+
+.dr-modal-table-wrap {
+  overflow-x: auto;
+}
+#changeReportTable {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+#changeReportTable th,
+#changeReportTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e5ea;
+  text-align: left;
+}
+#changeReportTable th {
+  background: #f5f6f8;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5a6472;
+  position: sticky;
+  top: 0;
+}
+#changeReportTable td.empty {
+  text-align: center;
+  color: #8a92a0;
+  padding: 24px;
+}
+
+.dr-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e5ea;
+  display: flex;
+  justify-content: flex-end;
+}
+.dr-modal-footer .btn-primary {
+  border: none;
+  background: #004e92;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.dr-modal-footer .btn-primary:hover {
+  background: #003b70;
+}

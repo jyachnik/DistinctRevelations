@@ -565,15 +565,6 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
 
 <script src="./JS/app-config.js"></script>
 
-
-<script>
-  window.APP_CONFIG = window.APP_CONFIG || {};
-  window.APP_CONFIG.OWNER_EMAIL = "{{OWNER_EMAIL}}";  // filled on deploy
-</script>
-
-
-
-
 <script src="./JS/session-classic.js"></script>
 <!-- optional legacy shim if old code expects it -->
 <script>window.waitForBusinessKey = () => DRSession.getSession().then(s => s.businessKey);</script>
@@ -589,7 +580,6 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
 <script defer src="./JS/contact-validate.js"></script>
 <script defer src="./JS/register.js"></script>
 <script defer src="./JS/app.js" ></script>
-<script src="JS/modal-lite.js"></script>
 <script src="JS/signup.js"></script>
 
 

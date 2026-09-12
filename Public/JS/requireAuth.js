@@ -2,7 +2,7 @@
 /* eslint-disable no-console */
 (function () {
   var VERSION   = 'v3.0';
-  var LOGIN_URL = '/Public/index.html#client-login';
+  var LOGIN_URL = '/index.html#client-login';
   var JUST_KEY  = 'dr:justSignedIn';
 
   function log(){ var a=[].slice.call(arguments); a.unshift('[requireAuth '+VERSION+']'); console.log.apply(console,a); }
@@ -124,4 +124,17 @@
   }
 
   document.addEventListener('DOMContentLoaded', guard);
+
+  // Back/forward navigation can restore this page from the browser's
+  // bfcache without re-running any JS (including the DOMContentLoaded
+  // guard above) — so hitting Back after logging out could otherwise show
+  // the last-rendered dashboard even though the session is gone.
+  // event.persisted === true means "this is a bfcache restore, not a fresh
+  // load" — re-run the guard so a signed-out user gets bounced to login.
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      log('bfcache restore detected — re-checking auth');
+      guard();
+    }
+  });
 })();

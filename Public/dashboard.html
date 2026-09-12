@@ -32,6 +32,12 @@
   <link rel="stylesheet" href="style/projectProgress.css"/>
   <link rel="stylesheet" href="style/qnaStats.css"/>
   <link rel="stylesheet" href="style/header.css"/>
+  <link rel="stylesheet" href="style/confirm-dialog.css"/>
+  <link rel="stylesheet" href="style/dr-rag.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.2.2/dist/frappe-gantt.css"/>
+  <link rel="stylesheet" href="style/gantt.css"/>
+  <link rel="stylesheet" href="style/metrics.css"/>
+  <link rel="stylesheet" href="style/change-report.css"/>
 
 <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -73,75 +79,517 @@ html.gated main { visibility:hidden; }
     <div class="header-center">
       <h1>Project Dashboard</h1>
       <h2 id="companyName">Loading…</h2>
+      <!-- When Project Status was last auto-computed (SPI/CPI) — set by
+           projectStatus.js from the same business-doc field burndown.js
+           writes to. -->
+      <span id="headerLastUpdated" class="header-last-updated"></span>
     </div>
     <div class="header-right owner">
-      <div class="logo-wrapper">
-        <img id="companyLogo" src="images/Distinct_Revelations_Logo_website.png" alt="Company Logo"/>
+      <div class="header-right-top">
+        <div class="logo-wrapper">
+          <img id="companyLogo" src="images/Distinct_Revelations_Logo_website.png" alt="Company Logo"/>
+        </div>
+        <label for="logoFileInput" class="upload-logo-label">Upload Logo</label>
+        <input id="logoFileInput" type="file" accept="image/*" style="position:absolute;left:-9999px;"/>
       </div>
-      <label for="logoFileInput" class="upload-logo-label">Upload Logo</label>
-      <input id="logoFileInput" type="file" accept="image/*" style="position:absolute;left:-9999px;"/>
+      <div class="header-user-row">
+        <span id="headerUserEmail" class="header-user-email"></span>
+        <button id="headerLogoutBtn" type="button" class="header-logout-btn">Log Out</button>
+      </div>
     </div>
   </header>
 
   <!-- MAIN (your existing sections unchanged) -->
   <main>
-    <!-- left column -->
-    <section class="card dashboard-container">
-      <div class="leftside">
-        <div class="dashboard-overview">
-             <!-- PROJECT STATUS (traffic light) -->
-          <section id="projectStatusCard" class="project-status card">
-            <h2>Project Status</h2>
-           
-            <div class="status-options">
-              <div class="status-row" data-code="critical">
-                <div class="light red" data-status="critical"></div>
-                <span>Critical</span>
-              </div>
-              <div class="status-row" data-code="caution">
-                <div class="light yellow" data-status="caution"></div>
-                <span>Caution</span>
-              </div>
-              <div class="status-row" data-code="onTrack">
-                <div class="light green" data-status="onTrack"></div>
-                <span>On Plan</span>
-              </div>
-            </div>
-          </section>
-           <!-- PROJECT PROGRESS CARD (vertical cylinder) -->
-        <section class="card project-progress">
-          <h2>Project Progress</h2>
-          <div id="progress-bar-container">
-            <div id="progress-bar-fill"></div>
-            <span id="progress-label">0%</span>
-          </div>
-        </section>
+    <!-- Project Status, Project Progress, and Q&A summary — one horizontal
+         row above the timeline, so the top-level health of the engagement
+         is visible before scrolling into any detail. -->
+    <section class="dashboard-summary-row">
+      <!-- PROJECT STATUS (traffic light) -->
+      <section id="projectStatusCard" class="project-status card">
+        <h2>Project Status</h2>
 
-          <section class="qna-stats-vertical">
-  <div class="qna-stat-block">
-    <div class="qna-label">Questions</div>
-    <div class="qna-number" id="qna-stat-questions">0</div>
-  </div>
-  <div class="qna-stat-block">
-    <div class="qna-label">Tasks</div>
-    <div class="qna-number" id="qna-stat-tasks">0</div>
-  </div>
-  <div class="qna-stat-block">
-    <div class="qna-label">Issues</div>
-    <div class="qna-number" id="qna-stat-issues">0</div>
-  </div>
-  <div class="qna-stat-block">
-    <div class="qna-label">Risks</div>
-    <div class="qna-number" id="qna-stat-risks">0</div>
-  </div>
-</section>
+        <div class="status-options">
+          <div class="status-row" data-code="critical">
+            <div class="light red" data-status="critical"></div>
+            <span>Critical</span>
+          </div>
+          <div class="status-row" data-code="caution">
+            <div class="light yellow" data-status="caution"></div>
+            <span>Caution</span>
+          </div>
+          <div class="status-row" data-code="onTrack">
+            <div class="light green" data-status="onTrack"></div>
+            <span>On Plan</span>
+          </div>
+        </div>
+      </section>
+      <!-- PROJECT PROGRESS CARD (horizontal bar) -->
+      <section class="card project-progress">
+        <h2>Project Progress</h2>
+        <div id="progress-bar-container">
+          <div id="progress-bar-fill"></div>
+          <span id="progress-label">0%</span>
+        </div>
+      </section>
+
+      <section class="qna-stats-horizontal card">
+        <h2>Q&amp;A Summary</h2>
+        <div class="qna-stats-row">
+          <div class="qna-stat-block">
+            <div class="qna-label">Questions</div>
+            <div class="qna-number" id="qna-stat-questions">0</div>
+          </div>
+          <div class="qna-stat-block">
+            <div class="qna-label">Tasks</div>
+            <div class="qna-number" id="qna-stat-tasks">0</div>
+          </div>
+          <div class="qna-stat-block">
+            <div class="qna-label">Issues</div>
+            <div class="qna-number" id="qna-stat-issues">0</div>
+          </div>
+          <div class="qna-stat-block">
+            <div class="qna-label">Risks</div>
+            <div class="qna-number" id="qna-stat-risks">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Schedule Performance — a schedule-only SPI-equivalent (actual
+           complete / ideal complete, by task count), no cost data needed
+           so it's safe to show to everyone. -->
+      <section class="card schedule-performance">
+        <h2>Schedule Performance Index</h2>
+        <div class="schedule-performance-value" id="schedulePerformanceValue">—</div>
+        <div class="schedule-performance-label" id="schedulePerformanceLabel">Loading…</div>
+      </section>
+
+      <!-- Cost Performance Index — owner-only. Just the CPI number itself;
+           SV/CV/EAC/ETC moved into the Project Health Scorecard below so
+           the full cost breakdown lives alongside the other health
+           signals instead of its own separate card. Hidden by default via
+           CSS; burndown.js adds the "owner" class only for the Owner. -->
+      <section class="card cost-performance" id="costPerformanceCard">
+        <h2>Cost Performance Index <span class="owner-only-badge">Owner only</span></h2>
+        <div class="cost-performance-value" id="costPerfCPI">—</div>
+      </section>
+    </section>
+
+    <!-- Charts layout: a sticky global period control on the left drives
+         EVERY chart's timeline at once (via the shared `timeline` built in
+         renderAll()) — plus the 3-column charts grid. -->
+    <div class="dashboard-charts-layout">
+      <aside class="charts-global-timeframe" id="chartsGlobalTimeframe" role="group" aria-label="Chart time frame">
+        <div class="charts-global-timeframe-label">Time Frame</div>
+        <p class="charts-global-timeframe-note">Applies to every chart</p>
+        <button type="button" class="charts-global-timeframe-btn" data-unit="week">Week</button>
+        <button type="button" class="charts-global-timeframe-btn" data-unit="month">Month</button>
+        <button type="button" class="charts-global-timeframe-btn is-active" data-unit="3month">Quarter</button>
+        <button type="button" class="charts-global-timeframe-btn" data-unit="6month">6 Month</button>
+        <button type="button" class="charts-global-timeframe-btn" data-unit="year">Year</button>
+        <button type="button" class="charts-global-timeframe-btn" data-unit="total">Total Project</button>
+
+        <!-- Data Imports — one control box for every import this
+             dashboard accepts. Assignments/RACI is a placeholder until
+             that CSV is provided; it'll be wired up the same way once the
+             real column headers are known (same pattern as every import
+             here). -->
+        <div class="data-imports-panel owner-only-card" id="dataImportsPanel">
+          <div class="data-imports-label">Data Imports</div>
+          <div class="data-import-item">
+            <label>Schedule (Milestones &amp; Activities)</label>
+            <div class="data-import-controls">
+              <input id="ganttImportInput" type="file" accept=".xlsx,.xls,.csv" />
+              <button id="ganttImportBtn" type="button" class="btn-primary">Import</button>
+            </div>
+          </div>
+          <div class="data-import-item">
+            <label>Resource Usage (Hours)</label>
+            <div class="data-import-controls">
+              <input id="resourceImportInput" type="file" accept=".xlsx,.xls,.csv" />
+              <button id="resourceImportBtn" type="button" class="btn-primary">Import</button>
+            </div>
+          </div>
+          <div class="data-import-item">
+            <label>Risk Register</label>
+            <div class="data-import-controls">
+              <input id="riskImportInput" type="file" accept=".xlsx,.xls,.csv" />
+              <button id="riskImportBtn" type="button" class="btn-primary">Import</button>
+            </div>
+          </div>
+          <div class="data-import-item">
+            <label>Assumptions Log</label>
+            <div class="data-import-controls">
+              <input id="assumptionsImportInput" type="file" accept=".xlsx,.xls,.csv" />
+              <button id="assumptionsImportBtn" type="button" class="btn-primary">Import</button>
+            </div>
+          </div>
+          <div class="data-import-item">
+            <label>Defects / Quality Log</label>
+            <div class="data-import-controls">
+              <input id="defectsImportInput" type="file" accept=".xlsx,.xls,.csv" />
+              <button id="defectsImportBtn" type="button" class="btn-primary">Import</button>
+            </div>
+          </div>
+          <div class="data-import-item is-pending">
+            <label>Assignments / RACI <span class="owner-only-badge">Coming soon</span></label>
+            <div class="data-import-controls">
+              <input type="file" accept=".xlsx,.xls,.csv" disabled />
+              <button type="button" class="btn-outline" disabled>Import</button>
+            </div>
+          </div>
+          <div class="data-imports-tools">
+            <button id="changeReportBtn" type="button" class="btn-outline">Change Report</button>
+            <!-- Scans for duplicate milestones/activities (grouped by WBS,
+                 or title+due date when WBS is missing) — reports what it
+                 found first; only deletes after an explicit confirm(). -->
+            <button id="dedupBtn" type="button" class="btn-outline">Find Duplicates</button>
+          </div>
+        </div>
+
+        <!-- Milestones (0-day duration items) skew task-count charts if
+             mixed in with real work — off by default; check this to
+             include them. -->
+        <div class="metrics-global-controls">
+          <label class="metrics-checkbox-label">
+            <input type="checkbox" id="includeMilestonesToggle" />
+            Include milestones (0-day items) in charts
+          </label>
+          <span id="taskCountDiagnostic" class="metrics-task-count"></span>
+        </div>
+      </aside>
+
+      <!-- Everything the sticky sidebar applies to — the charts grid AND
+           the Gantt Timeline — lives in one column so the sidebar's
+           sticky position spans both while you scroll. -->
+      <div class="charts-and-gantt-column">
+
+    <!-- Charts: burndown, burnup, status snapshot, cumulative flow,
+         velocity, EVM, budgeted vs. actual cost — a horizontal 3-column
+         grid below the performance measures row and above the Gantt
+         Timeline. -->
+    <section class="dashboard-charts-row">
+      <!-- Project Health Scorecard — owner-only. One glance across
+           schedule (SPI), cost (CPI), risk exposure, and quality, instead
+           of scanning six separate cards. Quality reads "No data" rather
+           than borrowing the Defects Log's sample rows, since a
+           decision-support scorecard using fake data could mislead. -->
+      <section class="card metrics-panel owner-only-card health-scorecard-card" id="healthScorecardCard">
+        <div class="section-header">
+          <h2>🎯 Project Health Scorecard <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">One glance across schedule, cost, risk, and quality.</p>
+        </div>
+        <div class="health-overall-row">
+          <span class="health-overall-label">Overall</span>
+          <span class="health-overall-value" id="healthOverall">—</span>
+        </div>
+        <div class="health-grid">
+          <div class="health-block">
+            <div class="health-label">SPI</div>
+            <div class="health-value" id="healthSpi">—</div>
+          </div>
+          <div class="health-block">
+            <div class="health-label">CPI</div>
+            <div class="health-value" id="healthCpi">—</div>
+          </div>
+          <div class="health-block">
+            <div class="health-label">Open High Risks</div>
+            <div class="health-value" id="healthRisk">—</div>
+          </div>
+          <div class="health-block">
+            <div class="health-label">Open Critical/High Defects</div>
+            <div class="health-value" id="healthQuality">—</div>
+          </div>
+        </div>
+
+        <!-- SV/CV/EAC/ETC — moved here from the old standalone Cost
+             Performance card so the full cost breakdown sits with the
+             rest of the health signals. Same figures, same source
+             (MS Project's own EVM rollup on the business doc). -->
+        <div class="health-cost-row">
+          <div class="health-block">
+            <div class="health-label">SV</div>
+            <div class="health-value health-cost-value" id="costPerfSV">—</div>
+          </div>
+          <div class="health-block">
+            <div class="health-label">CV</div>
+            <div class="health-value health-cost-value" id="costPerfCV">—</div>
+          </div>
+          <div class="health-block">
+            <div class="health-label">EAC</div>
+            <div class="health-value health-cost-value" id="costPerfEAC">—</div>
+          </div>
+          <div class="health-block">
+            <div class="health-label">ETC</div>
+            <div class="health-value health-cost-value" id="costPerfETC">—</div>
+          </div>
+        </div>
+
+        <!-- Open high-risk list — description, $ impact, schedule impact,
+             and owner for every risk currently counted in "Open High
+             Risks" above (score >= 15, not closed/resolved/mitigated).
+             $ Impact / Time Lost read "—" until the Risk Register import
+             includes those columns (added as optional fields — see
+             riskAssumptions.js). -->
+        <div class="health-risk-list-wrap">
+          <div class="health-risk-list-label">Open High Risks</div>
+          <table class="health-risk-table" id="healthRiskTable">
+            <thead>
+              <tr><th>Description</th><th>Impact ($)</th><th>Time Lost</th><th>Owner</th></tr>
+            </thead>
+            <tbody id="healthRiskTableBody"></tbody>
+          </table>
+          <p class="health-risk-empty" id="healthRiskEmpty" hidden>No open high risks.</p>
+        </div>
+      </section>
+
+      <section class="card metrics-panel" id="burndownCard">
+        <div class="section-header">
+          <h2>📉 Burndown</h2>
+          <p class="section-subtext">Remaining work over time — ideal vs. actual (actual approximated from available change history).</p>
+        </div>
+        <div class="metrics-toggle" data-chart="burndown">
+          <button type="button" class="metrics-toggle-btn is-active" data-metric="tasks">Tasks</button>
+          <button type="button" class="metrics-toggle-btn" data-metric="duration">Duration</button>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="burndownChart"></canvas></div>
+      </section>
+
+      <section class="card metrics-panel" id="burnupCard">
+        <div class="section-header">
+          <h2>📈 Burnup</h2>
+          <p class="section-subtext">Ideal and completed work over time.</p>
+        </div>
+        <div class="metrics-toggle" data-chart="burnup">
+          <button type="button" class="metrics-toggle-btn is-active" data-metric="tasks">Tasks</button>
+          <button type="button" class="metrics-toggle-btn" data-metric="duration">Duration</button>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="burnupChart"></canvas></div>
+      </section>
+
+      <section class="card metrics-panel" id="ragDistCard">
+        <div class="section-header">
+          <h2>🚦 Status Snapshot</h2>
+          <p class="section-subtext">Where open milestones and activities stand right now.</p>
+        </div>
+        <div class="metrics-chart-wrap metrics-chart-wrap-short"><canvas id="ragDistChart"></canvas></div>
+      </section>
+
+      <!-- Milestone Trend — schedule-only (no cost data), visible to
+           everyone. Built from the changeLog "Due date" history already
+           captured on every milestone; no new import needed. -->
+      <section class="card metrics-panel" id="milestoneTrendCard">
+        <div class="section-header">
+          <h2>📅 Milestone Trend</h2>
+          <p class="section-subtext">Which milestones have slipped from their original due date, and by how much.</p>
+        </div>
+        <div class="metrics-table-wrap milestone-trend-table-wrap">
+          <table id="milestoneTrendTable">
+            <thead>
+              <tr><th>Milestone</th><th>Original Due</th><th>Current Due</th><th>Slip</th><th>Last Changed</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Defect Trend — owner-only (Quality/Defects Log is owner-only,
+           same reasoning). Uses sample data too until a real file is
+           imported, same as the table it's paired with. -->
+      <section class="card metrics-panel owner-only-card" id="defectTrendCard">
+        <div class="section-header">
+          <h2>🐞 Defect Trend <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Opened vs. resolved defects, cumulative over time.</p>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="defectTrendChart"></canvas></div>
+      </section>
+
+      <section class="card metrics-panel" id="cfdCard">
+        <div class="section-header">
+          <h2>🌊 Cumulative Flow</h2>
+          <p class="section-subtext">Task count by status over time.</p>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="cfdChart"></canvas></div>
+      </section>
+
+      <section class="card metrics-panel" id="velocityCard">
+        <div class="section-header">
+          <h2>🏃 Velocity</h2>
+          <p class="section-subtext">Work completed per period, and the running average.</p>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="velocityChart"></canvas></div>
+      </section>
+
+      <!-- EVM (PV/EV/AC) — owner-only. Hidden by default via CSS;
+           burndown.js adds "owner" only when Owner status is confirmed. -->
+      <section class="card metrics-panel owner-only-card" id="evmCard">
+        <div class="section-header">
+          <h2>💰 Earned Value (EVM) <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Planned Value, Earned Value, and Actual Cost over time.</p>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="evmChart"></canvas></div>
+      </section>
+
+      <!-- Budgeted (baseline) vs Actual cost over time — owner-only, same
+           as the rest of the cost data. A 2-line time-phased view, distinct
+           from EVM's 3-line PV/EV/AC chart above. -->
+      <section class="card metrics-panel owner-only-card" id="budgetVsActualCard">
+        <div class="section-header">
+          <h2>📊 Budgeted vs. Actual Cost <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Budgeted (baseline) cost vs. actual cost over time.</p>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="budgetVsActualChart"></canvas></div>
+      </section>
+
+      <!-- Cash Flow — owner-only. Matches MS Project's own built-in Cash
+           Flow report layout: Actual/Baseline/Remaining/Variance stat row,
+           then a Cost-per-period bar + Cumulative Cost line. True cash
+           flow (real invoice/payment timing) needs a separate billing data
+           source MS Project schedules don't contain. -->
+      <section class="card metrics-panel owner-only-card" id="cashFlowCard">
+        <div class="section-header">
+          <h2>💵 Cash Flow <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Actual, baseline, and remaining cost, plus cost per period, cumulative cost, and a forecast to project end (dashed).</p>
+        </div>
+        <div class="cost-performance-row">
+          <div class="cost-performance-block">
+            <div class="cost-performance-label">Actual Cost</div>
+            <div class="cost-performance-value" id="cashFlowActual">—</div>
+          </div>
+          <div class="cost-performance-block">
+            <div class="cost-performance-label">Baseline Cost</div>
+            <div class="cost-performance-value" id="cashFlowBaseline">—</div>
+          </div>
+          <div class="cost-performance-block">
+            <div class="cost-performance-label">Remaining Cost</div>
+            <div class="cost-performance-value" id="cashFlowRemaining">—</div>
+          </div>
+          <div class="cost-performance-block">
+            <div class="cost-performance-label" title="Cost Variance = current Cost − Baseline Cost">Cost Variance</div>
+            <div class="cost-performance-value" id="cashFlowVariance">—</div>
+          </div>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="cashFlowChart"></canvas></div>
+      </section>
+
+      <!-- EAC Trend — owner-only. Every other cost figure is a snapshot of
+           the LATEST import only; this is the one place showing whether
+           the estimate at completion is trending up, down, or holding
+           steady release over release. A snapshot is appended on every
+           import (gantt.js) — needs at least 2 imports to show a line. -->
+      <section class="card metrics-panel owner-only-card" id="eacTrendCard">
+        <div class="section-header">
+          <h2>📈 EAC Trend <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">How the Estimate at Completion has moved across imports over time.</p>
+        </div>
+        <div class="metrics-chart-wrap"><canvas id="eacTrendChart"></canvas></div>
+      </section>
+
+      <!-- Resource Hours (Budgeted vs Actual vs Remaining, + FTE) —
+           owner-only. Imported from MS Project's Visual Reports → Resource
+           Usage → Resource Work Summary Report (Weekly Calendar broken out
+           to Rows) — a per-resource, per-week/quarter breakdown, not just
+           one flat total per resource. FTE = Work hours that period ÷ a
+           standard 40-hour work week. -->
+      <section class="card metrics-panel owner-only-card" id="resourceHoursCard">
+        <div class="section-header">
+          <h2>👥 Resource Hours <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Budgeted, actual, and remaining work hours per resource, plus average FTE. Imported from Data Imports in the left sidebar.</p>
+        </div>
+        <div class="metrics-table-wrap resource-hours-table-wrap">
+          <table id="resourceHoursTable">
+            <thead>
+              <tr><th>Resource</th><th>Budgeted</th><th>Actual</th><th>Remaining</th><th>% Complete</th><th>Avg FTE</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="metrics-chart-wrap resource-hours-chart-wrap"><canvas id="resourceHoursTrendChart"></canvas></div>
+      </section>
+    </section>
+
+    <!-- Gantt: milestones + activities on one timeline -->
+    <section class="card gantt-section" id="ganttSection">
+      <div class="section-header">
+        <h2>Gantt Timeline</h2>
+        <p class="section-subtext">Depicts the timeline for Milestones and Activities.</p>
+      </div>
+
+      <div class="gantt-legend" aria-label="Gantt chart legend">
+        <div class="gantt-legend-swatches">
+          <span class="gantt-legend-item"><span class="dr-rag dr-rag-red"></span> Critical / overdue</span>
+          <span class="gantt-legend-item"><span class="dr-rag dr-rag-amber"></span> Caution / due soon</span>
+          <span class="gantt-legend-item"><span class="dr-rag dr-rag-green"></span> On track</span>
+          <span class="gantt-legend-item"><span class="dr-rag dr-rag-done"></span> Completed / no due date</span>
+        </div>
+        <p class="gantt-legend-note">📌 = Milestone &nbsp; 📝 = Activity &nbsp; 🔄 = has been edited &nbsp; <span style="border-bottom:2px dashed #222; padding-bottom:1px;">dashed outline</span> = critical path. Click any bar to see its details, dates, progress, and recent changes.</p>
+        <!-- The exact date range actually driving the chart, plus which
+             task sits at each end — if years outside your real data ever
+             show up again, this tells you immediately which record is
+             the cause, without opening devtools. -->
+        <p class="gantt-bounds-note" id="ganttBoundsNote"></p>
+      </div>
+
+      <div class="gantt-controls">
+        <!-- Plain buttons instead of a <select> — a click on a button has
+             far fewer moving parts (no value restoration on reload, no
+             native dropdown focus/keyboard handling to fight) than a
+             dropdown, and is wired directly in gantt.js. Import/Change
+             Report/Find Duplicates now live in the "Data Imports" panel
+             above the charts, alongside every other import. -->
+        <div id="ganttViewModeGroup" class="gantt-view-mode-group" role="group" aria-label="Gantt view mode">
+          <button type="button" class="gantt-view-mode-btn" data-mode="Day">Day</button>
+          <button type="button" class="gantt-view-mode-btn" data-mode="Week">Week</button>
+          <button type="button" class="gantt-view-mode-btn is-active" data-mode="Month">Month</button>
+          <button type="button" class="gantt-view-mode-btn" data-mode="3 Months">3 Months</button>
+          <button type="button" class="gantt-view-mode-btn" data-mode="6 Months">6 Months</button>
+          <button type="button" class="gantt-view-mode-btn" data-mode="Year">Year</button>
         </div>
       </div>
 
-      <!-- middle -->
-      <div class="middle">
+      <div id="ganttChart" class="gantt-chart-container"></div>
+    </section>
+
+      </div>
+    </div>
+
+    <!-- Change Report: every schedule/progress edit, for manual reconciliation into the master MS Project plan -->
+    <div id="changeReportOverlay" class="dr-modal-overlay" aria-hidden="true">
+      <div class="dr-modal-box dr-modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="changeReportTitle">
+        <div class="dr-modal-header">
+          <h3 id="changeReportTitle">Change Report</h3>
+          <button type="button" id="changeReportClose" class="dr-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="dr-modal-body">
+          <p class="dr-modal-subtext">Every schedule, progress, and cost change made in the portal, newest first — use this to update the master plan in Project.</p>
+          <div class="dr-modal-filter-row">
+            <label for="changeReportCategoryFilter">Category:</label>
+            <select id="changeReportCategoryFilter">
+              <option value="">All categories</option>
+            </select>
+          </div>
+          <div id="changeReportTableWrap" class="dr-modal-table-wrap">
+            <table id="changeReportTable">
+              <thead>
+                <tr><th>Item</th><th>Type</th><th>Category</th><th>Field</th><th>From</th><th>To</th><th>Changed By</th><th>When</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="dr-modal-footer">
+          <button type="button" id="changeReportDownload" class="btn-primary">Download CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status/Progress/Q&A summary and the charts row now live above the
+         Gantt Timeline (see top of <main>) — this is just Milestones/
+         Activity Log and File Manager/Q&A Tracker now, each its own
+         full-width 2-column row below the Gantt Timeline. -->
+    <div class="dashboard-two-col" id="milestonesActivitiesRow">
       <section class="card milestone-section">
-    <div class="refined-table-header">
+    <div class="section-header">
       <!-- Different icon than Activity, same position -->
       <h2>📌Project Milestones/Meetings/Events</h2>
       <p class="section-subtext">Track key project milestones and their status</p>
@@ -152,9 +600,12 @@ html.gated main { visibility:hidden; }
       <select id="milestoneStatus" required>
         <option value="">Select Venue</option>
         <option>On-site</option>
+        <option>Off-site</option>
         <option>Virtual</option>
+        <option>Phone</option>
         <option>Other</option>
       </select>
+      <input id="milestoneOtherDesc" type="text" placeholder="Describe venue" style="display:none;" />
       <input id="milestoneDueDate" type="date" required />
       <button type="submit">Add Milestone</button>
     </form>
@@ -165,6 +616,7 @@ html.gated main { visibility:hidden; }
           <col class="col-title" />
           <col class="col-status" />
           <col class="col-date" />
+          <col class="col-rag" />
           <col class="col-actions" />
         </colgroup>
         <thead>
@@ -172,6 +624,7 @@ html.gated main { visibility:hidden; }
             <th>Title</th>
             <th>Location</th>
             <th>Date</th>
+            <th title="Jeopardy status based on due date">Status</th>
             <th class="actions">Actions</th>
           </tr>
         </thead>
@@ -198,6 +651,11 @@ html.gated main { visibility:hidden; }
     <option value="Completed">Completed</option>
   </select>
 
+  <select id="activityResponsible">
+    <option value="">Responsible</option>
+    <!-- options populated by activity.js from the company roster -->
+  </select>
+
   <div class="activity-date-inline">
     <label for="activityDate">Date</label>
     <input id="activityDate" type="date" required>
@@ -209,11 +667,11 @@ html.gated main { visibility:hidden; }
   <div class="activity-import">
     <input id="activityImport"
            type="file"
-           accept=".xlsx,.xls" />
+           accept=".xlsx,.xls,.csv" />
     <button id="importBtn"
             class="btn-primary"
             type="button">
-      Import Excel
+      Import Excel/CSV
     </button>
   </div>
 
@@ -222,14 +680,18 @@ html.gated main { visibility:hidden; }
       <colgroup>
         <col class="col-title" />
         <col class="col-status" />
+        <col class="col-responsible" />
         <col class="col-date" />
+        <col class="col-rag" />
         <col class="col-actions" />
       </colgroup>
       <thead>
   <tr>
     <th data-sort="title">Activity</th>
-    <th data-sort="status">Status</th>
+    <th data-sort="status">Stage</th>
+    <th data-sort="responsible">Responsible</th>
     <th data-sort="date">Due Date</th>
+    <th title="Status light (schedule position) plus ahead/behind pace">Status</th>
     <th class="actions">Actions</th>
   </tr>
 </thead>
@@ -239,10 +701,184 @@ html.gated main { visibility:hidden; }
     </table>
   </div>
 </section>
-</div>
+    </div>
 
-      <!-- right -->
-      <div class="rightside">
+    <!-- Assumptions Log on top, Risk Register below — each its own
+         full-width row (same reasoning as Q&A/File Manager below) so
+         every captured column has room to show, not just a 5-column
+         summary. Both owner-only: candid internal assessments (e.g.
+         calling out the sponsor's own deadline as risky) aren't
+         necessarily client-facing. Imported from Data Imports in the
+         left sidebar. -->
+    <div class="dashboard-stack" id="riskAssumptionsRow">
+      <section class="card metrics-panel owner-only-card" id="assumptionsLogCard">
+        <div class="section-header">
+          <h2>📋 Assumptions Log <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Every field from the import — Impact/Probability shown as individual badges.</p>
+        </div>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="assumptionsLogTable">
+            <colgroup>
+              <col class="col-id" /><col class="col-date" /><col class="col-short" />
+              <col class="col-wide" /><col class="col-wide" /><col class="col-wide" />
+              <col class="col-narrow" /><col class="col-probability" /><col class="col-short" />
+              <col class="col-short" /><col class="col-medium" /><col class="col-date" />
+              <col class="col-wide" /><col class="col-wide" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ID</th><th>Date Logged</th><th>Category</th>
+                <th class="wrap-text">Assumption Statement</th><th class="wrap-text">Rationale / Source</th><th class="wrap-text">Potential Impact if False</th>
+                <th>Impact</th><th>Probability</th><th>Owner</th>
+                <th>Status</th><th class="wrap-text">Validation Method</th><th>Target Validation Date</th>
+                <th class="wrap-text">Actual Outcome / Decision</th><th class="wrap-text">Notes / Next Steps</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card" id="riskRegisterCard">
+        <div class="section-header">
+          <h2>⚠️ Risk Register <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Every field from the import — Risk Score badge follows the standard 5×5 matrix (≥15 high, 8-14 medium, ≤7 low).</p>
+        </div>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="riskRegisterTable">
+            <colgroup>
+              <col class="col-id" /><col class="col-short" /><col class="col-wide" />
+              <col class="col-medium" /><col class="col-probability" /><col class="col-narrow" />
+              <col class="col-narrow" /><col class="col-short" /><col class="col-medium" />
+              <col class="col-wide" /><col class="col-short" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ID</th><th>Category</th><th class="wrap-text">Description</th>
+                <th class="wrap-text">Impact Area</th><th>Probability</th><th>Impact</th>
+                <th>Score</th><th>Owner</th><th>Response Strategy</th>
+                <th class="wrap-text">Response Actions</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Quality / Defects Log — owner-only. No existing export to match
+           yet, so this ships with sample rows (clearly labeled) defining
+           the expected shape; import your own file via Data Imports in
+           the left sidebar once you've built one to match, and the sample
+           banner disappears. -->
+      <section class="card metrics-panel owner-only-card" id="qualityDefectsCard">
+        <div class="section-header">
+          <h2>🐞 Quality / Defects Log <span class="owner-only-badge">Owner only</span></h2>
+          <p class="section-subtext">Defect tracking — the one project goal (Quality) with no data source until now.</p>
+        </div>
+        <p id="qualityDefectsSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — columns: ID, Date Logged, Category, Description, Severity, Found In, Status, Assigned To, Date Resolved, Resolution / Root Cause, Reopened Count, Notes. Import your own file to replace this.
+        </p>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="qualityDefectsTable">
+            <colgroup>
+              <col class="col-id" /><col class="col-date" /><col class="col-short" />
+              <col class="col-wide" /><col class="col-short" /><col class="col-short" />
+              <col class="col-short" /><col class="col-short" /><col class="col-date" />
+              <col class="col-wide" /><col class="col-narrow" /><col class="col-wide" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ID</th><th>Date Logged</th><th>Category</th>
+                <th class="wrap-text">Description</th><th>Severity</th><th>Found In</th>
+                <th>Status</th><th>Assigned To</th><th>Date Resolved</th>
+                <th class="wrap-text">Resolution / Root Cause</th><th>Reopened</th><th class="wrap-text">Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Q&A Tracker gets the full-width row to itself (more room for its
+         own form/filters/table columns to spread out), with File Manager
+         stacked below rather than squeezed into a side-by-side half. -->
+    <div class="dashboard-stack" id="filesQnaRow">
+        <!-- Q&A -->
+        <section class="qna-section">
+  <div class="qna-header">
+    <h2>🧠 Project Q&amp;A Tracker</h2>
+    <p>Use this component to address any questions, comments, or concerns.</p>
+  </div>
+
+  <div class="qna-controls">
+    <!-- Left: form -->
+    <form class="qna-form" onsubmit="return false;">
+      <textarea id="qna-message"
+                placeholder="Enter question, comment, or task..."></textarea>
+
+                 <textarea id="qna-response"
+            placeholder="Enter response or notes..."></textarea>
+
+      <div class="qna-form-row">
+        <select id="qna-type">
+          <option value="">Type</option>
+          <option value="Question">Question</option>
+          <option value="Task">Task</option>
+          <option value="Risk">Risk</option>
+          <option value="Issue">Issue</option>   <!-- NEW -->
+        </select>
+
+        <select id="qna-assigned">
+          <!-- options populated by qna.js -->
+        </select>
+
+        <input id="qna-due" type="date" title="Due date" />
+
+        <button id="qna-add" type="button" class="primary">Add</button>
+      </div>
+    </form>
+
+    <!-- Right: filters -->
+    <div class="qna-filters">
+      <select id="qna-filter-done">
+        <option value="">All items</option>
+        <option value="notDone">Open</option>
+        <option value="done">Done</option>
+      </select>
+
+      <select id="qna-filter-type">
+        <option value="">All types</option>
+        <!-- dynamic options from data -->
+      </select>
+
+      <select id="qna-filter-assigned">
+        <option value="">All assignees</option>
+        <!-- dynamic options from data -->
+      </select>
+    </div>
+  </div>
+
+  <div class="qna-table-wrapper">
+    <table id="qna-table" class="qna-table">
+  <thead>
+    <tr>
+      <th data-sort="type">Type</th>
+<th data-sort="message">Message</th>
+<th data-sort="response">Response</th>
+<th data-sort="responseAt" title="Keeps the assignee accountable for a timely response">Responded</th>
+<th data-sort="assignedTo">Assigned To</th>
+<th data-sort="dueDate">Due Date</th>
+<th title="Jeopardy status based on due date">Status</th>
+<th>Done</th>
+<th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+  </div>
+</section>
+
         <section class="card file-panel">
   <div class="section-header">
     <h2>📁 File Manager</h2>
@@ -283,8 +919,7 @@ html.gated main { visibility:hidden; }
         <col class="col-size" />
         <col class="col-created" />
         <col class="col-owner" />
-        <col class="col-download" />
-        <col class="col-delete" />
+        <col class="col-actions" />
       </colgroup>
       <thead>
         <tr>
@@ -293,8 +928,7 @@ html.gated main { visibility:hidden; }
           <th data-sort="size">Size</th>
           <th data-sort="created">Created Date</th>
           <th data-sort="owner">Owner</th>
-          <th>Download</th>
-          <th>Delete</th>
+          <th class="actions">Actions</th>
         </tr>
       </thead>
       <tbody id="fileTableBody">
@@ -303,80 +937,7 @@ html.gated main { visibility:hidden; }
     </table>
   </div>
 </section>
-
-        <!-- Q&A -->
-        <section class="qna-section">
-  <div class="qna-header">
-    <h2>🧠 Project Q&amp;A Tracker</h2>
-    <p>Use this component to address any questions, comments, or concerns.</p>
-  </div>
-
-  <div class="qna-controls">
-    <!-- Left: form -->
-    <form class="qna-form" onsubmit="return false;">
-      <textarea id="qna-message"
-                placeholder="Enter question, comment, or task..."></textarea>
-
-                 <textarea id="qna-response"
-            placeholder="Enter response or notes..."></textarea>
-
-      <div class="qna-form-row">
-        <select id="qna-type">
-          <option value="">Type</option>
-          <option value="Question">Question</option>
-          <option value="Task">Task</option>
-          <option value="Risk">Risk</option>
-          <option value="Issue">Issue</option>   <!-- NEW -->
-        </select>
-
-        <select id="qna-assigned">
-          <!-- options populated by qna.js -->
-        </select>
-
-        <button id="qna-add" type="button" class="primary">Add</button>
-      </div>
-    </form>
-
-    <!-- Right: filters -->
-    <div class="qna-filters">
-      <select id="qna-filter-done">
-        <option value="">All items</option>
-        <option value="notDone">Open</option>
-        <option value="done">Done</option>
-      </select>
-
-      <select id="qna-filter-type">
-        <option value="">All types</option>
-        <!-- dynamic options from data -->
-      </select>
-
-      <select id="qna-filter-assigned">
-        <option value="">All assignees</option>
-        <!-- dynamic options from data -->
-      </select>
     </div>
-  </div>
-
-  <div class="qna-table-wrapper">
-    <table id="qna-table" class="qna-table">
-  <thead>
-    <tr>
-      <th data-sort="type">Type</th>
-<th data-sort="message">Message</th>
-<th data-sort="response">Response</th>
-<th data-sort="assignedTo">Assigned To</th>
-<th data-sort="date">Date</th>
-<th>Done</th>
-<th>Actions</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-  </div>
-</section>
-
-
- 
 
   </main>
 
@@ -404,13 +965,40 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
+  <!-- Gantt library (loaded early/statically so window.Gantt exists before ./JS/gantt.js runs) -->
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.2.2/dist/frappe-gantt.umd.js"></script>
+
+  <!-- Chart.js (loaded early/statically so window.Chart exists before ./JS/burndown.js runs) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+  <!-- Datalabels plugin — used only by the RAG Status Snapshot doughnut to
+       print each slice's percentage around the ring; registered per-chart
+       in burndown.js, not globally, so it doesn't affect the other charts. -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
   <!-- Your init -->
+  <!-- Loaded as a normal, statically-parsed script (not via the dynamic
+       loadScript() cascade below) so window.APP_CONFIG.OWNER_EMAIL is
+       guaranteed set before any module that reads it can execute.
+       loadScript() sets `defer` on dynamically-created <script> elements,
+       but defer has no effect there — browsers always run those scripts as
+       soon as they finish fetching, in whatever order that happens to be,
+       not append order. Several modules (gantt.js, activity.js,
+       milestone.js, filemanager.js, qna.js, projectStatus.js,
+       projectProgress.js) read APP_CONFIG.OWNER_EMAIL into a module-level
+       variable exactly once at load time — if one of them won that race
+       against app-config.js, OWNER_EMAIL came back empty and isOwner was
+       permanently false for the rest of the page's life, even for the
+       real Owner. -->
+  <script src="./JS/app-config.js"></script>
+  <script src="./JS/dr-date-format.js"></script>
+  <script src="./JS/dr-rag.js"></script>
+  <script src="./JS/confirm-dialog.js"></script>
   <script src="./JS/firebaseInit.js"></script>
  <!-- <script  src="./JS/app.js"></script> -->
  
    <script  src="./JS/session-classic.js"></script>
   <script  src="./JS/requireAuth.js"></script>
-  <script src="./JS/waitForBusinessKey-shim.js"></script>
+  <script src="./JS/waitforbusinesskey-shim.js"></script>
   <script  src="./JS/auth-helpers-email.js"></script>
    <!-- <script  src="./JS/dashboard-guard.js"></script> -->
   <script  src="./JS/dashboard-business-loader.js"></script>
@@ -421,11 +1009,6 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
  <script>
     console.log("[ready-stub] installed");
   </script>
-
-<script>
-  window.APP_CONFIG = window.APP_CONFIG || {};
-  window.APP_CONFIG.OWNER_EMAIL = "{{OWNER_EMAIL}}";  // filled on deploy
-</script>
 
  <script>
 (function () {
@@ -515,7 +1098,12 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
 
   function loadScript(path, onload) {
     const s = document.createElement('script');
-    s.src = path;
+    // Cache-bust every load — these are dynamically-inserted <script>
+    // elements, so browsers can cache them aggressively across reloads
+    // with no easy way to force a refetch otherwise. Without this, a
+    // fixed bug can keep appearing "unfixed" simply because the browser
+    // is still running the old cached file.
+    s.src = path + (path.indexOf('?') === -1 ? '?' : '&') + 'v=' + Date.now();
     s.defer = true;
     if (onload) s.onload = onload;
     document.body.appendChild(s);
@@ -535,13 +1123,13 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
         W('initDashboardHeader not defined after header.js load');
       }
 
-      // The rest of your dashboard modules
-      loadScript('./JS/app-config.js');
+      // The rest of your dashboard modules (app-config.js is now loaded
+      // statically above, before this cascade even starts)
       loadScript('./JS/activity.js');
       loadScript('./JS/milestone.js');
       loadScript('./JS/projectStatus.js');
       loadScript('./JS/projectProgress.js');
-      loadScript('./JS/Dashboard-business-loader.js');
+      loadScript('./JS/dashboard-business-loader.js');
       loadScript('./JS/qna.js', function () {
   if (window.initQna) {
     window.initQna({
@@ -556,6 +1144,12 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
   }
 });
       loadScript('./JS/filemanager.js');
+      loadScript('./JS/gantt.js');
+      loadScript('./JS/change-report.js');
+      loadScript('./JS/burndown.js');
+      loadScript('./JS/resourceHours.js');
+      loadScript('./JS/riskAssumptions.js');
+      loadScript('./JS/qualityDefects.js');
     });
   }
 

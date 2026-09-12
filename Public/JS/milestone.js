@@ -18,6 +18,7 @@ var OWNER_EMAIL =
 
   // Track whether we're editing an existing milestone
   let editingId = null;
+  let editingOriginalData = null;
 
   // ---------- Logging helpers ----------
   function log() {
@@ -76,6 +77,7 @@ isOwner =
     const form = document.getElementById("milestoneForm");
     const titleInput = document.getElementById("milestoneTitle");
     const statusSelect = document.getElementById("milestoneStatus");
+    const otherDescInput = document.getElementById("milestoneOtherDesc");
     const dateInput = document.getElementById("milestoneDueDate");
     const table = document.getElementById("milestoneTable");
     const tbody = table ? table.querySelector("tbody") : null;
@@ -111,12 +113,35 @@ isOwner =
     if (!isOwner) {
       form.style.display = "none";
     }
+    // Toggle so CSS can hide the Actions column entirely for non-owners
+    // (see milestone.css: #milestoneTable:not(.owner) th.actions/td.actions).
+    if (table) {
+      table.classList.toggle("owner", !!isOwner);
+    }
+    // Milestones/Activities are now shown to clients via the Gantt chart
+    // instead — this whole section is owner-only (see milestone.css:
+    // .milestone-section:not(.owner) { display: none; }).
+    if (section) {
+      section.classList.toggle("owner", !!isOwner);
+    }
+
+    // Show the free-text "describe venue" input only when "Other" is picked.
+    if (otherDescInput) {
+      const syncOtherVisibility = () => {
+        const isOther = statusSelect.value === "Other";
+        otherDescInput.style.display = isOther ? "" : "none";
+        if (!isOther) otherDescInput.value = "";
+      };
+      statusSelect.addEventListener("change", syncOtherVisibility);
+      syncOtherVisibility();
+    }
 
     return {
       section,
       form,
       titleInput,
       statusSelect,
+      otherDescInput,
       dateInput,
       table,
       tbody,
@@ -144,28 +169,51 @@ isOwner =
 
       // Location / Status
       const locTd = document.createElement("td");
-      locTd.textContent = data.status || data.location || "";
+      const venue = data.status || data.location || "";
+      locTd.textContent =
+        venue === "Other" && data.locationOther
+          ? "Other: " + data.locationOther
+          : venue;
 
       // Date
       const dateTd = document.createElement("td");
       let dateStr = "";
       if (data.dueDate) {
-        try {
-          const d = data.dueDate.toDate
-            ? data.dueDate.toDate()
-            : new Date(data.dueDate);
-          if (!isNaN(d.getTime())) {
-            dateStr = d.toLocaleDateString();
+        if (window.drDateFmt) {
+          dateStr = window.drDateFmt.date(data.dueDate);
+        } else {
+          try {
+            const d = data.dueDate.toDate
+              ? data.dueDate.toDate()
+              : new Date(data.dueDate);
+            if (!isNaN(d.getTime())) {
+              dateStr = d.toLocaleDateString();
+            }
+          } catch (e) {
+            // ignore parse issues
           }
-        } catch (e) {
-          // ignore parse issues
         }
       }
       dateTd.textContent = dateStr;
 
+      // Jeopardy (RAG) — a past-dated milestone reads as "Occurred" rather
+      // than "Overdue" (it's an event date, not an open task).
+      const ragTd = document.createElement("td");
+      ragTd.className = "dr-rag-cell";
+      if (window.drRag) {
+        const dueJs = window.drRag.toJsDate(data.dueDate);
+        const occurred = dueJs && window.drRag.dateOnly(dueJs) < window.drRag.dateOnly(new Date());
+        let jeopardy = window.drRag.compute(data.startDate || data.createdAt, data.dueDate, occurred);
+        if (occurred) jeopardy = { code: "done", label: "Occurred" };
+        ragTd.innerHTML =
+          '<span class="dr-rag dr-rag-' + jeopardy.code + '" title="' + jeopardy.label + '"></span>' +
+          '<span class="dr-rag-label">' + jeopardy.label + "</span>";
+      }
+
       tr.appendChild(titleTd);
       tr.appendChild(locTd);
       tr.appendChild(dateTd);
+      tr.appendChild(ragTd);
 
       // Actions column
       const actionsTd = document.createElement("td");
@@ -197,9 +245,10 @@ isOwner =
 
   // ---------- Editing helpers ----------
   function enterEditMode(dom, docId, data) {
-    const { titleInput, statusSelect, dateInput, submitBtn, section } = dom;
+    const { titleInput, statusSelect, otherDescInput, dateInput, submitBtn, section } = dom;
 
     editingId = docId;
+    editingOriginalData = data || {};
 
     // Fill form with current values
     titleInput.value = data.title || "";
@@ -221,6 +270,12 @@ isOwner =
       if (!found) {
         // leave as-is if not matched
       }
+    }
+
+    if (otherDescInput) {
+      const isOther = statusSelect.value === "Other";
+      otherDescInput.style.display = isOther ? "" : "none";
+      otherDescInput.value = isOther ? (data.locationOther || "") : "";
     }
 
     // Date picker – convert to yyyy-mm-dd
@@ -263,13 +318,18 @@ isOwner =
   }
 
   function exitEditMode(dom) {
-    const { titleInput, statusSelect, dateInput, submitBtn, section } = dom;
+    const { titleInput, statusSelect, otherDescInput, dateInput, submitBtn, section } = dom;
 
     editingId = null;
+    editingOriginalData = null;
     titleInput.value = "";
     dateInput.value = "";
     if (statusSelect.options.length) {
       statusSelect.selectedIndex = 0;
+    }
+    if (otherDescInput) {
+      otherDescInput.value = "";
+      otherDescInput.style.display = "none";
     }
 
     submitBtn.textContent = "Add Milestone";
@@ -283,7 +343,7 @@ isOwner =
 
   // ---------- Handlers ----------
   function attachHandlers(dom) {
-    const { form, titleInput, statusSelect, dateInput, tbody } = dom;
+    const { form, titleInput, statusSelect, otherDescInput, dateInput, tbody } = dom;
 
     // Add / Update submit handler – owner only
     if (isOwner && form) {
@@ -292,6 +352,7 @@ isOwner =
 
         const title = titleInput.value.trim();
         const status = statusSelect.value || "";
+        const locationOther = status === "Other" && otherDescInput ? otherDescInput.value.trim() : "";
         const dateVal = dateInput.value; // yyyy-mm-dd
 
         if (!title) {
@@ -308,9 +369,32 @@ isOwner =
           }
         }
 
+        // This form has no Start Date field of its own — startDate only
+        // ever gets set by a Gantt drag or an import. But editing just the
+        // Due Date here, with no check against an existing startDate, is
+        // exactly how a milestone ends up with start after due (the bar
+        // still renders fine because the Gantt silently papers over an
+        // inverted range for display — the underlying data is genuinely
+        // broken until this is caught).
+        if (editingId && dueDate) {
+          const existingStart = editingOriginalData && editingOriginalData.startDate;
+          if (existingStart) {
+            const existingStartJs = window.drRag ? window.drRag.toJsDate(existingStart) : new Date(existingStart);
+            if (existingStartJs && dueDate < existingStartJs) {
+              alert(
+                "Due date cannot be before this milestone's start date (" +
+                  (window.drDateFmt ? window.drDateFmt.date(existingStartJs) : existingStartJs.toDateString()) +
+                  "). Reschedule the start date on the Engagement Timeline first, or choose a later due date."
+              );
+              return;
+            }
+          }
+        }
+
         const basePayload = {
           title,
           status,
+          locationOther: locationOther || null,
           dueDate: dueDate || null
         };
 
@@ -323,6 +407,22 @@ isOwner =
             },
             basePayload
           );
+
+          // Log what actually changed — same shape the Gantt change-log
+          // uses, so an edit made here (not just a Gantt drag) still shows
+          // up as real before/after history.
+          const before = editingOriginalData || {};
+          const edits = [];
+          const dfmt = (v) => (window.drDateFmt ? window.drDateFmt.date(v) : (v ? String(v) : ''));
+          const beforeVenue = before.status || before.location || "";
+          if (beforeVenue !== status) edits.push({ field: "Venue", from: beforeVenue || "not set", to: status });
+          const beforeDue = dfmt(before.dueDate) || "not set";
+          const afterDue = dfmt(dueDate) || "not set";
+          if (beforeDue !== afterDue) edits.push({ field: "Date", from: beforeDue, to: afterDue });
+          if (edits.length) {
+            payload.changeLog = (before.changeLog || []).slice(-4);
+            payload.changeLog.push({ changes: edits, changedAt: new Date(), changedBy: userEmail || "Someone" });
+          }
 
           log("updating milestone", { id: editingId, payload });
 
@@ -344,7 +444,15 @@ isOwner =
           const payload = Object.assign(
             {
               createdAt: new Date(),
-              createdBy: userEmail || null
+              createdBy: userEmail || null,
+              // A creation is itself a change worth surfacing in the Change
+              // Report — without this, new milestones show up on the Gantt
+              // but never appear in the exportable change history.
+              changeLog: [{
+                changes: [{ field: 'Milestone created', from: '—', to: title }],
+                changedAt: new Date(),
+                changedBy: userEmail || "Someone"
+              }]
             },
             basePayload
           );
@@ -381,18 +489,23 @@ isOwner =
         if (!id) return;
 
         if (action === "delete") {
-          if (!window.confirm("Delete this milestone?")) return;
+          var confirmed = window.drConfirm
+            ? window.drConfirm("Delete this milestone? This cannot be undone.", { title: "Delete Milestone" })
+            : Promise.resolve(window.confirm("Delete this milestone?"));
 
-          colRef
-            .doc(id)
-            .delete()
-            .catch((err) => {
-              error("delete failed:", err);
-              alert(
-                "Could not delete milestone: " +
-                  (err && err.message ? err.message : "Unknown error")
-              );
-            });
+          confirmed.then(function (ok) {
+            if (!ok) return;
+            colRef
+              .doc(id)
+              .delete()
+              .catch((err) => {
+                error("delete failed:", err);
+                alert(
+                  "Could not delete milestone: " +
+                    (err && err.message ? err.message : "Unknown error")
+                );
+              });
+          });
         } else if (action === "edit") {
           // Grab current data from Firestore to ensure we have full object
           colRef

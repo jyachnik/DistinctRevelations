@@ -44,6 +44,7 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
   var tbody;
   var typeSel;
   var assignedSel;
+  var dueInput;
   var msgInput;
   var responseInput;
   var addBtn;
@@ -56,6 +57,7 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
   // ---------------------------------------------------------------------------
   function fmtDate(ts) {
     if (!ts) return '';
+    if (window.drDateFmt) return window.drDateFmt.dateTime(ts);
     try {
       var d = ts.toDate ? ts.toDate() : (ts instanceof Date ? ts : new Date(ts));
       return d.toLocaleString();
@@ -64,11 +66,42 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
     }
   }
 
+  function fmtDateOnly(v) {
+    if (window.drDateFmt) return window.drDateFmt.date(v);
+    var d = toJsDate(v);
+    return d ? d.toLocaleDateString() : '';
+  }
+
+  function toJsDate(v) {
+    if (!v) return null;
+    if (v.toDate) return v.toDate();
+    // An already-invalid Date (e.g. new Date('garbage')) is still truthy
+    // and still `instanceof Date` — validate it here too.
+    if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+    var d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function toDateInputValue(v) {
+    var d = toJsDate(v);
+    if (!d) return '';
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  // RAG (red/amber/green) jeopardy — shared formula, see dr-rag.js.
+  function computeJeopardy(row) {
+    if (window.drRag) return window.drRag.compute(row.timestamp, row.dueDate, row.completed);
+    return row.completed ? { code: 'done', label: 'Done' } : { code: 'none', label: 'No due date' };
+  }
+
   function canEdit(row) {
-    return (
-      ctx.isOwner ||
-      String(row.createdBy || '').toLowerCase() === ctx.userEmail.toLowerCase()
-    );
+    if (ctx.isOwner) return true;
+    if (!ctx.userEmail && !ctx.userUid) return false; // not signed in
+    if (ctx.userUid && row.createdByUid && row.createdByUid === ctx.userUid) return true;
+    return String(row.createdBy || '').toLowerCase() === ctx.userEmail.toLowerCase();
   }
 
   function canDelete(row) {
@@ -230,19 +263,12 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
       rows = rows.slice().sort(function (a, b) {
         var av, bv;
 
-        if (key === 'date') {
-          av =
-            a.timestamp && a.timestamp.toDate
-              ? a.timestamp.toDate().getTime()
-              : a.timestamp instanceof Date
-              ? a.timestamp.getTime()
-              : 0;
-          bv =
-            b.timestamp && b.timestamp.toDate
-              ? b.timestamp.toDate().getTime()
-              : b.timestamp instanceof Date
-              ? b.timestamp.getTime()
-              : 0;
+        if (key === 'dueDate') {
+          av = (toJsDate(a.dueDate) || new Date(0)).getTime();
+          bv = (toJsDate(b.dueDate) || new Date(0)).getTime();
+        } else if (key === 'responseAt') {
+          av = (toJsDate(a.responseAt) || new Date(0)).getTime();
+          bv = (toJsDate(b.responseAt) || new Date(0)).getTime();
         } else {
           av = (a[key] || '').toString().toLowerCase();
           bv = (b[key] || '').toString().toLowerCase();
@@ -266,17 +292,23 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
           (r.completed ? ' checked' : '') +
           '>';
 
-        var editBtn = canE
-          ? '<button type="button" class="edit-btn qna-edit" data-id="' +
-            r.id +
-            '">✏️</button>'
-          : '—';
+        var editBtn =
+          '<button type="button" class="edit-btn qna-edit" data-id="' +
+          r.id +
+          '"' + (canE ? '' : ' disabled aria-disabled="true" title="You can only edit items you created"') +
+          '>✏️</button>';
 
-        var delBtn = canD
-          ? '<button type="button" class="delete-btn qna-del" data-id="' +
-            r.id +
-            '">🗑️</button>'
-          : '—';
+        var delBtn =
+          '<button type="button" class="delete-btn qna-del" data-id="' +
+          r.id +
+          '"' + (canD ? '' : ' disabled aria-disabled="true" title="You can only delete items you created"') +
+          '>🗑️</button>';
+
+        var jeopardy = computeJeopardy(r);
+        var dueDisplay = fmtDateOnly(r.dueDate) || '—';
+        var jeopardyBadge =
+          '<span class="qna-rag qna-rag-' + jeopardy.code + '" title="' + jeopardy.label + '"></span>' +
+          '<span class="qna-rag-label">' + jeopardy.label + '</span>'; // visually hidden, for screen readers
 
         return (
           '<tr data-id="' +
@@ -291,11 +323,19 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
           '<td>' +
           (r.response || '') +
           '</td>' +
+          '<td class="qna-responded-cell">' +
+          (r.response && r.responseAt
+            ? fmtDate(r.responseAt) + (r.responseBy ? '<div class="qna-response-meta">' + r.responseBy + '</div>' : '')
+            : (r.response ? '<span class="qna-no-timestamp" title="Responded before this was tracked">—</span>' : '—')) +
+          '</td>' +
           '<td>' +
   (r.assignedTo || '') +
 '</td>' +
           '<td>' +
-          fmtDate(r.timestamp) +
+          dueDisplay +
+          '</td>' +
+          '<td class="qna-jeopardy-cell">' +
+          jeopardyBadge +
           '</td>' +
           '<td>' +
           chk +
@@ -340,6 +380,7 @@ function updateStats() {
     var response = responseInput ? responseInput.value.trim() : '';
     var type = (typeSel && typeSel.value) || '';
     var assignedTo = (assignedSel && assignedSel.value) || '';
+    var dueDate = dueInput && dueInput.value ? new Date(dueInput.value + 'T00:00:00') : null;
 
     if (!msg) return;
 
@@ -353,23 +394,31 @@ function updateStats() {
         window.firebase.firestore.FieldValue.serverTimestamp &&
         window.firebase.firestore.FieldValue.serverTimestamp()) || new Date();
 
+    var payload = {
+      type: type,
+      message: msg,
+      response: response,
+      assignedTo: assignedTo,
+      dueDate: dueDate,
+      completed: false,
+      createdBy: ctx.userEmail || '',
+      createdByUid: ctx.userUid || '',
+      timestamp: ts
+    };
+    if (response) {
+      payload.responseAt = ts;
+      payload.responseBy = ctx.userEmail || '';
+    }
+
     ref
-      .add({
-        type: type,
-        message: msg,
-        response: response,
-        assignedTo: assignedTo,
-        completed: false,
-        createdBy: ctx.userEmail || '',
-        createdByUid: ctx.userUid || '',
-        timestamp: ts
-      })
+      .add(payload)
       .catch(function (err) {
         console.error(ns, 'addItem error', err);
       });
 
     msgInput.value = '';
     if (responseInput) responseInput.value = '';
+    if (dueInput) dueInput.value = '';
   }
 
   function startEdit(id) {
@@ -383,6 +432,7 @@ function updateStats() {
     if (responseInput) responseInput.value = row.response || '';
     if (typeSel) typeSel.value = row.type || '';
     if (assignedSel) assignedSel.value = row.assignedTo || '';
+    if (dueInput) dueInput.value = toDateInputValue(row.dueDate);
     if (addBtn) addBtn.textContent = 'Update';
   }
 
@@ -396,15 +446,32 @@ function updateStats() {
     var response = responseInput ? responseInput.value.trim() : '';
     var type = (typeSel && typeSel.value) || '';
     var assignedTo = (assignedSel && assignedSel.value) || '';
+    var dueDate = dueInput && dueInput.value ? new Date(dueInput.value + 'T00:00:00') : null;
+
+    var existing = ctx.rows.find(function (r) { return r.id === ctx.editingId; });
+    var responseChanged = !!existing && (existing.response || '') !== response;
+
+    var payload = {
+      message: msg,
+      response: response,
+      type: type,
+      assignedTo: assignedTo,
+      dueDate: dueDate
+    };
+    if (responseChanged && response) {
+      var now =
+        (window.firebase &&
+          window.firebase.firestore &&
+          window.firebase.firestore.FieldValue &&
+          window.firebase.firestore.FieldValue.serverTimestamp &&
+          window.firebase.firestore.FieldValue.serverTimestamp()) || new Date();
+      payload.responseAt = now;
+      payload.responseBy = ctx.userEmail || '';
+    }
 
     ref
       .doc(ctx.editingId)
-      .update({
-        message: msg,
-        response: response,
-        type: type,
-        assignedTo: assignedTo
-      })
+      .update(payload)
       .catch(function (err) {
         console.error(ns, 'saveEdit error', err);
       });
@@ -413,19 +480,26 @@ function updateStats() {
     if (addBtn) addBtn.textContent = 'Add';
     msgInput.value = '';
     if (responseInput) responseInput.value = '';
+    if (dueInput) dueInput.value = '';
   }
 
   function deleteItem(id) {
     var ref = qnaRef();
     if (!ref) return;
-    if (!window.confirm('Delete this item?')) return;
 
-    ref
-      .doc(id)
-      .delete()
-      .catch(function (err) {
-        console.error(ns, 'deleteItem error', err);
-      });
+    var confirmed = window.drConfirm
+      ? window.drConfirm('Delete this Q&A item? This cannot be undone.', { title: 'Delete Item' })
+      : Promise.resolve(window.confirm('Delete this item?'));
+
+    confirmed.then(function (ok) {
+      if (!ok) return;
+      ref
+        .doc(id)
+        .delete()
+        .catch(function (err) {
+          console.error(ns, 'deleteItem error', err);
+        });
+    });
   }
 
   function updateCompleted(id, done) {
@@ -541,6 +615,7 @@ function updateStats() {
     tbody = $('#qna-table tbody');
     typeSel = $('#qna-type');
     assignedSel = $('#qna-assigned');
+    dueInput = $('#qna-due');
     msgInput = $('#qna-message');
     responseInput = $('#qna-response');
     addBtn = $('#qna-add');

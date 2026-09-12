@@ -1,0 +1,107 @@
+/* Public/style/confirm-dialog.css
+   Executive-styled confirm modal (replaces window.confirm()).
+   Reuses the dashboard's design tokens (see dashboard1.css :root) with
+   fallbacks so this works even if loaded before/without that file. */
+
+.dr-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 4, 40, 0.55);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease;
+  z-index: 10000;
+  padding: 16px;
+}
+
+.dr-confirm-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.dr-confirm-box {
+  width: 100%;
+  max-width: 380px;
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 20px 60px rgba(0, 4, 40, 0.35), 0 2px 8px rgba(0, 4, 40, 0.12);
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 0.18s ease;
+  text-align: center;
+}
+
+.dr-confirm-overlay.is-open .dr-confirm-box {
+  transform: translateY(0) scale(1);
+}
+
+.dr-confirm-accent {
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary-dark, #000428), var(--color-primary, #004e92));
+}
+
+.dr-confirm-title {
+  margin: 20px 24px 8px;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--color-primary-dark, #000428);
+  letter-spacing: 0.2px;
+}
+
+.dr-confirm-message {
+  margin: 0 24px 22px;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: #555b66;
+  line-height: 1.5;
+}
+
+.dr-confirm-actions {
+  display: flex;
+  border-top: 1px solid #eceff3;
+}
+
+.dr-confirm-actions button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 14px 12px;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dr-confirm-cancel {
+  color: #445;
+  border-right: 1px solid #eceff3;
+}
+.dr-confirm-cancel:hover,
+.dr-confirm-cancel:focus-visible {
+  background: #f4f6f9;
+}
+
+.dr-confirm-ok {
+  color: var(--color-primary, #004e92);
+}
+.dr-confirm-ok:hover,
+.dr-confirm-ok:focus-visible {
+  background: #f0f6ff;
+}
+
+.dr-confirm-ok.is-danger {
+  color: #b3261e;
+}
+.dr-confirm-ok.is-danger:hover,
+.dr-confirm-ok.is-danger:focus-visible {
+  background: #fdf1f0;
+}
+
+@media (max-width: 480px) {
+  .dr-confirm-box {
+    max-width: 320px;
+  }
+}

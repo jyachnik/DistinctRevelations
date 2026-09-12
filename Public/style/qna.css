@@ -14,23 +14,33 @@
 }
 
 /* ─── Header: title + subtitle ─── */
+/* Matches the File Manager / Activity Log / Milestones banner treatment —
+   same background, padding, and type scale — so every card header in the
+   dashboard lines up instead of Q&A being the one plain exception. */
 .qna-header {
-  
-  border-bottom: 1px solid var(--color-border);
- padding: 2px 12px;           /* left/right 12px */
-  margin-bottom: 2px;
-
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background-color: #fbfafd;
+  margin-left: -12px;
+  width: 100%;
+  line-height: 20px;
+  margin-top: -20px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
 }
 .qna-header h2 {
-  font-size: var(--font-size-md);
-  margin: 0 0 2px;
-  line-height: 1.2;
-  text-align: left;
+  font-size: 18px;
+  font-weight: 600;
+  color: #002b45;
+  margin: 0;
+  white-space: nowrap;
 }
 .qna-header p {
-  font-size: var(--font-size-sm);
-  margin: 0;
-  color: var(--color-text-secondary);
+  margin-top: 4px;
+  font-size: 14px;
+  color: #666666;
 }
 
 /* ─── Controls Row ─── */
@@ -104,7 +114,7 @@
 .qna-table-wrapper {
   max-height: 300px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   margin-top: 4px;
   padding: 0 12px 8px;         /* same 12px left/right */
 }
@@ -119,6 +129,7 @@
 /* ─── Table ─── */
 .qna-table {
   width: 100%;
+  min-width: 760px;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
@@ -129,18 +140,29 @@
   border-bottom: 1px solid var(--color-border);
   text-align: left;
 }
+/* Every header cell centered, matching File Manager/Activity Log's table
+   headers exactly (#fileTable thead th, #activityTable thead th) — same
+   selector strength as the .qna-table-wrapper sticky-header rule further
+   down, so the two agree instead of leaving this to whichever happens to
+   win the cascade. */
 .qna-table th {
   text-align: center;
 }
 
-/* 1: Type, 2: Message, 3: Response, 4: Created By, 5: Date, 6: Done, 7: Actions */
-.qna-table th:nth-child(1), .qna-table td:nth-child(1) { width: 8%; }
-.qna-table th:nth-child(2), .qna-table td:nth-child(2) { width: 26%; }
-.qna-table th:nth-child(3), .qna-table td:nth-child(3) { width: 26%; }
-.qna-table th:nth-child(4), .qna-table td:nth-child(4) { width: 20%; }
-.qna-table th:nth-child(5), .qna-table td:nth-child(5) { width: 10%; }
-.qna-table th:nth-child(6), .qna-table td:nth-child(6) { width: 4%; text-align:center; }
+/* This comment used to describe an 8-column layout with no "Responded"
+   column — the widths below were still keyed to that stale mapping (off
+   by one from column 4 onward) even after Responded was added as the
+   real 4th column. Real order: 1 Type, 2 Message, 3 Response,
+   4 Responded, 5 Assigned To, 6 Due Date, 7 Status, 8 Done, 9 Actions. */
+.qna-table th:nth-child(1), .qna-table td:nth-child(1) { width: 6%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qna-table th:nth-child(2), .qna-table td:nth-child(2) { width: 18%; }
+.qna-table th:nth-child(3), .qna-table td:nth-child(3) { width: 16%; }
+.qna-table th:nth-child(4), .qna-table td:nth-child(4) { width: 12%; }
+.qna-table th:nth-child(5), .qna-table td:nth-child(5) { width: 12%; }
+.qna-table th:nth-child(6), .qna-table td:nth-child(6) { width: 10%; }
 .qna-table th:nth-child(7), .qna-table td:nth-child(7) { width: 6%; text-align:center; }
+.qna-table th:nth-child(8), .qna-table td:nth-child(8) { width: 5%; text-align:center; }
+.qna-table th:nth-child(9), .qna-table td:nth-child(9) { width: 15%; text-align:center; }
 
 /* ─── Completed Row Styling ─── */
 .qna-table tbody tr.completed {
@@ -188,9 +210,9 @@
 }
 /* qna.css */
 
-/* 1) Make sure your actions column is wide enough */
-.qna-table th:nth-child(6),
-.qna-table td:nth-child(6) {
+/* 1) Make sure your actions column is wide enough (Actions is column 9) */
+.qna-table th:nth-child(9),
+.qna-table td:nth-child(9) {
   width: 120px;
   text-align: center;
 }
@@ -215,8 +237,28 @@
   color: #dc3545;             /* red on hover */
 }
 
-/* 4) If you want a little padding around the cell */
-.qna-table td:nth-child(6) {
+/* Grayed-out, non-interactive state when the current user isn't
+   permitted to edit/delete this row (or isn't logged in).
+   NOTE: these icons are color emoji (✏️/🗑️) — browsers render color-emoji
+   glyphs with their own built-in colors and ignore the CSS `color`
+   property entirely, so `color: #ccc` alone has no visible effect. Only
+   `filter: grayscale()` actually desaturates the rendered emoji pixels;
+   opacity alone was too subtle to read as "disabled" at a glance. */
+.edit-btn:disabled,
+.delete-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.edit-btn:disabled:hover,
+.delete-btn:disabled:hover {
+  color: #ccc;
+  filter: grayscale(1);
+}
+
+/* 4) A little extra padding around the Actions icons */
+.qna-table td:nth-child(9) {
   padding: 0.5rem;
 }
 
@@ -256,15 +298,17 @@
   color: #f8f4f4;
 }
 
-/* Active sort states */
+/* Active sort states — white, same as the default ↕ arrow, since the dark
+   navy this used before doesn't show up against the header's own blue
+   background at all. */
 .qna-table th[data-sort].asc::after {
   content: '▲';
-  color: #004e92;      /* your primary blue */
+  color: #ffffff;
 }
 
 .qna-table th[data-sort].desc::after {
   content: '▼';
-  color: #004e92;
+  color: #ffffff;
 }
 /* ─── Q&A: Sticky table header ─── */
 
@@ -300,15 +344,30 @@
   display: table-header-group;
 }
 
-/* sticky THs */
+/* sticky THs — same blue as Activity Log / File Manager's table headers
+   (#007bff), not the darker #004e92 this used before, so every table in
+   the app has the same header color instead of Q&A being the odd one
+   out. */
 .qna-table-wrapper .qna-table thead th {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #004e92;
+  background: #007bff;
   color: #fff;
-  padding: 4px 6px;
+  font-weight: 600;
+  padding: 8px 6px;
   text-align: center;
+}
+
+/* Decisive override: this file has accumulated several conflicting
+   text-align rules for these header cells over time (see the stale
+   column-mapping comment above) — !important here removes any doubt
+   about which one actually wins, matching File Manager/Activity Log's
+   centered headers exactly, including the sortable ones with a ↕/▲/▼
+   after the label. */
+.qna-table thead th,
+.qna-table th[data-sort] {
+  text-align: center !important;
 }
 
 /* And if needed, push the Q&A down to align */
@@ -316,11 +375,61 @@
   margin-top: 2rem;
 }
 
-/* Center the Done column header & cells */
-.qna-table th:nth-child(5),
-.qna-table td:nth-child(5) {
+/* Center the Done column header & cells (Done is column 8) */
+.qna-table th:nth-child(8),
+.qna-table td:nth-child(8) {
   text-align: center;
   vertical-align: middle;
   padding: 4px 6px;  /* ensure consistent padding */
+}
+
+/* ─── Jeopardy (RAG) indicator ─── */
+.qna-jeopardy-cell {
+  white-space: nowrap;
+}
+.qna-rag {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
+}
+.qna-response-meta {
+  margin-top: 3px;
+  font-size: 0.74rem;
+  color: #7a7a7a;
+  font-style: italic;
+}
+.qna-responded-cell {
+  font-size: 0.82rem;
+}
+.qna-no-timestamp {
+  color: #aaa;
+}
+.qna-rag-red    { background: #d33; }
+.qna-rag-amber  { background: #e0a800; }
+.qna-rag-green  { background: #2f9e44; }
+.qna-rag-done   { background: #8a8a8a; }
+.qna-rag-none   { background: #ccc; }
+/* Visually hidden but available to screen readers (the dot's title
+   attribute covers sighted/mouse users; this covers everyone else). */
+.qna-rag-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Prevent long values (emails, dates) from visually bleeding into the
+   next column in the fixed-layout table */
+.qna-table td:nth-child(5),
+.qna-table td:nth-child(6) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 

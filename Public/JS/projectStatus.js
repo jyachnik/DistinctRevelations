@@ -1,7 +1,11 @@
 // /Public/JS/projectStatus.js
-// Traffic-light Project Status widget.
-
-// businesses/{biz}.projectStatus. Non-owners see the lights but can’t change.
+// Traffic-light Project Status widget — READ-ONLY display. The status is
+// now computed automatically from SPI and/or CPI (see burndown.js's
+// writeAutoProjectStatus, which runs once per session for the Owner —
+// only the Owner has Firestore write permission on this document) rather
+// than clicked/set manually, so this file just renders whatever's
+// currently in businesses/{biz}.projectStatus, live via onSnapshot, plus
+// a "Last updated" timestamp in the header from the same document.
 
 (function () {
   var LOG = "[projectStatus]";
@@ -127,14 +131,18 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
           rowCount: rows.length
         });
 
-        // pointer cursor only for owner
+        // Read-only for everyone now — no more click-to-set.
         rows.forEach(function (row) {
-          row.style.cursor = isOwner ? "pointer" : "default";
+          row.style.cursor = "default";
         });
 
         var docRef = DR.db.collection("businesses").doc(bizKey);
+        var lastUpdatedEl = document.getElementById("headerLastUpdated");
 
-        // Live listener
+        // Live listener — also drives the header's "Last updated" text
+        // from the same document, so it stays in sync automatically
+        // whenever burndown.js's auto-status write lands (no separate
+        // listener needed).
         docRef.onSnapshot(
           function (snap) {
             if (!snap.exists) {
@@ -155,50 +163,19 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
               normalized: code
             });
             applyStatusToDOM(card, labelEl, rows, code);
+
+            if (lastUpdatedEl) {
+              var computedAt = data.projectStatusComputedAt;
+              var d = computedAt && computedAt.toDate ? computedAt.toDate() : (computedAt ? new Date(computedAt) : null);
+              lastUpdatedEl.textContent = d && !isNaN(d.getTime())
+                ? 'Last updated: ' + (window.drDateFmt ? window.drDateFmt.dateTime(d) : d.toLocaleString())
+                : '';
+            }
           },
           function (err) {
             console.error(LOG, "Snapshot failed:", err);
           }
         );
-
-        function persistStatus(code) {
-          if (!isOwner) return;
-
-          code = normalizeStatus(code);
-          if (!code || code === "unknown") {
-            try { alert("Please select a valid status."); } catch (_e) {}
-            return;
-          }
-
-          console.log(LOG, "Saving status", code, "for", bizKey);
-          docRef.update({ projectStatus: code }).catch(function (err) {
-            console.error(LOG, "Update failed:", err);
-            try {
-              alert(
-                "Could not update Project Status: " +
-                  (err && err.message ? err.message : err)
-              );
-            } catch (_e) {}
-          });
-        }
-
-        if (isOwner) {
-          rows.forEach(function (row) {
-            row.addEventListener("click", function () {
-              var code =
-                row.getAttribute("data-code") ||
-                row.dataset.code ||
-                (row.querySelector(".light") &&
-                  row.querySelector(".light").getAttribute("data-status")) ||
-                "";
-
-              code = normalizeStatus(code);
-              console.log(LOG, "row click →", code);
-              applyStatusToDOM(card, labelEl, rows, code);
-              persistStatus(code);
-            });
-          });
-        }
       });
     });
   }

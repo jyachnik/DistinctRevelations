@@ -1,0 +1,42 @@
+/* Public/style/dr-rag.css
+   Shared RAG (red/amber/green) dot indicator — used by Activity Log and
+   Milestones (Q&A has its own qna-rag variant with the same colors). */
+
+.dr-rag-cell {
+  white-space: nowrap;
+  text-align: center;
+}
+.dr-rag {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.dr-rag-red   { background: #d33; }
+.dr-rag-amber { background: #e0a800; }
+.dr-rag-green { background: #2f9e44; }
+.dr-rag-done  { background: #8a8a8a; }
+.dr-rag-none  { background: #ccc; }
+
+/* Visually hidden but available to screen readers */
+.dr-rag-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Ahead/On Schedule/Behind — a distinct axis from the RAG jeopardy light,
+   shown as a small caption under the dot (see activity.js computePace). */
+.dr-pace {
+  font-size: 0.72rem;
+  margin-top: 2px;
+  font-weight: 600;
+}
+.dr-pace-ahead    { color: #2f9e44; }
+.dr-pace-on-track { color: #5a6472; }
+.dr-pace-behind   { color: #e0a800; }

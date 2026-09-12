@@ -57,16 +57,11 @@
         const bizRef = db.collection('businesses').doc(businessKey);
         const bizSnap = await bizRef.get();
 
-        if (bizSnap.exists) {
-          // Optionally update name fields if needed
-          await bizRef.set(
-            {
-              name:      businessKey,
-              nameLower: businessNorm
-            },
-            { merge: true }
-          );
-        } else {
+        if (!bizSnap.exists) {
+          // Only create the business doc when it doesn't exist yet — an
+          // existing business's metadata is owner-managed, so a new member
+          // joining it must not attempt to rewrite it (security rules
+          // restrict updates to the owner).
           await bizRef.set({
             name:      businessKey,
             nameLower: businessNorm,

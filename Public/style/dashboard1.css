@@ -68,52 +68,75 @@ p {
   margin-bottom: var(--space-lg);
 }
 
-/* ─── Dashboard Layout ─── */
-.dashboard-container {
+/* ─── Dashboard Layout — Milestones | Activity Log side by side below the
+   Gantt Timeline; Q&A Tracker and File Manager each get their own
+   full-width row below that (Q&A first, File Manager under it) so both
+   have room to spread their own columns out rather than sharing a half.
+   Charts (Burndown/Burnup/CFD/Status/EVM) live in their own horizontal
+   row above the Gantt Timeline — see .dashboard-charts-row below. ─── */
+.dashboard-two-col {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
   width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
+  margin: 0 0 var(--space-lg);
+}
+.dashboard-two-col > * {
+  flex: 1 1 0;
+  min-width: 380px;
+  margin-bottom: 0;
+}
+@media (max-width: 900px) {
+  .dashboard-two-col > * {
+    flex: 1 1 100%;
+  }
 }
 
-/* Left Side (10%) */
-.dashboard-container > .leftside {
-  flex: 0 0 10%;
-  max-width: 10%;
+.dashboard-stack {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  margin: 0;
-  padding: var(--space-xs) var(--space-sm);
-}
-
-/* Middle (30%) */
-.dashboard-container > .middle {
-  flex: 0 0 30%;
-  max-width: 30%;
-  padding: var(--space-sm);
-}
-
-/* Right Side (60%) */
-.dashboard-container > .rightside {
-  flex: 0 0 60%;
-  max-width: 60%;
-  padding: var(--space-sm);
-  overflow: auto;
-}
-
-/* ─── Leftside Cards Stack & Centering ─── */
-.dashboard-container > .leftside > * {
-  flex: 0 0 auto;
   width: 100%;
-  margin: 0 0 var(--space-md) 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  margin: 0 0 var(--space-lg);
 }
-.dashboard-container > .leftside > *:last-child {
+.dashboard-stack > * {
+  width: 100%;
   margin-bottom: 0;
+}
+
+/* ─── Charts row: Burndown, Burnup, Velocity, Cumulative Flow, Status
+   Snapshot, EVM — horizontal, 3 columns, below the performance measures
+   row and above the Gantt Timeline. ─── */
+.dashboard-charts-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.dashboard-charts-row > .card {
+  margin-bottom: 0;
+  min-width: 0;
+}
+@media (max-width: 1400px) {
+  .dashboard-charts-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 800px) {
+  .dashboard-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Summary row: Project Status, Project Progress, Q&A Summary — one
+   horizontal row above the Engagement Timeline ─── */
+.dashboard-summary-row {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.dashboard-summary-row > * {
+  flex: 1 1 0;
+  margin-bottom: 0;
+  min-width: 0; /* let flex children shrink below their content's natural width */
 }

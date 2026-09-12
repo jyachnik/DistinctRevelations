@@ -29,14 +29,56 @@
       document.getElementById('logoFileInput') ||
       document.querySelector('[data-role="logo-file-input"]');
 
+    const userEmailEl = document.getElementById('headerUserEmail');
+    const logoutBtn = document.getElementById('headerLogoutBtn');
+
     L('DOM elements:', {
       hasNameEl: !!nameEl,
       hasLogoImg: !!logoImg,
       hasUploadLabel: !!uploadLabel,
       hasFileInput: !!fileInput,
+      hasUserEmailEl: !!userEmailEl,
+      hasLogoutBtn: !!logoutBtn,
     });
 
-    return { nameEl, logoImg, uploadLabel, fileInput };
+    return { nameEl, logoImg, uploadLabel, fileInput, userEmailEl, logoutBtn };
+  }
+
+  // Show who's signed in, and wire the Log Out button.
+  function wireUserInfo(user, els, isOwner) {
+    if (els.userEmailEl) {
+      if (user && user.email) {
+        var emailSpan = document.createElement('span');
+        // Non-owner logins (members, Client PM, exec sponsor) get a red cue
+        // on just the email — not the whole "Signed in as" label — so it's
+        // always visually obvious which role you're viewing as.
+        emailSpan.className = 'header-user-email-value' + (isOwner ? '' : ' non-owner');
+        emailSpan.textContent = user.email;
+
+        els.userEmailEl.textContent = 'Signed in as ';
+        els.userEmailEl.appendChild(emailSpan);
+      } else {
+        els.userEmailEl.textContent = '';
+      }
+    }
+
+    if (els.logoutBtn && !els.logoutBtn.__wired) {
+      els.logoutBtn.__wired = true;
+      els.logoutBtn.addEventListener('click', function () {
+        const auth = window.auth || (window.firebase && window.firebase.auth && window.firebase.auth());
+        if (!auth) { W('logout: auth not available'); return; }
+        auth.signOut().then(function () {
+          try {
+            sessionStorage.removeItem('businessKey');
+            localStorage.removeItem('businessKey');
+          } catch (e) {}
+          window.location.href = 'index.html';
+        }).catch(function (err) {
+          E('logout failed', err);
+          alert('Could not log out. Please try again.');
+        });
+      });
+    }
   }
 
   // Wire upload (owner only)
@@ -189,6 +231,8 @@
 
     // Bind Firestore business doc → header (with fallback to bizKey)
     bindBusinessDoc(bizKey, els);
+
+    wireUserInfo(user, els, isOwner);
   }
 
   // Expose to global so dash-loader can call it

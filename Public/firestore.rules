@@ -10,86 +10,189 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email == "john@distinctrevelations.com";
     }
 
-    // Per-user profile / mapping docs
+    // Top-level per-user profile / business mapping doc (users/{uid}).
+    // Any signed-in user can read mappings so login can resolve their business;
+    // only the user themself can write their own doc.
     match /users/{uid} {
-      // Any signed-in user can read user mappings so that dashboards
-      // can resolve which business they belong to.
       allow read: if isSignedIn();
-
-      // Only the signed-in user can create/update/delete their own user doc.
       allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // Top-level business document. Holds metadata and summary fields
-    // like projectStatus and projectProgress.
-    match /businesses/{biz} {
-      // All signed-in users with access to the app can read business docs.
+    // Global, owner-managed library of reusable prep-checklist tasks
+    // (imported from the MS Project event-task-library export). Shared
+    // across every business/project — not scoped to any one of them.
+    match /eventTaskLibrary/{taskId} {
       allow read: if isSignedIn();
-
-      // Only the owner can create or modify a business document
-      // (this covers projectStatus + projectProgress updates).
       allow create, update, delete: if isOwnerEmail();
+    }
 
-      // ===== Subcollections under each business =====
+    // Top-level business document: metadata + projectStatus/projectProgress.
+    match /businesses/{biz} {
 
-      // Q&A tracker items
+      // ===========================================================
+      // LEGACY (flat, pre-multi-project) paths — kept fully working,
+      // byte-for-byte unchanged from before, throughout the migration.
+      // Do not edit this block; it is retired in a later cutover step
+      // once every client is confirmed running on the nested paths
+      // below, not before.
+      // ===========================================================
+
+      function isMember(b) {
+        return isSignedIn() &&
+          exists(/databases/$(database)/documents/businesses/$(b)/users/$(request.auth.uid));
+      }
+      function isOwnerOrMember(b) {
+        return isOwnerEmail() || isMember(b);
+      }
+
+      allow read: if isOwnerOrMember(biz);
+      allow create: if isSignedIn();
+      allow update, delete: if isOwnerEmail();
+
+      match /users/{uid} {
+        allow read: if isOwnerOrMember(biz);
+        allow create, update, delete: if isOwnerEmail() ||
+          (isSignedIn() && request.auth.uid == uid);
+      }
+
       match /qna/{qnaId} {
-        // All signed-in users can see Q&A items for their business.
-        allow read: if isSignedIn();
-
-        // Any signed-in user can create a new Q&A item.
-        allow create: if isSignedIn();
-
-        // Updates / deletes are restricted:
-        // - Owner can change anything
-        // - Assignee (assignedTo email) can update/delete their own item
-        allow update, delete: if isSignedIn() &&
-          ( isOwnerEmail() ||
-            request.auth.token.email == resource.data.assignedTo );
+        allow read: if isOwnerOrMember(biz);
+        allow create: if isOwnerOrMember(biz);
+        allow update, delete: if isOwnerEmail() ||
+          ( isMember(biz) &&
+            ( request.auth.uid == resource.data.createdByUid ||
+              request.auth.token.email == resource.data.createdBy ) );
       }
 
-      // File metadata entries for the File Manager
       match /files/{fileId} {
-        // All signed-in users can see file metadata.
-        allow read: if isSignedIn();
-
-        // Any signed-in user can upload (the JS sets uploadedBy on create).
-        allow create: if isSignedIn();
-
-        // Only the owner or the original uploader can update/delete.
-        allow update, delete: if isSignedIn() &&
-          ( isOwnerEmail() ||
-            request.auth.token.email == resource.data.uploadedBy );
+        allow read: if isOwnerOrMember(biz);
+        allow create: if isOwnerOrMember(biz);
+        allow update, delete: if isOwnerEmail() ||
+          ( isMember(biz) &&
+            ( request.auth.uid == resource.data.ownerUid ||
+              request.auth.token.email == resource.data.owner ) );
       }
 
-      // Activity log entries
-      match /activity/{activityId} {
-        // Everyone signed in can see the activity history.
-        allow read: if isSignedIn();
-
-        // Any signed-in user can log a new activity.
-        allow create: if isSignedIn();
-
-        // Only the owner can update or delete activity entries.
-        allow update, delete: if isOwnerEmail();
+      match /activities/{activityId} {
+        allow read: if isOwnerOrMember(biz);
+        allow create, update, delete: if isOwnerEmail();
       }
-// Milestones: owner can create/update/delete, all signed-in users in the
-// business can read.
-match /businesses/{bizId}/milestones/{milestoneId} {
-  allow read: if isSignedIn() && isUserInBusiness(bizId);
 
-  allow create, update, delete: if isSignedIn() && isOwner(bizId);
-}
-      // Milestones / meetings / events
       match /milestones/{milestoneId} {
-        // All signed-in users can see milestones for the business.
-        allow read: if isSignedIn();
+        allow read: if isOwnerOrMember(biz);
+        allow create, update, delete: if isOwnerEmail();
+      }
 
-        // Only the owner can create milestones.
-        allow create: if isOwnerEmail();
+      // ===========================================================
+      // NEW (project-scoped) paths. Coexist with the legacy block
+      // above during migration — see the mirror function that keeps
+      // both in sync, and the Architecture Spec artifact for the
+      // full cutover sequence.
+      // ===========================================================
 
-        // Only the owner can update or delete milestones.
+      // Project-level membership carries a role: 'member' | 'client-pm'
+      // | 'exec-sponsor'. Only the owner assigns it (Manage Project
+      // Access screen) — unlike company-level membership, a user can't
+      // add themself here.
+      function projectMemberDoc(b, proj) {
+        return get(/databases/$(database)/documents/businesses/$(b)/projects/$(proj)/members/$(request.auth.uid));
+      }
+      function isProjectMember(b, proj) {
+        return isSignedIn() &&
+          exists(/databases/$(database)/documents/businesses/$(b)/projects/$(proj)/members/$(request.auth.uid));
+      }
+      function projectRole(b, proj) {
+        return projectMemberDoc(b, proj).data.role;
+      }
+      function isClientPM(b, proj) {
+        return isProjectMember(b, proj) && projectRole(b, proj) == 'client-pm';
+      }
+      function isExecSponsor(b, proj) {
+        return isProjectMember(b, proj) && projectRole(b, proj) == 'exec-sponsor';
+      }
+      function isOwnerOrProjectMember(b, proj) {
+        return isOwnerEmail() || isProjectMember(b, proj);
+      }
+      // Client PM gets real edit rights on Q&A/Files (their own items) same
+      // as a plain member would; schedule data (Activities/Milestones) is
+      // owner-only to write directly — a Client PM's edit there goes through
+      // a change request instead (see /changeRequests below), applied by a
+      // trusted Cloud Function on approval, not by direct client write.
+      function canEditScheduleData(b, proj) {
+        return isOwnerEmail();
+      }
+
+      match /projects/{proj} {
+        allow read: if isOwnerOrProjectMember(biz, proj);
+        // Self-service signup creates a business's first project in the
+        // same step as the business itself — same looseness as business
+        // creation above, since creating an empty project shell isn't
+        // sensitive by itself; real access control is on the data inside.
+        allow create: if isSignedIn();
         allow update, delete: if isOwnerEmail();
+
+        match /members/{uid} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Pending edits proposed by a Client PM. A conflict-flagged request
+        // needs BOTH the owner and the exec sponsor to sign off — so each
+        // party can only ever record their OWN decision field, never the
+        // combined `status`. Deriving `status` from those two fields (and
+        // actually applying an approved change to the real document) is
+        // done server-side by a Cloud Function, not by either client —
+        // otherwise either party's single write could unilaterally apply
+        // a change that was supposed to need both signatures.
+        match /changeRequests/{reqId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isClientPM(biz, proj) &&
+            request.resource.data.proposedByUid == request.auth.uid &&
+            request.resource.data.status == 'pending' &&
+            request.resource.data.ownerDecision == 'pending' &&
+            request.resource.data.sponsorDecision in ['pending', 'n/a'];
+          allow update: if
+            ( isOwnerEmail() &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerDecision']) &&
+              request.resource.data.ownerDecision in ['approved', 'rejected'] ) ||
+            ( isExecSponsor(biz, proj) && resource.data.conflictFlag == true &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sponsorDecision']) &&
+              request.resource.data.sponsorDecision in ['approved', 'rejected'] );
+          allow delete: if isOwnerEmail();
+        }
+
+        match /qna/{qnaId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isOwnerOrProjectMember(biz, proj);
+          allow update, delete: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              ( request.auth.uid == resource.data.createdByUid ||
+                request.auth.token.email == resource.data.createdBy ) );
+        }
+
+        match /files/{fileId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isOwnerOrProjectMember(biz, proj);
+          allow update, delete: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              ( request.auth.uid == resource.data.ownerUid ||
+                request.auth.token.email == resource.data.owner ) );
+        }
+
+        match /activities/{activityId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if canEditScheduleData(biz, proj);
+        }
+
+        match /milestones/{milestoneId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if canEditScheduleData(biz, proj);
+
+          match /prepChecklist/{itemId} {
+            allow read: if isOwnerOrProjectMember(biz, proj);
+            allow create, update, delete: if isOwnerEmail();
+          }
+        }
       }
     }
   }

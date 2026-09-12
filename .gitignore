@@ -1,0 +1,10 @@
+node_modules/
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+.firebase/
+
+# Cloud Functions secrets — never commit real Twilio credentials
+functions/.env
+functions/.env.*
+!functions/.env.example

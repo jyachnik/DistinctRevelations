@@ -1,0 +1,579 @@
+/* Public/style/metrics.css — Burndown/Burnup/CFD/Status Snapshot charts
+   (Phase 1 of the dashboard-metrics initiative). Colors below are this
+   app's own existing palette (RAG red/amber/green already used in Gantt
+   bars, Activity Log, Q&A; #007bff already used as a secondary blue in
+   Q&A/Project Status) — validated for categorical/status use with
+   dataviz's validate_palette.js rather than introduced fresh. */
+
+.metricsside {
+  --metric-good: #2f9e44;      /* RAG green — also "Completed" in the CFD */
+  --metric-warning: #e0a800;   /* RAG amber */
+  --metric-critical: #dd3333;  /* RAG red */
+  --metric-actual: #007bff;    /* actual-progress line / "In Progress" in the CFD */
+  --metric-planned: #4a3aa7;   /* planned/ideal line / "Not Started" in the CFD */
+  --metric-scope: #898781;     /* total-scope reference line — muted, dashed, never a real series */
+  --metric-ink: #333333;
+  --metric-ink-secondary: #666666;
+  --metric-gridline: #e0e0e0;
+}
+
+/* Schedule Performance stat tile — top summary row */
+.schedule-performance {
+  flex: 1 1 0;
+  min-width: 0;
+  background: #ffffff;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 12px 10px;
+  box-sizing: border-box;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.schedule-performance h2 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: center;
+}
+.schedule-performance-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.schedule-performance-value.is-behind { color: #dd3333; }
+.schedule-performance-value.is-caution { color: #e0a800; }
+.schedule-performance-value.is-ahead { color: #2f9e44; }
+.schedule-performance-label {
+  font-size: 0.75rem;
+  color: #666666;
+}
+
+/* Cost Performance — owner-only. Hidden by default; burndown.js adds the
+   "owner" class only when the signed-in user is confirmed as Owner, same
+   pattern as .project-progress.owner elsewhere in this app. */
+.cost-performance {
+  display: none;
+  flex: 1 1 0;
+  min-width: 0;
+  background: #ffffff;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 12px 10px;
+  box-sizing: border-box;
+}
+.cost-performance.owner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.cost-performance h2 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: center;
+}
+.owner-only-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #898781;
+  border: 1px solid #e0e0e0;
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 2px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+/* 5 blocks (SV/CV/CPI/EAC/ETC) in a narrow summary-row card — small,
+   tight labels/values with no min-width fighting the flex shrink, and
+   ellipsis kept as a last-resort safety net (fmtMoneyCompact in
+   burndown.js should already keep the text itself short enough to fit). */
+.cost-performance-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+.cost-performance-block {
+  text-align: center;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.cost-performance-label {
+  font-size: 0.62rem;
+  color: #666666;
+  margin-bottom: 1px;
+  white-space: nowrap;
+}
+.cost-performance-value {
+  /* Now the card's only metric (SV/CV/EAC/ETC moved to the Health
+     Scorecard) — sized and centered to read as the card's headline
+     number instead of one of five cramped-in blocks. */
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #333333;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metrics-panel {
+  background: #ffffff;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 16px 18px;
+  box-sizing: border-box;
+}
+
+/* Owner-only chart cards (currently just EVM) — hidden by default; JS adds
+   "owner" only once Owner status is confirmed, same pattern as the top-row
+   Cost Performance tile. */
+.owner-only-card { display: none; }
+.owner-only-card.owner { display: block; }
+
+.metrics-panel .section-header h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.metrics-panel .section-subtext {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: var(--metric-ink-secondary);
+}
+
+/* Tasks/Duration toggle — same segmented-button pattern as the Gantt
+   view-mode buttons, for visual consistency across the dashboard. */
+.metrics-toggle {
+  display: flex;
+  width: fit-content;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 0 auto 10px;
+}
+.metrics-toggle-btn {
+  padding: 4px 12px;
+  border: none;
+  border-left: 1px solid var(--color-border, #e0e0e0);
+  background: #fff;
+  color: var(--metric-ink);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.metrics-toggle-btn:first-child { border-left: none; }
+.metrics-toggle-btn:hover { background: #f0f6ff; }
+.metrics-toggle-btn.is-active {
+  background: var(--color-primary, #004e92);
+  color: #fff;
+}
+
+/* Global charts-row control (Include milestones toggle) — sits above the
+   3-column grid, affects every chart at once since they all share one
+   task list from buildTasks(). */
+.metrics-global-controls {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Charts layout: sticky period sidebar (left) + the 3-column charts grid.
+   The sidebar only affects the two time-phased cost charts (Cash Flow,
+   Budgeted vs. Actual) — everything else uses a fixed weekly
+   reconstruction with no selectable period. */
+.dashboard-charts-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md, 24px);
+}
+.dashboard-charts-layout > .charts-and-gantt-column {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+.charts-global-timeframe {
+  flex: 0 0 150px;
+  position: sticky;
+  /* Sits just below the page's own sticky header (#dashboardHeader). */
+  top: 130px;
+  background: #ffffff;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.charts-global-timeframe-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.charts-global-timeframe-note {
+  font-size: 0.7rem;
+  color: var(--metric-ink-secondary, #666);
+  text-align: center;
+  margin: 0 0 6px;
+}
+.charts-global-timeframe-btn {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--metric-ink, #333);
+  font-size: 0.82rem;
+  text-align: center;
+  cursor: pointer;
+}
+.charts-global-timeframe-btn:hover { background: #f0f6ff; }
+.charts-global-timeframe-btn.is-active {
+  background: var(--color-primary, #004e92);
+  border-color: var(--color-primary, #004e92);
+  color: #fff;
+}
+/* Below ~1000px the sidebar drops above the grid instead of squeezing it —
+   sticky is dropped too, since a stacked layout has nothing meaningful
+   left to scroll past. */
+@media (max-width: 1000px) {
+  .dashboard-charts-layout {
+    flex-direction: column;
+  }
+  .charts-global-timeframe {
+    position: static;
+    flex: 1 1 auto;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .charts-global-timeframe-label,
+  .charts-global-timeframe-note {
+    flex: 1 1 100%;
+  }
+  .charts-global-timeframe-btn {
+    width: auto;
+    flex: 1 1 auto;
+  }
+  .data-imports-panel {
+    flex: 1 1 100%;
+  }
+  .metrics-global-controls {
+    flex: 1 1 100%;
+  }
+}
+.metrics-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #666);
+  cursor: pointer;
+}
+.metrics-task-count {
+  margin-left: 10px;
+  font-size: 0.78rem;
+  color: var(--metric-ink-secondary, #666);
+}
+
+/* Fixed-height wrapper so Chart.js (responsive: true, maintainAspectRatio:
+   false) has a real box to size the canvas against, at a height that
+   stays readable without any one chart dominating a 3-column layout. */
+.metrics-chart-wrap {
+  position: relative;
+  height: 220px;
+  width: 100%;
+}
+.metrics-chart-wrap-short {
+  height: 270px; /* taller than the generic wrap — room for the RAG
+                    doughnut's outside-the-ring % labels plus a
+                    bottom-centered legend with some breathing room above it */
+}
+
+/* Empty state (no data yet) — shrink the box to fit the message instead of
+   reserving the full chart height, so an empty card doesn't leave a wall
+   of dead white space. The canvas stays in the DOM (just hidden) so the
+   chart can still draw into it once real data arrives — see
+   setChartEmpty()/clearChartEmpty() in burndown.js. */
+.metrics-chart-wrap.is-empty {
+  height: auto;
+}
+
+.metrics-empty {
+  font-size: 0.85rem;
+  color: var(--metric-ink-secondary);
+  text-align: center;
+  padding: 8px 0;
+  margin: 0;
+}
+
+/* Data Imports — one control box for every import the dashboard accepts,
+   living inside the narrow sticky sidebar below the Time Frame buttons —
+   so everything here stacks in a single column rather than a wide grid. */
+.data-imports-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.data-imports-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.data-import-item label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--metric-ink, #333);
+}
+.data-import-item.is-pending label {
+  color: var(--metric-ink-secondary, #666);
+}
+.data-import-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.data-import-controls input[type="file"] {
+  font-size: 0.72rem;
+  max-width: 100%;
+  width: 100%;
+}
+.data-imports-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--metric-gridline, #e0e0e0);
+}
+
+/* Table-view fallback (accessibility requirement — a non-chart way to read
+   the same data), toggled open by a small link under each chart. */
+.metrics-table-toggle {
+  background: none;
+  border: none;
+  color: var(--color-primary, #004e92);
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 6px 0 0;
+  text-decoration: underline;
+}
+.metrics-table-wrap {
+  margin-top: 8px;
+  max-height: 160px;
+  overflow: auto;
+}
+.metrics-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.metrics-table-wrap th,
+.metrics-table-wrap td {
+  text-align: left;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--metric-gridline);
+  white-space: nowrap;
+}
+
+/* Resource Hours table — taller than the generic table-view fallback
+   above, since a resource list commonly runs 15-30+ rows. */
+.resource-hours-table-wrap {
+  max-height: 260px;
+}
+.milestone-trend-table-wrap {
+  max-height: 220px;
+}
+/* Placeholder/sample-data banner (Quality/Defects Log) — visible only
+   until a real file is imported. */
+.metrics-sample-banner {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: #fff8e6;
+  border: 1px solid #e0a800;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: #5a4a00;
+}
+
+/* Project Health Scorecard */
+.health-scorecard-card {
+  display: flex;
+  flex-direction: column;
+}
+.health-overall-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0 12px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--metric-gridline, #e0e0e0);
+}
+.health-overall-label {
+  font-size: 0.8rem;
+  color: var(--metric-ink-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.health-overall-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.health-block {
+  text-align: center;
+}
+.health-label {
+  font-size: 0.72rem;
+  color: var(--metric-ink-secondary, #666);
+  margin-bottom: 2px;
+}
+.health-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.health-value.health-sev-high,
+.health-overall-value.health-sev-high { color: #dd3333; }
+.health-value.health-sev-medium,
+.health-overall-value.health-sev-medium { color: #e0a800; }
+.health-value.health-sev-low,
+.health-overall-value.health-sev-low { color: #2f9e44; }
+.health-value.health-sev-unknown,
+.health-overall-value.health-sev-unknown { color: var(--metric-ink-secondary, #666); }
+
+/* SV/CV/EAC/ETC — moved into the scorecard from the old standalone Cost
+   Performance card. Same 4-block grid shape as .health-grid above but a
+   neutral ink color throughout (not RAG-colored — these aren't
+   pass/fail signals the way SPI/CPI/Risk/Quality are). */
+.health-cost-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--metric-gridline, #e0e0e0);
+}
+.health-value.health-cost-value {
+  font-size: 1.05rem;
+  color: var(--metric-ink, #222);
+}
+
+/* Open high-risk list — description / $ impact / time lost / owner for
+   every risk counted in the "Open High Risks" stat above. */
+.health-risk-list-wrap {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--metric-gridline, #e0e0e0);
+}
+.health-risk-list-label {
+  font-size: 0.72rem;
+  color: var(--metric-ink-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.health-risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.health-risk-table th {
+  text-align: left;
+  padding: 4px 6px;
+  color: var(--metric-ink-secondary, #666);
+  font-weight: 600;
+  border-bottom: 1px solid var(--metric-gridline, #e0e0e0);
+}
+.health-risk-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--metric-gridline, #f0f0f0);
+  vertical-align: top;
+}
+.health-risk-empty {
+  font-size: 0.78rem;
+  color: var(--metric-ink-secondary, #666);
+  margin: 0;
+}
+
+/* Risk Register / Assumptions Log — now full-width rows (see
+   .dashboard-stack in dashboard1.css) with every captured column shown,
+   so column widths are set by content type rather than an even split:
+   narrow for IDs/scores, short for categories/dates/status, wide for
+   free-text fields. Most cells still ellipsis-truncate (full text on the
+   row's title tooltip), but the long free-text columns (.wrap-text, set
+   on both the <th> and its column's <td>s) wrap instead, growing the row
+   as needed rather than hiding the text. */
+.risk-assumptions-table-wrap {
+  max-height: 420px;
+}
+.risk-assumptions-table-wrap table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 1300px;
+}
+.risk-assumptions-table-wrap col.col-id { width: 60px; }
+.risk-assumptions-table-wrap col.col-narrow { width: 70px; }
+.risk-assumptions-table-wrap col.col-probability { width: 100px; }
+.risk-assumptions-table-wrap col.col-short { width: 110px; }
+.risk-assumptions-table-wrap col.col-date { width: 130px; }
+.risk-assumptions-table-wrap col.col-medium { width: 160px; }
+.risk-assumptions-table-wrap col.col-wide { width: 260px; }
+.risk-assumptions-table-wrap td,
+.risk-assumptions-table-wrap th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+.risk-assumptions-table-wrap td.wrap-text,
+.risk-assumptions-table-wrap th.wrap-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+}
+.severity-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.severity-high { background: #dd3333; }
+.severity-medium { background: #e0a800; }
+.severity-low { background: #2f9e44; }
+.severity-unknown { background: #898781; }
+.resource-hours-import {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.resource-hours-import input[type="file"] {
+  font-size: 0.8rem;
+  max-width: 55%;
+}

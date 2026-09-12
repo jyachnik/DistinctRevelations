@@ -6,22 +6,25 @@
   border-left: 6px solid #004e92;
   border-radius: 0 8px 8px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 16px 18px;
+  padding: 12px 10px;
   text-align: left;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 
-  /* Layout */
+  /* Layout: title above a horizontal row of status options, in a card
+     sized for a wide-and-short summary row rather than a tall sidebar. */
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
+  justify-content: center;
+  gap: 8px;
 }
 
+/* Matches the tighter Schedule/Cost Performance card titles so the whole
+   summary row reads at one consistent scale. */
 .project-status h2 {
   margin: 0 0 4px 0;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -32,34 +35,42 @@
   color: #333333;
 }
 
-/* Status list */
+/* Status list — one row, three options side by side. Never wraps to a
+   second line — as the summary row gained more cards (Cost Performance
+   Index) each card got narrower, and flex-wrap was letting "On Plan" drop
+   below the other two. overflow-x is a last-resort escape hatch for truly
+   tiny screens rather than ever wrapping. */
 .status-options {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 4px;
+  overflow-x: auto;
 }
 
 .status-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
+  gap: 4px;
+  font-size: 13px;
   color: #333333;
-  padding: 4px 2px;
+  padding: 2px 4px;
   border-radius: 999px;
+  flex: 0 0 auto;
   transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
 .status-row span {
-  flex: 1;
+  white-space: nowrap;
 }
 
 /* Light base style - subtle glow for all */
 .project-status .light {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow:
     0 0 4px rgba(0, 0, 0, 0.3),
     0 0 6px rgba(255, 255, 255, 0.6);
@@ -102,10 +113,6 @@
   transform: scale(1.03);
 }
 
-/* Ensure the card aligns visually with Project Progress card */
-.dashboard-overview > .project-status.card {
-  margin-bottom: 16px;
-}
 /* Center & wrap H2 titles inside these cards */
 .project-status h2 {
     text-align: center;

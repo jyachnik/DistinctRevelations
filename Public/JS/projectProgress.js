@@ -40,7 +40,7 @@ var OWNER_EMAIL =
   function renderProgress(percent, card, fillEl, labelEl) {
     var p = clamp(Math.round(percent || 0), 0, 100);
 
-    if (fillEl) fillEl.style.height = p + "%";
+    if (fillEl) fillEl.style.width = p + "%";
     if (labelEl) labelEl.textContent = p + "%";
     if (card) card.setAttribute("data-progress", String(p));
 
@@ -116,18 +116,18 @@ var OWNER_EMAIL =
           });
         }
 
-        // Owner can click inside the cylinder to set progress
+        // Owner can click inside the bar to set progress
         if (isOwner) {
           container.addEventListener("click", function (evt) {
             var rect = container.getBoundingClientRect();
-            var y = evt.clientY - rect.top;
-            var height = rect.height || 1;
+            var x = evt.clientX - rect.left;
+            var width = rect.width || 1;
 
-            // y from top; 0 → 100%, height → 0%
-            var percent = 100 - (y / height) * 100;
+            // x from left; 0 → 0%, width → 100%
+            var percent = (x / width) * 100;
             var clamped = clamp(percent, 0, 100);
 
-            console.log(LOG, "click →", { y: y, height: height, percent: clamped });
+            console.log(LOG, "click →", { x: x, width: width, percent: clamped });
             renderProgress(clamped, card, fillEl, labelEl);
             persistProgress(clamped);
           });

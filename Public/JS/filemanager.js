@@ -35,8 +35,10 @@
   var ctx = {
     biz: null,
     userEmail: '',
+    userUid: '',
     isOwner: false,
-    rows: [],             // { id, fileName, type, size, owner, createdAt, url, storagePath }
+    rows: [],             // { id, fileName, type, size, owner, ownerUid, createdAt, url, storagePath }
+    companyMembers: {},   // { emailLower: email } from businesses/{biz}/users + owner
     allUsers: [],
     allTypes: [],
     sort: { key: 'name', dir: 'asc' }
@@ -135,6 +137,7 @@
 
   function fmtDate(ts) {
     if (!ts) return '';
+    if (window.drDateFmt) return window.drDateFmt.dateTime(ts);
     try {
       var d = ts.toDate ? ts.toDate() : new Date(ts);
       return d.toLocaleString();
@@ -197,6 +200,7 @@
       });
     }
 
+
     var uf = (dom.userFilter && dom.userFilter.value) || '';
     var tf = (dom.typeFilter && dom.typeFilter.value) || '';
 
@@ -208,12 +212,13 @@
 
     if (!rows.length) {
       dom.tableBody.innerHTML =
-        '<tr><td colspan="7" class="empty">No files uploaded yet.</td></tr>';
+        '<tr><td colspan="6" class="empty">No files uploaded yet.</td></tr>';
       return;
     }
 
     dom.tableBody.innerHTML = rows.map(function (r) {
       var canDelete = ctx.isOwner ||
+        (ctx.userUid && r.ownerUid && r.ownerUid === ctx.userUid) ||
         (ctx.userEmail && r.owner &&
           r.owner.toLowerCase() === ctx.userEmail.toLowerCase());
 
@@ -221,25 +226,20 @@
       var created = fmtDate(r.createdAt);
       var type = r.type || extOf(r.fileName) || '';
 
-      var ext = (r.type || '').toLowerCase();
+      var rawUrl = r.url || '';
+      var nameCell = r.fileName || '(untitled)';
 
-
-var rawUrl = r.url || '';
-
-var nameCell = rawUrl
-  ? '<a href="' + rawUrl + '" target="_blank" rel="noopener">' +
-      (r.fileName || '(untitled)') +
-    '</a>'
-  : (r.fileName || '(untitled)');
-
-var dlCell = rawUrl
-  ? '<a href="' + rawUrl + '" target="_blank" rel="noopener">Open</a>'
-  : '';
-
-
+      // "Open" (inline preview) removed — it never worked reliably across
+      // file types (Office docs never preview at all; browsers vary on
+      // PDFs/images). Download is the one dependable action.
+      var dlBtn = rawUrl
+        ? '<button type="button" class="file-download-btn" data-id="' + r.id + '" title="Download">⬇</button>'
+        : '';
       var delBtn = canDelete
-        ? '<button type="button" class="file-delete-btn" data-id="' + r.id + '">🗑</button>'
-        : '<button type="button" class="file-delete-btn" disabled>🗑</button>';
+        ? '<button type="button" class="file-delete-btn" data-id="' + r.id + '" title="Delete">🗑</button>'
+        : '<button type="button" class="file-delete-btn" disabled title="You can only delete your own files">🗑</button>';
+
+      var actionsCell = dlBtn + delBtn;
 
       return (
         '<tr data-id="' + r.id + '">' +
@@ -248,8 +248,7 @@ var dlCell = rawUrl
           '<td style="text-align:right">' + size + '</td>' +
           '<td>' + created + '</td>' +
           '<td>' + (r.owner || '') + '</td>' +
-          '<td style="text-align:center">' + dlCell + '</td>' +
-          '<td style="text-align:center">' + delBtn + '</td>' +
+          '<td class="file-actions-cell">' + actionsCell + '</td>' +
         '</tr>'
       );
     }).join('');
@@ -266,6 +265,44 @@ var dlCell = rawUrl
         onDeleteFile(id);
       });
     });
+    $all('.file-download-btn', dom.tableBody).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-id');
+        var row = ctx.rows.find(function (r) { return r.id === id; });
+        if (!row || !row.url) return;
+        downloadFile(row.url, row.fileName || 'download', btn);
+      });
+    });
+  }
+
+  // Force an actual download (rather than a same-tab navigation) by
+  // fetching the file as a blob and saving it via a same-origin blob: URL —
+  // the <a download> attribute alone isn't reliably honored for
+  // cross-origin Firebase Storage URLs.
+  function downloadFile(url, fileName, btn) {
+    if (btn) btn.disabled = true;
+    fetch(url)
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.blob();
+      })
+      .then(function (blob) {
+        var blobUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 1000);
+      })
+      .catch(function (err) {
+        console.error(NS, 'download failed', err);
+        alert('Download failed: ' + (err && err.message ? err.message : err));
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
   }
 
   // ---- filters ----
@@ -291,6 +328,36 @@ var dlCell = rawUrl
     }
   }
 
+  // ---- Company roster (for the "User" filter — all members, not just uploaders) ----
+  function usersRef(db, biz) {
+    return db.collection('businesses').doc(biz).collection('users');
+  }
+
+  function loadCompanyMembers(db, biz) {
+    var members = {};
+    if (OWNER_EMAIL) members[OWNER_EMAIL.toLowerCase()] = OWNER_EMAIL;
+
+    usersRef(db, biz).get().then(function (snap) {
+      snap.forEach(function (doc) {
+        var u = doc.data() || {};
+        if (u.email) members[String(u.email).toLowerCase()] = u.email;
+      });
+      ctx.companyMembers = members;
+
+      // Merge into whatever the filter already shows (e.g. from file
+      // owners) so a roster load that lands after the first files
+      // snapshot doesn't drop anyone already listed.
+      var merged = {};
+      (ctx.allUsers || []).forEach(function (e) { merged[e.toLowerCase()] = e; });
+      Object.keys(members).forEach(function (k) { merged[k] = members[k]; });
+      ctx.allUsers = Object.keys(merged).map(function (k) { return merged[k]; }).sort();
+
+      populateFilters();
+    }).catch(function (err) {
+      console.error(NS, 'loadCompanyMembers error', err);
+    });
+  }
+
   // ---- Firestore subscription ----
   function subscribeFiles(biz, user) {
     var db = getDB();
@@ -301,13 +368,17 @@ var dlCell = rawUrl
 console.log('[filemanager] biz key =', biz);
     ctx.biz = biz;
     ctx.userEmail = (user && user.email ? user.email : '').toLowerCase();
+    ctx.userUid = (user && user.uid) || '';
     ctx.isOwner = ctx.userEmail === OWNER_EMAIL.toLowerCase();
+    ctx.companyMembers = ctx.companyMembers || {};
+
+    loadCompanyMembers(db, biz);
 
     var col = db.collection('businesses').doc(biz).collection('files');
     col.orderBy('createdAt', 'desc').onSnapshot(function (snap) {
       console.log('[filemanager] snapshot size =', snap.size); // add this
       var rows = [];
-      var users = {};
+      var users = Object.assign({}, ctx.companyMembers);
       var types = {};
 
       snap.forEach(function (doc) {
@@ -322,11 +393,14 @@ console.log('[filemanager] biz key =', biz);
           type: t,
           size: d.size || 0,
           owner: owner,
-          createdAt: d.createdAt || d.created || null,
+          ownerUid: d.ownerUid || '',
+          createdAt: d.createdAt || d.createdAtClient || d.created || null,
           url: d.url || '',
           storagePath: d.storagePath || d.path || ''
         });
 
+        // Merge in case a file's owner predates the current membership
+        // roster (e.g. a removed member's past uploads still list them).
         if (owner) users[owner.toLowerCase()] = owner;
         if (t) types[t] = t;
       });
@@ -362,10 +436,15 @@ console.log('[filemanager] biz key =', biz);
   var path = 'files/' + ctx.biz + '/' + Date.now() + '_' + file.name;
   var ref = storage.ref().child(path);
 
-  // Add custom metadata so rules can use resource.metadata.owner
+  // Add custom metadata so rules can use resource.metadata.owner.
+  // contentType matters for "Open": without it, Storage falls back to a
+  // generic type and browsers download the file instead of previewing it
+  // inline (PDFs, images) in the new tab "Open" opens.
   var metadata = {
+    contentType: file.type || 'application/octet-stream',
     customMetadata: {
-      owner: ctx.userEmail || ''
+      owner: ctx.userEmail || '',
+      ownerUid: ctx.userUid || ''
     }
   };
 
@@ -378,11 +457,18 @@ console.log('[filemanager] biz key =', biz);
         type: ext || (file.type || ''),
         size: file.size,
         owner: ctx.userEmail || '',
+        ownerUid: ctx.userUid || '',
         createdAt: (window.firebase &&
                     window.firebase.firestore &&
                     window.firebase.firestore.FieldValue &&
                     window.firebase.firestore.FieldValue.serverTimestamp()) ||
                    new Date(),
+        // serverTimestamp() reads back as null until the write round-trips
+        // to the server, which would otherwise show a blank date on this
+        // client's own just-uploaded row for a moment. This client-side
+        // fallback fills that gap; it's overwritten by the real value once
+        // Firestore resolves it.
+        createdAtClient: new Date(),
         storagePath: path,
         url: url
       };
@@ -401,8 +487,17 @@ console.log('[filemanager] biz key =', biz);
   // ---- Delete ----
   function onDeleteFile(id) {
     if (!id || !ctx.biz) return;
-    if (!window.confirm('Delete this file?')) return;
 
+    var confirmed = window.drConfirm
+      ? window.drConfirm('Delete this file? This cannot be undone.', { title: 'Delete File' })
+      : Promise.resolve(window.confirm('Delete this file?'));
+
+    confirmed.then(function (ok) {
+      if (ok) doDeleteFile(id);
+    });
+  }
+
+  function doDeleteFile(id) {
     var db = getDB();
     var storage = getStorage();
     if (!db) return;
@@ -414,7 +509,9 @@ console.log('[filemanager] biz key =', biz);
 
       var data = doc.data() || {};
       var owner = (data.owner || '').toLowerCase();
+      var ownerUid = data.ownerUid || '';
       var canDelete = ctx.isOwner ||
+        (ctx.userUid && ownerUid && ownerUid === ctx.userUid) ||
         (ctx.userEmail && owner === ctx.userEmail.toLowerCase());
 
       if (!canDelete) {
@@ -424,12 +521,20 @@ console.log('[filemanager] biz key =', biz);
 
       var path = data.storagePath || data.path || null;
 
-      return docRef.delete().then(function () {
-        if (storage && path) {
-          return storage.ref().child(path).delete().catch(function (err) {
-            console.error(NS, 'storage delete failed', err);
-          });
-        }
+      // Delete the actual Storage object FIRST. If that fails, the
+      // Firestore record (which holds the only pointer to the blob) is
+      // left intact so the delete can be retried instead of leaving an
+      // orphaned, unreferenced file in Storage forever.
+      var storageDeletion = (storage && path)
+        ? storage.ref().child(path).delete().catch(function (err) {
+            // "object-not-found" just means it's already gone — fine to proceed.
+            if (err && err.code === 'storage/object-not-found') return;
+            throw err;
+          })
+        : Promise.resolve();
+
+      return storageDeletion.then(function () {
+        return docRef.delete();
       });
     }).catch(function (err) {
       console.error(NS, 'delete failed', err);

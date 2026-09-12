@@ -69,12 +69,14 @@
   width: 100%;
   max-height: 350px;
   overflow-y: auto;
+  overflow-x: auto;
   margin-top: 8px;
 }
 
 /* Table base */
 #fileTable {
   width: 100%;
+  min-width: 620px;
   table-layout: fixed;
   border-collapse: collapse;
   font-family: 'Inter', sans-serif;
@@ -136,6 +138,26 @@
   text-decoration: underline;
 }
 
+/* Actions cell: Open / Download / Delete together */
+.file-actions-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+.file-actions-cell a,
+.file-actions-cell button {
+  display: inline-block;
+  margin: 0 3px;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.file-download-btn {
+  border: none;
+  background: transparent;
+  color: #007bff;
+  cursor: pointer;
+}
+
 /* Delete button */
 .file-delete-btn {
   border: none;
@@ -151,13 +173,12 @@
 }
 
 /* Column widths */
-#fileTable col.col-name    { width: 25% !important; }
-#fileTable col.col-type    { width: 8% !important; }
-#fileTable col.col-size    { width: 10% !important; }
-#fileTable col.col-created { width: 17% !important; }
+#fileTable col.col-name    { width: 28% !important; }
+#fileTable col.col-type    { width: 9% !important; }
+#fileTable col.col-size    { width: 11% !important; }
+#fileTable col.col-created { width: 18% !important; }
 #fileTable col.col-owner   { width: 20% !important; }
-#fileTable col.col-download{ width: 10% !important; }
-#fileTable col.col-delete  { width: 10% !important; }
+#fileTable col.col-actions { width: 14% !important; }
 /* Empty state */
 #fileTable td.empty {
   text-align: center;

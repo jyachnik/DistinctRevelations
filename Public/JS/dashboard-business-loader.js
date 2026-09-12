@@ -38,27 +38,4 @@
     });
   }
 
-console.log('[dash-loader]', 'about to initQna', { bizKey, userEmail: user.email });
-if (window.initQna) {
-  window.initQna({
-    biz: bizKey,
-    user: {
-      email: user.email,
-      uid: user.uid
-    }
-  });
-} else {
-  console.log('[dash-loader]', 'initQna not defined');
-}
-// After you have bizKey and user from onAuthStateChanged
-if (window.initQna) {
-  window.initQna({
-    biz: bizKey,
-    user: {
-      email: user.email,
-      uid: user.uid
-    }
-  });
-}
-
 })();

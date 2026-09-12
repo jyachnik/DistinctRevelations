@@ -2,9 +2,10 @@
 
 /* Adjustable column widths */
 :root {
-  --milestone-title-col-width: 35%;
-  --milestone-location-col-width: 27%;
-  --milestone-date-col-width: 23%;
+  --milestone-title-col-width: 30%;
+  --milestone-location-col-width: 22%;
+  --milestone-date-col-width: 18%;
+  --milestone-rag-col-width: 15%;
   --milestone-actions-col-width: 15%;
 }
 
@@ -24,6 +25,34 @@
   border-radius: 8px;
   padding: 16px 20px 20px;
   background-color: #ffffff;
+}
+
+/* Title/subtitle banner — matches .card.activity-panel .section-header
+   exactly, so the two headers line up (same background, padding, and
+   type scale) instead of Milestone falling back to unstyled defaults. */
+.card.milestone-section .section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background-color: #fbfafd;
+  margin-left: -12px;
+  width: 100%;
+  line-height: 20px;
+  margin-top: -20px;
+  padding: 8px 16px;
+}
+.card.milestone-section .section-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #002b45;
+  margin: 0;
+  white-space: nowrap;
+}
+.card.milestone-section .section-header .section-subtext {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #666666;
 }
 
 /* Top form spacing */
@@ -55,9 +84,18 @@
   cursor: pointer;
 }
 
+/* Scroll container (was previously unstyled, letting table-layout:fixed
+   squeeze columns into unreadable text once a 5th column was added) */
+.milestone-table-container {
+  max-height: 350px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
 /* Milestone table layout */
 #milestoneTable {
   width: 100%;
+  min-width: 560px; /* floor so 5 columns never get squeezed */
   border-collapse: collapse;
   table-layout: fixed; /* use column widths */
   font-size: 0.9rem;
@@ -94,6 +132,12 @@
 
 #milestoneTable th:nth-child(4),
 #milestoneTable td:nth-child(4) {
+  width: var(--milestone-rag-col-width);
+  text-align: center;
+}
+
+#milestoneTable th:nth-child(5),
+#milestoneTable td:nth-child(5) {
   width: var(--milestone-actions-col-width);
   text-align: center;
 }
@@ -103,9 +147,22 @@
   background-color: #f7f9fc;
 }
 
+/* Members now see milestones on the Gantt chart instead — this whole
+   section is owner-only (milestone.js toggles .owner on .milestone-section). */
+.milestone-section:not(.owner) {
+  display: none;
+}
+
 /* Actions column buttons */
 .milestone-actions {
   white-space: nowrap;
+}
+
+/* Hide the Actions column entirely for non-owners (members are read-only
+   here) — milestone.js toggles the .owner class on #milestoneTable. */
+#milestoneTable:not(.owner) th.actions,
+#milestoneTable:not(.owner) td.milestone-actions {
+  display: none;
 }
 
 .milestone-edit-btn,

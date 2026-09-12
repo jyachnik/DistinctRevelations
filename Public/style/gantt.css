@@ -1,0 +1,229 @@
+/* Public/style/gantt.css — Engagement Timeline (Frappe Gantt) card */
+
+.gantt-section {
+  margin-bottom: var(--space-md, 24px);
+}
+
+/* Critical path — a dashed dark outline layered on top of the bar's own
+   RAG fill color (Critical=Yes from the import), so a task can show BOTH
+   "is it on schedule" (fill) and "is it on the critical path" (outline)
+   at once instead of one replacing the other. */
+.gantt-critical-task .bar {
+  stroke: #222222;
+  stroke-width: 2px;
+  stroke-dasharray: 4, 2;
+}
+
+/* "Today" marker — a thin vertical line plus a yellow/black flag tab
+   pinned to the top of the grid, drawn directly into the Gantt's own SVG
+   (see drawTodayLine() in gantt.js) so both pan correctly with
+   horizontal scroll across every view mode. */
+.gantt-today-line {
+  stroke: #e0a800;
+  stroke-width: 1.5px;
+  stroke-dasharray: 3, 3;
+  pointer-events: none;
+}
+.gantt-today-tab {
+  pointer-events: none;
+}
+.gantt-today-tab-bg {
+  fill: #ffcc00;
+  stroke: #b38f00;
+  stroke-width: 1px;
+}
+.gantt-today-tab-label {
+  fill: #000000;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Legend — below the title/subtext, above the controls/chart, explaining
+   the bar colors (jeopardy status, same RAG scale as Milestones/Activity
+   tables) and what happens on click. */
+.gantt-legend {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--color-background, #f9f9f9);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+}
+.gantt-legend-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+}
+.gantt-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary, #666);
+  white-space: nowrap;
+}
+.gantt-legend-item .dr-rag {
+  width: 12px;
+  height: 12px;
+}
+.gantt-legend-note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #666);
+  text-align: center;
+}
+.gantt-bounds-note {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: #898781;
+  text-align: center;
+}
+
+.gantt-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.gantt-controls input[type="file"] {
+  font-size: 0.85rem;
+}
+.gantt-controls .btn-primary,
+.gantt-controls .btn-outline {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.gantt-controls .btn-primary {
+  border: none;
+  background: #004e92;
+  color: #fff;
+}
+.gantt-controls .btn-primary:hover {
+  background: #003b70;
+}
+.gantt-controls .btn-outline {
+  border: 1px solid #004e92;
+  background: transparent;
+  color: #004e92;
+}
+.gantt-controls .btn-outline:hover {
+  background: #f0f6ff;
+}
+.gantt-view-mode-group {
+  margin-left: auto;
+  display: flex;
+  border: 1px solid var(--color-border, #e2e5ea);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.gantt-view-mode-btn {
+  padding: 6px 12px;
+  border: none;
+  border-left: 1px solid var(--color-border, #e2e5ea);
+  background: #fff;
+  color: #333;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.gantt-view-mode-btn:first-child {
+  border-left: none;
+}
+.gantt-view-mode-btn:hover {
+  background: #f0f6ff;
+}
+.gantt-view-mode-btn.is-active {
+  background: #004e92;
+  color: #fff;
+}
+
+.gantt-chart-container {
+  width: 100%;
+  border: 1px solid var(--color-border, #e2e5ea);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface, #fff);
+}
+
+/* Frappe Gantt's own .gantt-container already implements a sticky date
+   header (position: sticky; top: 0) — but that only takes effect once
+   .gantt-container is itself the bounded, scrolling element. Without a
+   height limit here, it grows to fit every row and the page scrolls
+   instead, so the "sticky" header just scrolls away with everything else. */
+.gantt-chart-container .gantt-container {
+  /* Scrolling to the very edge and continuing to scroll/swipe was being
+     interpreted by the browser itself as a "go back" gesture (standard
+     overscroll history navigation on trackpads/some mice) — landing back
+     on whatever page was visited before this one, e.g. index.html. This
+     tells the browser to swallow that overscroll instead of forwarding it
+     to page navigation, without changing how the chart scrolls normally. */
+  overscroll-behavior-x: contain;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.gantt-empty {
+  margin: 0;
+  padding: 24px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Frappe Gantt ships its own bar styling; these just make it sit flush
+   inside our card look instead of floating with its default margins. */
+.gantt-chart-container .gantt-container {
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Custom popup content (see gantt.js renderChangePopup) */
+.gantt-popup-basics {
+  font-size: 0.82rem;
+  color: #5a6472;
+  margin-bottom: 8px;
+}
+.gantt-popup-detail {
+  font-size: 0.82rem;
+  color: #333;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e5ea;
+}
+.gantt-popup-detail strong {
+  color: #5a6472;
+  font-weight: 600;
+}
+.gantt-popup-nochange {
+  font-size: 0.82rem;
+  color: #8a92a0;
+  font-style: italic;
+}
+.gantt-changelog-entry {
+  padding: 6px 0;
+  border-top: 1px solid #e2e5ea;
+}
+.gantt-changelog-entry:first-child {
+  border-top: none;
+}
+.gantt-changelog-meta {
+  font-size: 0.76rem;
+  color: #5a6472;
+  margin-bottom: 3px;
+}
+.gantt-changelog-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 0.82rem;
+}
+.gantt-changelog-field {
+  color: #5a6472;
+}
+.gantt-changelog-from {
+  text-decoration: line-through;
+  color: #b3261e;
+}
+.gantt-changelog-to {
+  color: #2f6f4f;
+  font-weight: 600;
+}

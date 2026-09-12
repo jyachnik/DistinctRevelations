@@ -36,9 +36,21 @@
   font-weight: 400;
   opacity: 0.85;
 }
+#dashboardHeader .header-last-updated {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
 
 /* Right section */
 #dashboardHeader .header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+#dashboardHeader .header-right-top {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -54,6 +66,40 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Signed-in user + logout, shown under the company logo */
+#dashboardHeader .header-user-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#dashboardHeader .header-user-email {
+  font-size: 0.78rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#dashboardHeader .header-user-email-value.non-owner {
+  color: #ff6b6b;
+  opacity: 1;
+  font-weight: 600;
+}
+#dashboardHeader .header-logout-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+#dashboardHeader .header-logout-btn:hover {
+  background: rgba(255,255,255,0.3);
 }
 
 /* Upload button: hidden by default, shown when .owner is on the header */
@@ -108,6 +154,12 @@ body, .container, .dashboard-container, .leftside, .middle, .rightside {
 /* Right section */
 #dashboardHeader .header-right {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+#dashboardHeader .header-right-top {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
 }
@@ -122,6 +174,40 @@ body, .container, .dashboard-container, .leftside, .middle, .rightside {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Signed-in user + logout, shown under the company logo */
+#dashboardHeader .header-user-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#dashboardHeader .header-user-email {
+  font-size: 0.78rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#dashboardHeader .header-user-email-value.non-owner {
+  color: #ff6b6b;
+  opacity: 1;
+  font-weight: 600;
+}
+#dashboardHeader .header-logout-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+#dashboardHeader .header-logout-btn:hover {
+  background: rgba(255,255,255,0.3);
 }
 
 /* Upload button: hidden by default, shown when .owner is on the header */
