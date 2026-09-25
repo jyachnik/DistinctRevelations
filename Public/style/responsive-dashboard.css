@@ -117,27 +117,32 @@
 
   /* The summary row's position:fixed-under-the-header layout (and the
      clipping bug already fixed once for it) assumes there's room for 6
-     cards side by side — there isn't, at this width. It becomes a
-     horizontally swipeable strip in normal document flow instead (one
-     continuous row, scrolled with a thumb, each card snapping into
-     place), directly below the sidebar bar above. */
+     cards side by side — there isn't, at this width. It stacks into a
+     single column in normal document flow instead, directly below the
+     sidebar bar above. */
   .dashboard-summary-row {
     position: static;
     top: auto;
+    flex-direction: column;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
+    overflow-x: visible;
     padding: 10px 16px 16px;
     box-shadow: none;
     border-bottom: 1px solid var(--color-border, #e0e0e0);
   }
-  .dashboard-summary-row > * {
-    flex: 0 0 78%;
-    scroll-snap-align: start;
+  .dashboard-summary-row > *:not(.summary-row-toggle) {
+    flex: 1 1 auto;
+    width: 100%;
   }
   /* No longer reserving space for a fixed row that's back in normal flow. */
   .dashboard-summary-row-spacer { display: none; }
+
+  /* The left/right-edge pair of toggle buttons only makes sense for a
+     WIDE horizontal row (one at each visible end); stacked into a
+     column, both just show up as their own redundant line. Keep the
+     one at the top of the stack, drop the duplicate. */
+  .summary-row-toggle-right { display: none; }
+  .summary-row-toggle { align-self: center; }
 
   /* Tiled view (the only view available at this width) no longer needs
      to reserve the sidebar's 150px, or the fixed summary row's height —
@@ -166,6 +171,39 @@
     max-width: 100vw;
     max-height: 100vh;
     border-radius: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   WIDE CARDS IN PORTRAIT — Gantt, Q&A, File Manager, Org Chart, and the
+   rest of WIDE_CARD_IDS in titles-view.js (24 cards, all opening in
+   .tv-card-modal-box-wide on mobile) are dense tables/charts that need
+   real horizontal room. A page can't rotate the device itself — only the
+   person holding it can — so instead of squeezing them into ~380px of
+   portrait width, show a prompt to turn the phone sideways; the Close
+   button stays reachable in its own bar the whole time, and the real
+   content (never removed from the DOM, just hidden) reappears exactly as
+   built — drag-to-reschedule, popups, everything — the moment the
+   orientation media query stops matching. Tablets in portrait still get
+   the prompt too (same 1024px width ceiling as the rest of this file);
+   a tablet turned sideways has enough width for the real content, same
+   as a wide phone. */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .tv-card-modal-box-wide .tv-card-modal-scroll > * {
+    display: none !important;
+  }
+  .tv-card-modal-box-wide .tv-card-modal-scroll::before {
+    content: "\21BB  Rotate your device to landscape for the best view of this card.";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: pre-line;
+    min-height: 240px;
+    padding: 40px 28px;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--metric-ink-secondary, #666);
   }
 }
 
@@ -221,8 +259,6 @@
   .report-sidebar { flex-direction: column; }
   .report-sidebar .ask-side-card,
   .report-sidebar .dr-timeframe-select-wrap { flex-basis: auto; }
-
-  .dashboard-summary-row > * { flex-basis: 90%; }
 
   #titlesSubtitlesView { padding: 12px 12px 60px; }
 

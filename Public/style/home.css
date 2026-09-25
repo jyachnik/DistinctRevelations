@@ -557,7 +557,7 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
     filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
   }
   .corner-logo img{
-    height: 160px;           /* size to taste */
+    height: 210px;           /* size to taste */
     width: auto;
     display: block;
   }
@@ -643,11 +643,11 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
 }
 
 /* Give in-page anchors room so the header doesn’t “eat” them */
-#services, #about, #case-studies, #contact {
+#services, #about, #case-studies, #contact, #faq {
   scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
 }
 @media (max-width: 899px){
-  #services, #about, #case-studies, #contact {
+  #services, #about, #case-studies, #contact, #faq {
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }
 }
@@ -707,11 +707,11 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
 }
 
 /* 4) In-page anchors land below the fixed header */
-#services, #about, #case-studies, #contact{
+#services, #about, #case-studies, #contact, #faq{
   scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
 }
 @media (max-width: 899px){
-  #services, #about, #case-studies, #contact{
+  #services, #about, #case-studies, #contact, #faq{
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }
 }
@@ -827,11 +827,11 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
 
 html { scroll-behavior: smooth; }
 
-#services, #about, #case-studies, #contact{
+#services, #about, #case-studies, #contact, #faq{
   scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
 }
 @media (max-width: 899px){
-  #services, #about, #case-studies, #contact{
+  #services, #about, #case-studies, #contact, #faq{
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }}
 
@@ -965,22 +965,22 @@ html, body { min-height: 100%; overflow-y: auto; }
 
 html { scroll-behavior: smooth; }
 
-#services, #about, #case-studies, #contact{
+#services, #about, #case-studies, #contact, #faq{
   scroll-margin-top: calc(var(--header-h-desktop, 72px) + 16px);
 }
 @media (max-width: 899px){
-  #services, #about, #case-studies, #contact{
+  #services, #about, #case-studies, #contact, #faq{
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }
 }
 
 /* --- Make native anchors usable and unblocked --- */
 html { scroll-behavior: smooth; }
-#services, #about, #case-studies, #contact{
+#services, #about, #case-studies, #contact, #faq{
   scroll-margin-top: calc(var(--header-h-desktop, 72px) + 12px);
 }
 @media (max-width: 899px){
-  #services, #about, #case-studies, #contact{
+  #services, #about, #case-studies, #contact, #faq{
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }
 }
@@ -1004,11 +1004,11 @@ body.no-scroll{ overflow:hidden !important; }
 
 
 html { scroll-behavior: smooth; }
-#services, #about, #case-studies, #contact {
+#services, #about, #case-studies, #contact, #faq {
   scroll-margin-top: calc(var(--header-h-desktop, 72px) + 12px);
 }
 @media (max-width: 899px){
-  #services, #about, #case-studies, #contact {
+  #services, #about, #case-studies, #contact, #faq {
     scroll-margin-top: calc(var(--m-head, 108px) + 12px);
   }
 }

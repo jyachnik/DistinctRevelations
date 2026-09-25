@@ -48,9 +48,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="style/home.css?v=6" />
+  <link rel="stylesheet" href="style/home.css?v=7" />
   <link rel="stylesheet" href="style/responsive.css?v=1" />
-  <link rel="stylesheet" href="style/track-record.css?v=11" />
+  <link rel="stylesheet" href="style/track-record.css?v=16" />
 
   <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -68,7 +68,7 @@
 <header class="topbar">
   <div class="container">
     <a class="brand" href="index.html#top">
-      <img class="brand-mark" src="images/Distinct_Revelations_Logo_website.png" alt="Distinct Revelations">
+      <img class="brand-mark" src="images/Distinct_Revelations_Logo_2.png" alt="Distinct Revelations">
     </a>
 
     <nav class="nav">
@@ -120,6 +120,54 @@
 
 <div class="tr-layout">
   <aside class="tr-sidebar" id="trSidebar" aria-label="Jump to a specific achievement">
+    <div class="tr-jump" id="trJumpNav">
+      <label for="trJumpSelect">Jump to a project</label>
+      <select id="trJumpSelect">
+        <option value="">Choose a project&hellip;</option>
+        <optgroup label="Process / Workflow Development">
+          <option value="invoice-process-reengineering">Invoice Process Re-engineering</option>
+          <option value="depletion-data-discrepancies">Depletion Data Discrepancies</option>
+          <option value="annuity-division-process-improvement">Annuity Division Process Improvement</option>
+          <option value="deduction-broker-commission-alignment">Deduction / Broker Commission Alignment</option>
+          <option value="information-flow-improvement">Information Flow Improvement</option>
+          <option value="new-product-forecast-improvement">NEW Product Forecast Improvement</option>
+          <option value="vendor-management-improvement">Vendor Management Improvement</option>
+          <option value="equipment-procurement-installation">Equipment Procurement and Installation</option>
+          <option value="sell-sheet-creation-distribution">Sell Sheet Creation and Distribution</option>
+        </optgroup>
+        <optgroup label="Application Development">
+          <option value="ai-website">Low Cost and AI Created Website</option>
+          <option value="in-house-website-development">In-House Website Development</option>
+          <option value="multi-data-source-application">Multi-Data Source Application</option>
+          <option value="multi-data-source-promotion">Multi Data Source Application — Promotion Effectiveness</option>
+          <option value="corporate-portal">Corporate Portal</option>
+          <option value="crm-database">CRM Database</option>
+        </optgroup>
+        <optgroup label="Project Management">
+          <option value="windows-nt-rollout">Windows NT Rollout</option>
+          <option value="printer-peripheral-upgrade">Printer / Peripheral Upgrade</option>
+          <option value="sales-business-process-reengineering">Sales Business Process Re-engineering</option>
+          <option value="payment-system-upgrade">Payment System Upgrade</option>
+        </optgroup>
+        <optgroup label="Finance">
+          <option value="pl-management-atlantic-bu">P&amp;L Management — Atlantic BU</option>
+          <option value="monthly-forecasting">Monthly Forecasting</option>
+          <option value="forecasting-budget-report">Forecasting / Budget Obtainment Report</option>
+          <option value="break-even-analysis">Break-Even Analysis</option>
+          <option value="sponsorship-roi">Sponsorship ROI</option>
+        </optgroup>
+        <optgroup label="Business Development">
+          <option value="jameson-shelf-placement">Jameson 2nd Shelf Placement Initiative</option>
+          <option value="job-role-enhancement">Job Role Enhancement</option>
+          <option value="targeted-opportunities">Targeted Opportunities</option>
+          <option value="sales-tools">Sales Tools</option>
+          <option value="advertising-email-campaigns">Advertising / E-mail Campaigns</option>
+          <option value="internet-search-banners">Internet Search Banners</option>
+          <option value="hmg-brochure">HMG Brochure</option>
+        </optgroup>
+      </select>
+    </div>
+
     <div class="tr-sidebar-group">
       <button type="button" class="tr-sidebar-toggle" aria-expanded="true" aria-controls="tr-sg-process">
         <span>Process &amp; Workflow</span><span class="tr-sidebar-arrow" aria-hidden="true">▾</span>
@@ -222,6 +270,7 @@
             <li data-letter="A">Developed a "To Be" process addressing all issues, streamlining and automating the process so the information is sent electronically.</li>
             <li data-letter="R">Incorporated a NEW automated process which improved backup sufficiency, improved distributor incentive monitoring, correct products being charged, a correct match between invoice and AR, improved timing of receiving proper documentation, eliminating charges of non-PRUSA product, and payment of full invoice instead of having an open balance. Savings of $200K.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -244,6 +293,7 @@
             <li data-letter="A">Developed a process in which depletion data and all related fields from RNDC's BDN system are sent to PRUSA electronically.</li>
             <li data-letter="R">Incorporated a monthly electronic submission process, validated monthly by PRUSA. Alleviated most future data discrepancies.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -264,6 +314,7 @@
             <li data-letter="A">Developed an image and workflow system which, immediately upon receipt, scanned documents through a FileNet system, indexed them to an Oracle database, and routed paperwork to the appropriate departments/individuals depending on document type — adhering to the regulations required for annuity document processing.</li>
             <li data-letter="R">Incorporated a streamlined electronic image and workflow system which improved the efficiency of processing annuity applications and documentation, estimated to save the company $4 million.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -282,6 +333,7 @@
             <li data-letter="A">Based on findings, it came down to brokers having delays in validating deductions with the proper backup documentation.</li>
             <li data-letter="R">Incorporated a NEW process which put an incentive on validating the deductions on a timely basis — otherwise their commissions would be withheld. This new process improved deduction validation a great deal.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -300,6 +352,7 @@
             <li data-letter="A">Based on the findings and the timing requirements for receiving the information, put together a depiction of the flow of information and the timing of actions needed to perform the necessary reporting.</li>
             <li data-letter="R">This NEW process allowed everyone involved to schedule information submission accordingly, resulting in more accurate and timely reporting.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -319,6 +372,7 @@
             <li data-letter="A">Based on the findings, provided a workflow depicting how and when PRUSA Finance, Marketing, and Sales teams are involved, as well as the information flow.</li>
             <li data-letter="R">This NEW process let each group understand what information is needed to provide the marketing team a more accurate forecast, and how the information flows.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -339,6 +393,7 @@
             <li data-letter="A">Upon investigation of what was happening at the service center, put together a process for them to follow that expedited computer servicing, plus an escalation list for issues the vendor needed to raise directly with Campbell's.</li>
             <li data-letter="R">Re-engineered computer service and repair to be more cost- and time-efficient. Reduced cost by 30% and time by 42%. Customer satisfaction increased 65%.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -354,6 +409,7 @@
             <li data-letter="A">Worked with IT, the service vendor, and finance to develop a NEW cost-saving, efficient process for procuring and installing new equipment.</li>
             <li data-letter="R">Re-engineered computer service and repair to be more cost- and time-efficient. Reduced cost by 30% and time by 42%. Customer satisfaction increased 65%.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -372,6 +428,7 @@
             <li data-letter="A">Created a template library and a simple process to ensure requester needs were met, revisions stayed minimal, and a production schedule could be maintained.</li>
             <li data-letter="R">Users got timely, creative, informative sell sheets to support new product placements, distribution opportunities, and promotional activity.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -402,6 +459,7 @@
             <li data-letter="A">Decided to use AI platforms (ChatGPT &amp; Perplexity) to build the site using HTML, CSS, and JavaScript for the front end, Firebase for the backend, and GitHub for hosting.</li>
             <li data-letter="R">After several iterations and rounds of AI prompt learning, built a fully functional website with a client portal, scheduling app, and contact-email delivery notifications — this website.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -422,6 +480,7 @@
             <li data-letter="A">Built the website with Dreamweaver, GoDaddy for hosting, and PHP/HTML/CSS/JavaScript for the code, with the help of manuals, blogs, and other web resources.</li>
             <li data-letter="R">The site provided the brand recognition needed, an informative portal for marina services, and prospect generation for boat sales.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -443,6 +502,7 @@
             <li data-letter="A">Requested funds from corporate to hire a consultant to build a database that validated the data and produced a set of reports defined by specific business requirements.</li>
             <li data-letter="R">Performed category analysis for 28 of Fleming's 33 product supply divisions across the U.S., creating approximately $2.5 million in sales/inventory opportunity.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -462,6 +522,7 @@
             <li data-letter="A">Developed a training program, use cases, and field evaluation tools for field sales managers/representatives to evaluate their promotions against KPIs, with a management review workflow built in.</li>
             <li data-letter="R">Improved promotional efficiency by 26%. Also saw improvements in trade spending efficiency, forecasting, and AOP planning, resulting in increased sales and profit.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -485,6 +546,7 @@
             <li data-letter="A">Used the business requirements to develop a prototype for approval.</li>
             <li data-letter="R">Involved through the initial business requirements gathering and prototype development; left the company soon after, so final results are unknown.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -505,6 +567,7 @@
             <li data-letter="A">Used Outlook Business Contact Manager to capture and report the information so it was actionable to close the sale.</li>
             <li data-letter="R">Built a data-gathering workflow for the salesperson to enter information, used to create email marketing campaigns — contributed to a 25% increase in marina services/accessories sales through cross-selling.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -536,6 +599,7 @@
             <li data-letter="A">Developed the rollout plan in collaboration with IT and the service vendor, and gave finance a detailed cost analysis so funds could be allocated appropriately.</li>
             <li data-letter="R">The rollout completed on time and on budget, with minimal sales-user downtime — old computers were received back and replacements shipped immediately.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -554,6 +618,7 @@
             <li data-letter="A">Performed a cost analysis, got finance approval, and worked with procurement to purchase the selected printers and peripherals.</li>
             <li data-letter="R">The project completed on time and on budget, with 95% user satisfaction.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -575,6 +640,7 @@
             <li data-letter="A">Assembled a cross-functional team and facilitated workshops to gather the requirements.</li>
             <li data-letter="R">Completed on time and on budget. Business requirements and project lessons learned were passed on to the Phase II team.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -593,6 +659,7 @@
             <li data-letter="A">Provided the IT and service vendor team with IT requirements and installation instructions.</li>
             <li data-letter="R">Completed on time and on budget.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -628,6 +695,7 @@
             <li data-letter="A">Communicated with the Atlantic BU business leader and market managers to understand market conditions in their area.</li>
             <li data-letter="R">Delivered a 5% profit gain for the fiscal year.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -647,6 +715,7 @@
             <li data-letter="A">Based on those conversations, provided ROI scenarios to adjust the forecast and request funding where needed.</li>
             <li data-letter="R">Forecast was between 75–85% accurate, and it improved further with a sales recap tool provided along the way.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -668,6 +737,7 @@
             <li data-letter="A">Developed a report providing a full fiscal-year view with 4 years of data, a budget line that automatically adjusted the DTG for each brand and market by month, 3-month, 6-month, and total year, plus monthly seasonality.</li>
             <li data-letter="R">Forecasting improved, and funding could be directed to the markets and brands with the greatest ROI.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -687,6 +757,7 @@
             <li data-letter="A">Created a spreadsheet that met the requirements for calculating gross margin.</li>
             <li data-letter="R">Senior management was pleased and backed the use of the spreadsheet when determining promotional ROI.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -706,6 +777,7 @@
             <li data-letter="A">Created an ROI template accounting for current traffic trends at the casino, advertising value, and other benefits.</li>
             <li data-letter="R">Presented a potential impact of a 672% increase, or $1.8M in gross margin, with additional benefits factored in. For undisclosed reasons, the funds were re-allocated.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -743,6 +815,7 @@
             <li data-letter="A">Created a sales brochure combining sales trends, ranking among competitors and within the category, demographic data, market basket, promotional effectiveness, and the results other retailers had already seen from the switch.</li>
             <li data-letter="R">87 retailers who switched Jameson saw an 11.5% increase in the first 6 months, with others seeing as much as 57.8% growth. HQ allocated 10,000 copies of the brochure for use across every other region.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -763,6 +836,7 @@
             <li data-letter="A">Based on stakeholder feedback across the regions, developed a job description, roles/responsibilities/accountabilities, a skills assessment, and qualification levels for the skills needed.</li>
             <li data-letter="R">Stakeholders were satisfied with the finished design; left the company before it was implemented.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -784,6 +858,7 @@
             <li data-letter="A">Compared the demographic data to brand demographics by zip code to create an Opportunity Index, then matched it to the retail list to build the targeted list.</li>
             <li data-letter="R">The targeted list drove a 172% increase in distribution.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -804,6 +879,7 @@
             <li data-letter="A">Took the information gathered and researched additional information not readily available in the field to create a fact-driven sales tool for the team.</li>
             <li data-letter="R">The sales tools gave the team what they needed to achieve their objectives.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -824,6 +900,7 @@
             <li data-letter="A">Created an eye-catching, informative advertisement, a sell sheet, and a targeted prospect list for the boat.</li>
             <li data-letter="R">Generated about 10% of used boat sales from the advertisement; an email campaign to over 900 prospects generated about 15% of new boat sales.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -848,6 +925,7 @@
             <li data-letter="A">Created banner ads across separate categories — cruisers, bowriders, deck boats, sport boats — with catchy copy to catch a prospect's attention.</li>
             <li data-letter="R">Generated new prospects and boat purchases; click-through rate was consistently above the category average for the area.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -868,6 +946,7 @@
             <li data-letter="A">Created a brochure depicting HMG's family-owned identity, the services offered, and the attractions surrounding the marina's location.</li>
             <li data-letter="R">Generated measurable follow-up interest in marine services, slip rentals, and new/used boat sales.</li>
           </ul>
+          <a href="#trJumpNav" class="tr-card-return">Return to Menu</a>
         </div>
       </article>
 
@@ -958,7 +1037,35 @@
     });
   })();
 </script>
-<script defer src="./JS/modal-lite.js"></script>
+<script>
+  // "Jump to a project" select — a faster path to any single card than
+  // tapping through the collapsible sidebar (especially on mobile, where
+  // the sidebar drops into normal page flow above the content). Also
+  // opens that card's own sidebar group, so the two stay in sync.
+  (function () {
+    var sel = document.getElementById('trJumpSelect');
+    if (!sel) return;
+    sel.addEventListener('change', function () {
+      var id = sel.value;
+      if (!id) return;
+      var card = document.getElementById(id);
+      if (!card) return;
+
+      var link = document.querySelector('.tr-sidebar-sublist a[href="#' + id + '"]');
+      if (link) {
+        var list = link.closest('ul.tr-sidebar-sublist');
+        var toggle = list && document.querySelector('.tr-sidebar-toggle[aria-controls="' + list.id + '"]');
+        if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
+          toggle.setAttribute('aria-expanded', 'true');
+          list.hidden = false;
+        }
+      }
+
+      location.hash = id;
+      sel.selectedIndex = 0;
+    });
+  })();
+</script>
 <script defer src="./JS/app.js"></script>
 
 </body>
