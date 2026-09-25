@@ -15,13 +15,16 @@
   // ---------------------------------------------------------------------------
   var ctx = {
     biz: null,
+    proj: null,
     userEmail: '',
     userUid: '',
     isOwner: false,
     rows: [],
     editingId: null,
-    sort: { key: null, dir: 'asc' } // for header sorting
+    sort: { key: null, dir: 'asc' }, // for header sorting
+    page: 1
   };
+  var QNA_PAGE_SIZE = 15;
 
  // Read owner email from a global or environment config
 var OWNER_EMAIL = '';
@@ -48,6 +51,7 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
   var msgInput;
   var responseInput;
   var addBtn;
+  var cancelEditBtn;
   var filterDoneSel;
   var filterTypeSel;
   var filterAssignedSel;
@@ -97,15 +101,30 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
     return row.completed ? { code: 'done', label: 'Done' } : { code: 'none', label: 'No due date' };
   }
 
-  function canEdit(row) {
-    if (ctx.isOwner) return true;
+  function isOwnItem(row) {
     if (!ctx.userEmail && !ctx.userUid) return false; // not signed in
     if (ctx.userUid && row.createdByUid && row.createdByUid === ctx.userUid) return true;
     return String(row.createdBy || '').toLowerCase() === ctx.userEmail.toLowerCase();
   }
 
+  // Own-item ownership AND the Permissions matrix's per-action grant — a
+  // non-owner role needs both, since Firestore rules already restrict
+  // these writes to "owner or the item's own creator" regardless of what
+  // this matrix says, so the matrix can only narrow further, never widen
+  // past that.
+  function canEdit(row) {
+    if (ctx.isOwner) return true;
+    return isOwnItem(row) && !!(window.drAccess && window.drAccess.canUseAction('qnaSection', 'Respond'));
+  }
+
   function canDelete(row) {
-    return canEdit(row);
+    if (ctx.isOwner) return true;
+    return isOwnItem(row) && !!(window.drAccess && window.drAccess.canUseAction('qnaSection', 'Delete'));
+  }
+
+  function canMarkDone(row) {
+    if (ctx.isOwner) return true;
+    return isOwnItem(row) && !!(window.drAccess && window.drAccess.canUseAction('qnaSection', 'Mark Done'));
   }
 
   // ---------------------------------------------------------------------------
@@ -129,12 +148,18 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
     optAllT.textContent = 'All types';
     filterTypeSel.appendChild(optAllT);
 
+    // Display label only — matches the Q&A Summary stat blocks and the
+    // Add-item Type dropdown ("Issue (Raised)"/"Risk (Raised)") without
+    // touching the underlying stored value, so existing rows (and every
+    // type === 'issue'/'risk' comparison elsewhere in this file) keep
+    // working unchanged.
+    var TYPE_FILTER_LABELS = { Issue: 'Issue (Raised)', Risk: 'Risk (Raised)' };
     Array.from(types)
       .sort()
       .forEach(function (t) {
         var opt = document.createElement('option');
         opt.value = t;
-        opt.textContent = t;
+        opt.textContent = TYPE_FILTER_LABELS[t] || t;
         filterTypeSel.appendChild(opt);
       });
 
@@ -170,7 +195,9 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
   function qnaRef() {
     var db = getDB();
     if (!db || !ctx.biz) return null;
-    return db.collection('businesses').doc(ctx.biz).collection('qna');
+    return db.collection('businesses').doc(ctx.biz)
+      .collection('projects').doc(ctx.proj || 'default')
+      .collection('qna');
   }
 
   function usersRef() {
@@ -280,16 +307,31 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
       });
     }
 
-    tbody.innerHTML = rows
+    var totalPages = Math.max(1, Math.ceil(rows.length / QNA_PAGE_SIZE));
+    if (ctx.page > totalPages) ctx.page = totalPages;
+    if (ctx.page < 1) ctx.page = 1;
+    var startIdx = (ctx.page - 1) * QNA_PAGE_SIZE;
+    var pageRows = rows.slice(startIdx, startIdx + QNA_PAGE_SIZE);
+
+    var pageInfoEl = document.getElementById('qnaPageInfo');
+    var pagePrevEl = document.getElementById('qnaPagePrev');
+    var pageNextEl = document.getElementById('qnaPageNext');
+    if (pageInfoEl) pageInfoEl.textContent = 'Page ' + ctx.page + ' of ' + totalPages + ' (' + rows.length + (rows.length === 1 ? ' item' : ' items') + ')';
+    if (pagePrevEl) pagePrevEl.disabled = ctx.page <= 1;
+    if (pageNextEl) pageNextEl.disabled = ctx.page >= totalPages;
+
+    tbody.innerHTML = pageRows
       .map(function (r) {
         var canE = canEdit(r);
         var canD = canDelete(r);
+        var canMD = canMarkDone(r);
 
         var chk =
           '<input type="checkbox" class="qna-done" data-id="' +
           r.id +
           '"' +
           (r.completed ? ' checked' : '') +
+          (canMD ? '' : ' disabled title="You don\'t have permission to mark this done"') +
           '>';
 
         var editBtn =
@@ -348,6 +390,23 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
         );
       })
       .join('');
+
+    if (window.drInsight) {
+      if (!rows.length) {
+        window.drInsight.set('qnaSection', ctx.rows.length ? 'No items match the selected filters.' : '');
+      } else {
+        var openRows = rows.filter(function (r) { return !r.completed; });
+        var overdue = openRows.filter(function (r) { return computeJeopardy(r).code === 'red'; });
+        var text = rows.length + ' item' + (rows.length === 1 ? '' : 's') + ' shown, ' + openRows.length + ' still open.';
+        if (overdue.length) {
+          text += ' ' + overdue.length + ' open item' + (overdue.length === 1 ? ' is' : 's are') + ' overdue' +
+            (overdue[0].message ? ', e.g. "' + overdue[0].message + '".' : '.');
+        } else if (openRows.length) {
+          text += ' None of the open items are overdue.';
+        }
+        window.drInsight.set('qnaSection', text);
+      }
+    }
   }
 function updateStats() {
   var qs = 0, ts = 0, is = 0, rs = 0;
@@ -369,6 +428,18 @@ function updateStats() {
   if (elT) elT.textContent = ts;
   if (elI) elI.textContent = is;
   if (elR) elR.textContent = rs;
+
+  if (window.drInsight) {
+    var total = qs + ts + is + rs;
+    if (!total) {
+      window.drInsight.set('qnaSummaryCard', '');
+    } else {
+      var openCount = (ctx.rows || []).filter(function (r) { return !r.completed; }).length;
+      window.drInsight.set('qnaSummaryCard',
+        total + ' item' + (total === 1 ? '' : 's') + ' logged across Q&A (' + qs + ' questions, ' + ts + ' tasks, ' + is + ' issues, ' + rs + ' risks), ' +
+        openCount + ' still open.');
+    }
+  }
 }
   // ---------------------------------------------------------------------------
   // CRUD
@@ -434,6 +505,21 @@ function updateStats() {
     if (assignedSel) assignedSel.value = row.assignedTo || '';
     if (dueInput) dueInput.value = toDateInputValue(row.dueDate);
     if (addBtn) addBtn.textContent = 'Update';
+    if (cancelEditBtn) cancelEditBtn.style.display = '';
+  }
+
+  // Returns the form to "Add" mode without saving — the missing escape
+  // hatch that previously left "Update" with no way back except actually
+  // saving the edit.
+  function cancelEdit() {
+    ctx.editingId = null;
+    if (addBtn) addBtn.textContent = 'Add';
+    if (cancelEditBtn) cancelEditBtn.style.display = 'none';
+    if (msgInput) msgInput.value = '';
+    if (responseInput) responseInput.value = '';
+    if (typeSel) typeSel.value = '';
+    if (assignedSel) assignedSel.value = '';
+    if (dueInput) dueInput.value = '';
   }
 
   function saveEdit() {
@@ -478,6 +564,7 @@ function updateStats() {
 
     ctx.editingId = null;
     if (addBtn) addBtn.textContent = 'Add';
+    if (cancelEditBtn) cancelEditBtn.style.display = 'none';
     msgInput.value = '';
     if (responseInput) responseInput.value = '';
     if (dueInput) dueInput.value = '';
@@ -540,9 +627,27 @@ function updateStats() {
   }
 
   function bindFilters() {
-    if (filterDoneSel) filterDoneSel.addEventListener('change', paint);
-    if (filterTypeSel) filterTypeSel.addEventListener('change', paint);
-    if (filterAssignedSel) filterAssignedSel.addEventListener('change', paint);
+    function onFilterChange() { ctx.page = 1; paint(); }
+    if (filterDoneSel) filterDoneSel.addEventListener('change', onFilterChange);
+    if (filterTypeSel) filterTypeSel.addEventListener('change', onFilterChange);
+    if (filterAssignedSel) filterAssignedSel.addEventListener('change', onFilterChange);
+
+    var resetBtn = $('#qna-filter-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        if (filterDoneSel) filterDoneSel.value = '';
+        if (filterTypeSel) filterTypeSel.value = '';
+        if (filterAssignedSel) filterAssignedSel.value = '';
+        onFilterChange();
+      });
+    }
+  }
+
+  function bindPagination() {
+    var prevBtn = document.getElementById('qnaPagePrev');
+    var nextBtn = document.getElementById('qnaPageNext');
+    if (prevBtn) prevBtn.addEventListener('click', function () { ctx.page--; paint(); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { ctx.page++; paint(); });
   }
 
   function bindAdd() {
@@ -554,6 +659,7 @@ function updateStats() {
         addItem();
       }
     });
+    if (cancelEditBtn) cancelEditBtn.addEventListener('click', cancelEdit);
   }
 
   function bindSortHeader() {
@@ -619,12 +725,17 @@ function updateStats() {
     msgInput = $('#qna-message');
     responseInput = $('#qna-response');
     addBtn = $('#qna-add');
+    cancelEditBtn = $('#qna-cancel-edit');
     filterDoneSel = $('#qna-filter-done');
     filterTypeSel = $('#qna-filter-type');
     filterAssignedSel = $('#qna-filter-assigned');
 
     // Biz and user from globals / auth
     ctx.biz = window.BIZ_KEY || window.businessKey || null;
+    // Multi-project cutover — every business always has at least the
+    // auto-created 'default' project (dashboard-business-loader.js
+    // guarantees window.PROJECT_KEY is set by the time this runs).
+    ctx.proj = window.PROJECT_KEY || 'default';
 
     var user =
       (window.auth && window.auth.currentUser) ||
@@ -647,6 +758,33 @@ function updateStats() {
     });
   }
 
+  // Hides the whole Add form (not just its button) when the current role
+  // hasn't been granted "Add" — a half-visible form with no submit button
+  // would be confusing. Re-paints the table too, since canEdit/canDelete/
+  // canMarkDone above all read window.drAccess, which may not have been
+  // ready yet the first time the snapshot listener painted.
+  function applyActionAccess() {
+    var canAdd = ctx.isOwner || !!(window.drAccess && window.drAccess.canUseAction('qnaSection', 'Add'));
+    // .qna-add-only marks just the Add-related controls (message/response
+    // boxes, type/assigned/due/add/cancel) — NOT the whole .qna-form,
+    // since .qna-filters now lives inside it and must stay usable
+    // regardless of Add permission.
+    var addOnlyEls = document.querySelectorAll('.qna-add-only');
+    for (var i = 0; i < addOnlyEls.length; i++) {
+      var el = addOnlyEls[i];
+      // #qna-cancel-edit's visibility is otherwise fully owned by
+      // startEdit()/cancelEdit() (only shown mid-edit) — force it hidden
+      // when Add isn't allowed, but don't clear its "none" default here
+      // when Add IS allowed, or it'd show outside of edit mode.
+      if (el.id === 'qna-cancel-edit') {
+        if (!canAdd) el.style.display = 'none';
+        continue;
+      }
+      el.style.display = canAdd ? '' : 'none';
+    }
+    paint();
+  }
+
   // ---------------------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------------------
@@ -661,10 +799,13 @@ function updateStats() {
 
     bindTableEvents();
     bindFilters();
+    bindPagination();
     bindAdd();
     bindSortHeader();
     loadAssignees();
     listenQna();
+
+    if (window.drAccess) window.drAccess.whenReady().then(applyActionAccess);
   }
 
   if (document.readyState === 'loading') {

@@ -78,6 +78,59 @@ service firebase.storage {
       allow write, update, delete: if isOwnerEmail();
     }
 
+    // Saved Status Reports (Public/JS/status-report.js): the PDF lives at
+    // reports/{biz}/{proj}/{reportId}, where reportId is also the id of its
+    // Firestore record (projects/{proj}/statusReports/{reportId}). That
+    // record's allowedRoles lists the roles that may view every section the
+    // report contains — read is granted only to the owner and those roles,
+    // so a report with budget detail can't be fetched by a role that can't
+    // see the budget on the dashboard. This is deliberately NOT under the
+    // files/ prefix, whose rules let every project member read everything.
+    // No update — a saved report is immutable; the creator (or owner) can
+    // delete it.
+    match /reports/{biz}/{proj}/{reportId} {
+      allow read: if isOwnerEmail() ||
+        ( isProjectMember(biz, proj) &&
+          firestore.get(/databases/(default)/documents/businesses/$(biz)/projects/$(proj)/members/$(request.auth.uid)).data.role in
+            firestore.get(/databases/(default)/documents/businesses/$(biz)/projects/$(proj)/statusReports/$(reportId)).data.allowedRoles );
+      allow create: if resource == null &&
+        isOwnerOrProjectMember(biz, proj) &&
+        request.resource.size < 20 * 1024 * 1024 &&
+        request.resource.contentType == 'application/pdf';
+      allow delete: if isOwnerEmail() ||
+        ( isProjectMember(biz, proj) && request.auth.uid == resource.metadata.ownerUid );
+      allow update: if false;
+    }
+
+    // Original project documents (Document Register): documents/{biz}/{proj}/{docId},
+    // where docId is also the id of the Firestore record
+    // projects/{proj}/documents/{docId}. Read only by the owner and the roles in
+    // that record's allowedRoles; only the owner uploads or deletes; a stored
+    // document is immutable. Like reports/, this is deliberately NOT under files/.
+    match /documents/{biz}/{proj}/{docId} {
+      allow read: if isOwnerEmail() ||
+        ( isProjectMember(biz, proj) &&
+          firestore.get(/databases/(default)/documents/businesses/$(biz)/projects/$(proj)/members/$(request.auth.uid)).data.role in
+            firestore.get(/databases/(default)/documents/businesses/$(biz)/projects/$(proj)/documents/$(docId)).data.allowedRoles );
+      allow create: if resource == null && isOwnerEmail() && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if isOwnerEmail();
+      allow update: if false;
+    }
+
+    // Project Documents "share privately": privatefiles/{biz}/{proj}/{fileId}, matching
+    // the Firestore record at projects/{proj}/privateFiles/{fileId}. Only the owner and
+    // that record's sharedWithUid may read it — deliberately separate from files/, so
+    // File Manager's own unfiltered listing is never at risk. Only the owner uploads or
+    // deletes; a stored file is immutable, same convention as documents/ above.
+    match /privatefiles/{biz}/{proj}/{fileId} {
+      allow read: if isOwnerEmail() ||
+        ( isProjectMember(biz, proj) &&
+          request.auth.uid == firestore.get(/databases/(default)/documents/businesses/$(biz)/projects/$(proj)/privateFiles/$(fileId)).data.sharedWithUid );
+      allow create: if resource == null && isOwnerEmail() && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if isOwnerEmail();
+      allow update: if false;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // SAFETY FALLBACK — No access anywhere else
     ////////////////////////////////////////////////////////////////////////////

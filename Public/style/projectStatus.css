@@ -12,19 +12,24 @@
   box-sizing: border-box;
   margin-bottom: 0;
 
-  /* Layout: title above a horizontal row of status options, in a card
-     sized for a wide-and-short summary row rather than a tall sidebar. */
+  /* Layout: title above the status options, in a card sized for a
+     wide-and-short summary row rather than a tall sidebar. flex-start,
+     not center — the ai-insight-box below is pinned to the bottom
+     (margin-top:auto, so insight boxes align across the row); centering
+     this column would fight that and push everything toward the top with
+     an odd gap before the insight text instead. */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
 }
 
-/* Matches the tighter Schedule/Cost Performance card titles so the whole
-   summary row reads at one consistent scale. */
+/* Matches the other cards' title scale (.metrics-panel .section-header h2
+   etc., 18px) — was a smaller 14px here, out of step with every other
+   card's title once this row also got an icon like the rest. */
 .project-status h2 {
   margin: 0 0 4px 0;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -35,30 +40,46 @@
   color: #333333;
 }
 
-/* Status list — one row, three options side by side. Never wraps to a
-   second line — as the summary row gained more cards (Cost Performance
-   Index) each card got narrower, and flex-wrap was letting "On Plan" drop
-   below the other two. overflow-x is a last-resort escape hatch for truly
-   tiny screens rather than ever wrapping. */
+/* Status list — stacked vertically rather than the original single row.
+   The insight box below this now regularly carries a multi-sentence
+   explanation (SPI/CPI reasoning, contributing factors, next steps once
+   AI-enhanced) — a horizontal row of three options left too little width
+   for that text to read well in an already-narrow summary-row card.
+   flex:1 fills whatever space is left between the title and the
+   bottom-pinned ai-insight-box, and centers the list (both ways) within
+   it — matching the "big centered number" treatment on the Schedule/Cost
+   Performance cards next to it in the same row. */
 .status-options {
+  flex: 1 1 auto;
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: space-between;
-  gap: 4px;
-  overflow-x: auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
 }
 
 .status-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 13px;
   color: #333333;
   padding: 2px 4px;
   border-radius: 999px;
   flex: 0 0 auto;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, font-size 0.15s ease;
+}
+
+/* The current status reads as the card's headline (matching the big
+   centered numbers on Schedule/Cost Performance) — the other two options
+   stay small/secondary rather than all three competing at equal size. */
+.status-row.active {
+  font-size: 1.3rem;
+}
+.status-row.active .light {
+  width: 20px;
+  height: 20px;
 }
 
 .status-row span {

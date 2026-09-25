@@ -46,13 +46,20 @@ service cloud.firestore {
       }
 
       allow read: if isOwnerOrMember(biz);
-      allow create: if isSignedIn();
+      // Owner-only — the old public self-service signup flow (any signed-in
+      // user could create a brand-new business by typing a name) is
+      // retired in favor of an owner-only "Create Account" tool
+      // (Public/JS/create-account.js) that picks an existing company from
+      // a dropdown instead of free text.
+      allow create: if isOwnerEmail();
       allow update, delete: if isOwnerEmail();
 
       match /users/{uid} {
         allow read: if isOwnerOrMember(biz);
-        allow create, update, delete: if isOwnerEmail() ||
-          (isSignedIn() && request.auth.uid == uid);
+        // Owner-only — same retirement as above; a user no longer
+        // self-adds their own company membership record (that used to
+        // happen as step 3 of the public signup flow).
+        allow create, update, delete: if isOwnerEmail();
       }
 
       match /qna/{qnaId} {
@@ -90,10 +97,11 @@ service cloud.firestore {
       // full cutover sequence.
       // ===========================================================
 
-      // Project-level membership carries a role: 'member' | 'client-pm'
-      // | 'exec-sponsor'. Only the owner assigns it (Manage Project
-      // Access screen) — unlike company-level membership, a user can't
-      // add themself here.
+      // Project-level membership carries a role: 'owner' | 'clientPartner' |
+      // 'projectManager' | 'admin' | 'member' (same 5-role vocabulary as the
+      // Permissions screen, Public/JS/permissions.js). Only the platform
+      // owner assigns it (Manage Project Access screen) — unlike
+      // company-level membership, a user can't add themself here.
       function projectMemberDoc(b, proj) {
         return get(/databases/$(database)/documents/businesses/$(b)/projects/$(proj)/members/$(request.auth.uid));
       }
@@ -105,10 +113,10 @@ service cloud.firestore {
         return projectMemberDoc(b, proj).data.role;
       }
       function isClientPM(b, proj) {
-        return isProjectMember(b, proj) && projectRole(b, proj) == 'client-pm';
+        return isProjectMember(b, proj) && projectRole(b, proj) == 'projectManager';
       }
       function isExecSponsor(b, proj) {
-        return isProjectMember(b, proj) && projectRole(b, proj) == 'exec-sponsor';
+        return isProjectMember(b, proj) && projectRole(b, proj) == 'clientPartner';
       }
       function isOwnerOrProjectMember(b, proj) {
         return isOwnerEmail() || isProjectMember(b, proj);
@@ -121,14 +129,25 @@ service cloud.firestore {
       function canEditScheduleData(b, proj) {
         return isOwnerEmail();
       }
+      // Matrix-driven writes (Decision Log, Dependencies): besides the owner,
+      // a Client Partner or Project Manager can add/edit/delete — but only
+      // for an action the owner has ticked for their role in Settings ▸
+      // Permissions (stored on the project doc as
+      // reportPermissions.<cardId>.actions.<add|edit|delete>.<role>).
+      // Any missing key makes the expression error, which denies.
+      function canCardAction(b, proj, cardId, slug) {
+        return isProjectMember(b, proj) &&
+          projectRole(b, proj) in ['clientPartner', 'projectManager'] &&
+          get(/databases/$(database)/documents/businesses/$(b)/projects/$(proj))
+            .data.reportPermissions[cardId].actions[slug][projectRole(b, proj)] == true;
+      }
 
       match /projects/{proj} {
         allow read: if isOwnerOrProjectMember(biz, proj);
-        // Self-service signup creates a business's first project in the
-        // same step as the business itself — same looseness as business
-        // creation above, since creating an empty project shell isn't
-        // sensitive by itself; real access control is on the data inside.
-        allow create: if isSignedIn();
+        // Only the platform owner creates projects (Manage Project Access
+        // screen) — unlike the legacy business-doc create above, this is
+        // NOT self-service.
+        allow create: if isOwnerEmail();
         allow update, delete: if isOwnerEmail();
 
         match /members/{uid} {
@@ -136,29 +155,73 @@ service cloud.firestore {
           allow create, update, delete: if isOwnerEmail();
         }
 
-        // Pending edits proposed by a Client PM. A conflict-flagged request
-        // needs BOTH the owner and the exec sponsor to sign off — so each
-        // party can only ever record their OWN decision field, never the
-        // combined `status`. Deriving `status` from those two fields (and
-        // actually applying an approved change to the real document) is
-        // done server-side by a Cloud Function, not by either client —
-        // otherwise either party's single write could unilaterally apply
-        // a change that was supposed to need both signatures.
+        // Change Control Log (Public/JS/changeControl.js). Log-only: nothing
+        // here applies an approved change to the schedule. Any project
+        // member (or the owner) can submit; only the owner records the
+        // owner decision and only the exec sponsor (role clientPartner)
+        // records the sponsor decision, and only when the submitter
+        // flagged needsSponsorApproval. Each party can write ONLY its own
+        // decision fields, a decision can be made once (it can't be
+        // flipped afterward), and there is no stored `status` — it is
+        // derived from the two decisions by the client.
         match /changeRequests/{reqId} {
           allow read: if isOwnerOrProjectMember(biz, proj);
-          allow create: if isClientPM(biz, proj) &&
+
+          // The owner can also create a request in any state — this is how
+          // the Project Documents import (pm-doc-import.js) brings in a
+          // historical Change Log with its original decisions and dates.
+          // Everyone else can only submit a new, undecided request.
+          allow create: if ( isOwnerEmail() &&
+            request.resource.data.title is string &&
+            request.resource.data.title.size() > 0 ) ||
+          ( isOwnerOrProjectMember(biz, proj) &&
+            request.resource.data.title is string &&
+            request.resource.data.title.size() > 0 &&
+            request.resource.data.needsSponsorApproval is bool &&
             request.resource.data.proposedByUid == request.auth.uid &&
-            request.resource.data.status == 'pending' &&
+            request.resource.data.proposedBy == request.auth.token.email &&
+            request.resource.data.createdAt == request.time &&
             request.resource.data.ownerDecision == 'pending' &&
-            request.resource.data.sponsorDecision in ['pending', 'n/a'];
+            request.resource.data.sponsorDecision ==
+              (request.resource.data.needsSponsorApproval == true ? 'pending' : 'n/a') );
+
           allow update: if
+            // Owner records their decision (once).
             ( isOwnerEmail() &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerDecision']) &&
-              request.resource.data.ownerDecision in ['approved', 'rejected'] ) ||
-            ( isExecSponsor(biz, proj) && resource.data.conflictFlag == true &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sponsorDecision']) &&
-              request.resource.data.sponsorDecision in ['approved', 'rejected'] );
-          allow delete: if isOwnerEmail();
+              resource.data.ownerDecision == 'pending' &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['ownerDecision', 'ownerDecidedAt', 'ownerDecidedBy', 'ownerComment']) &&
+              request.resource.data.ownerDecision in ['approved', 'rejected'] &&
+              request.resource.data.ownerDecidedAt == request.time &&
+              request.resource.data.ownerDecidedBy == request.auth.token.email ) ||
+            // Exec sponsor records theirs (once), only when it was requested.
+            ( isExecSponsor(biz, proj) &&
+              resource.data.needsSponsorApproval == true &&
+              resource.data.sponsorDecision == 'pending' &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['sponsorDecision', 'sponsorDecidedAt', 'sponsorDecidedBy', 'sponsorComment']) &&
+              request.resource.data.sponsorDecision in ['approved', 'rejected'] &&
+              request.resource.data.sponsorDecidedAt == request.time &&
+              request.resource.data.sponsorDecidedBy == request.auth.token.email ) ||
+            // Submitter can fix their own request's content until anyone has decided.
+            ( isOwnerOrProjectMember(biz, proj) &&
+              resource.data.proposedByUid == request.auth.uid &&
+              resource.data.ownerDecision == 'pending' &&
+              resource.data.sponsorDecision in ['pending', 'n/a'] &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['title', 'description', 'reason', 'changeType', 'priority',
+                          'scheduleImpactDays', 'costImpact',
+                          'linkedItemType', 'linkedItemId', 'linkedItemTitle']) &&
+              request.resource.data.title is string &&
+              request.resource.data.title.size() > 0 );
+
+          // Owner can remove any request; the submitter can withdraw their
+          // own while it's still undecided.
+          allow delete: if isOwnerEmail() ||
+            ( isOwnerOrProjectMember(biz, proj) &&
+              resource.data.proposedByUid == request.auth.uid &&
+              resource.data.ownerDecision == 'pending' &&
+              resource.data.sponsorDecision in ['pending', 'n/a'] );
         }
 
         match /qna/{qnaId} {
@@ -192,6 +255,368 @@ service cloud.firestore {
             allow read: if isOwnerOrProjectMember(biz, proj);
             allow create, update, delete: if isOwnerEmail();
           }
+        }
+
+        // Stakeholder Register — owner-only writes (unlike qna/files
+        // above, there's no "own item" concept here; a granted non-owner
+        // role can VIEW this per the Permissions matrix, but Add/Edit/
+        // Delete stay real owner-only at this layer regardless of what's
+        // granted, matching permissions.js's BACKEND_LOCKED entry for
+        // this card).
+        match /stakeholders/{stakeholderId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Team Directory (Public/JS/team-directory.js) — same owner-only-write
+        // shape as Stakeholder Register above. Every edit is versioned client-side
+        // (versions[] snapshotted before each update), trusted the same way since
+        // only the owner can ever write here.
+        match /teamDirectory/{memberId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Communications Plan (Public/JS/communicationsPlan.js) — who gets told what, how
+        // often, by what channel. Same owner-only-write, versioned-edit shape as Team
+        // Directory above; audience optionally links to a Stakeholder Register entry
+        // (read client-side, not cross-referenced by this rule).
+        match /communicationsPlan/{itemId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Team Directory "send email" log (functions/team-email-handler.js writes
+        // these via the Admin SDK inside the sendTeamEmail callable — this rule only
+        // matters for the never-expected direct-client-write case, same
+        // belt-and-suspenders style as documentText). May contain message content,
+        // so owner-only read too, not just owner-only write.
+        match /teamEmailLog/{logId} {
+          allow read, write: if isOwnerEmail();
+        }
+
+        // Benefits Realization / KPI Tracker (Public/JS/benefitsRealization.js) — same
+        // owner-only-write shape as Team Directory/Communications Plan above. readings[]
+        // (dated actual values) is append-only from the client's perspective, trusted the
+        // same way since only the owner can ever write here.
+        match /benefitsRealization/{kpiId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Project Closure Report (Public/JS/projectClosure.js) — same owner-only-write
+        // shape. The checklist doc is live (checking a box is a state change, not a
+        // versioned draft); closureReports is an append-only log of saved snapshots.
+        match /projectClosure/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /closureReports/{reportId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Glossary / Acronyms (Public/JS/glossary.js) — same owner-only-write
+        // shape. A plain reference list, not versioned.
+        match /glossary/{termId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Baseline Change / Rebaseline Log (Public/JS/baselineChange.js) —
+        // same owner-only-write shape.
+        match /baselineChanges/{changeId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Risk Reserve / Contingency Burn-down (Public/JS/riskReserve.js) —
+        // same owner-only-write shape. riskReserve/main is the single
+        // Total Reserve setting; reserveDraws is an append-only ledger
+        // (client only ever adds/deletes, never edits an entry).
+        match /riskReserve/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /reserveDraws/{drawId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Requirements Traceability Matrix (Public/JS/requirementsTraceability.js)
+        // — same owner-only-write shape.
+        match /requirements/{reqId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Communications Log (Public/JS/communicationsLog.js) — same
+        // owner-only-write shape; an append-only ledger like reserveDraws.
+        match /communicationsLog/{logId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Cost of Quality (Public/JS/costOfQuality.js) — same owner-only-write
+        // shape; an append-only ledger like reserveDraws/communicationsLog.
+        match /costOfQuality/{entryId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Discrepancy Report (Public/JS/discrepancyReport.js) — unlike every
+        // other collection above, owner-only for READ too (per explicit
+        // request: "permissions only to the owner"), not just owner-only
+        // write. May reference sensitive cross-document findings not meant
+        // for a general project member to see.
+        match /discrepancyReports/{reportId} {
+          allow read, create, update, delete: if isOwnerEmail();
+        }
+
+        // Needs Attention "reviewed" checkboxes (Public/JS/needsAttention.js)
+        // — one doc per acknowledged item (id = "<group>__<itemId>"), kept in
+        // its OWN collection rather than as new fields on each source record
+        // (risks/issues/defects/dependencies/signoffs/changeRequests/
+        // decisions/qna/milestones) because several of those already have
+        // narrow, decision-specific update rules (e.g. changeRequests locks
+        // to a fixed affectedKeys() set once a decision is pending) that a
+        // generic "mark reviewed" write would violate. Owner-only write,
+        // same shape as every other new-this-session collection.
+        match /needsAttentionAck/{ackId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Needs Attention saved reports (Public/JS/needsAttention.js "Save
+        // Report") — a timestamped snapshot of every reviewed item's
+        // resolution/lessons-learned notes, append-only like Status
+        // Report/Project Closure's own saved-runs collections.
+        match /needsAttentionReports/{reportId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Team Charter (Public/JS/teamCharter.js) — team norms/working
+        // agreements, same owner-only-write shape as every other new-
+        // this-session single-doc/collection artifact. Not versioned
+        // (a living reference, not a draft document).
+        match /teamCharter/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Decision Log — the owner always; a Client Partner / Project
+        // Manager per the Permissions matrix (see canCardAction).
+        // Admin and Member stay read-only (permissions.js locks their
+        // Add/Edit/Delete boxes). Any project member can read.
+        match /decisions/{decisionId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isOwnerEmail() || canCardAction(biz, proj, 'decisionLogCard', 'add');
+          allow update: if isOwnerEmail() || canCardAction(biz, proj, 'decisionLogCard', 'edit');
+          allow delete: if isOwnerEmail() || canCardAction(biz, proj, 'decisionLogCard', 'delete');
+        }
+
+        // Deliverable / Milestone Sign-off (Public/JS/signoff.js). Items are
+        // created and edited per the Permissions matrix (like the Decision
+        // Log) but ALWAYS start pending — nobody can create an item that's
+        // already accepted. The acceptance decision is role-based, not
+        // matrix-based: the Client Partner (or the owner) records it, once
+        // per round, stamped with who/when. Content can only change while
+        // pending; after a rejection / conditional acceptance an editor can
+        // resubmit, which archives that round into history and starts the
+        // next one. Accepted records are protected from non-owner deletion.
+        match /signoffs/{signoffId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+
+          allow create: if isOwnerEmail() ||
+            ( canCardAction(biz, proj, 'deliverableSignoffCard', 'add') &&
+              request.resource.data.title is string &&
+              request.resource.data.title.size() > 0 &&
+              request.resource.data.decision == 'pending' &&
+              request.resource.data.round == 1 &&
+              request.resource.data.history.size() == 0 );
+
+          allow update: if isOwnerEmail() ||
+            // Client Partner records the decision (once per round).
+            ( isExecSponsor(biz, proj) &&
+              resource.data.decision == 'pending' &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['decision', 'decidedAt', 'decidedBy', 'decisionComment']) &&
+              request.resource.data.decision in ['accepted', 'conditional', 'rejected'] &&
+              request.resource.data.decidedAt == request.time &&
+              request.resource.data.decidedBy == request.auth.token.email ) ||
+            // An editor fixes the item's content — only while still pending.
+            ( canCardAction(biz, proj, 'deliverableSignoffCard', 'edit') &&
+              resource.data.decision == 'pending' &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['title', 'kind', 'linkedItemId', 'linkedItemTitle',
+                          'acceptanceCriteria', 'dueDate', 'evidenceUrl']) &&
+              request.resource.data.title is string &&
+              request.resource.data.title.size() > 0 ) ||
+            // An editor resubmits a rejected / conditionally accepted item:
+            // the finished round is archived and a new one starts.
+            ( canCardAction(biz, proj, 'deliverableSignoffCard', 'edit') &&
+              resource.data.decision in ['rejected', 'conditional'] &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['decision', 'decidedAt', 'decidedBy', 'decisionComment',
+                          'round', 'history', 'resubmittedAt', 'resubmittedBy']) &&
+              request.resource.data.decision == 'pending' &&
+              request.resource.data.round == resource.data.round + 1 &&
+              request.resource.data.history.size() == resource.data.history.size() + 1 &&
+              request.resource.data.decidedAt == null &&
+              request.resource.data.decidedBy == null &&
+              request.resource.data.resubmittedAt == request.time );
+
+          allow delete: if isOwnerEmail() ||
+            ( canCardAction(biz, proj, 'deliverableSignoffCard', 'delete') &&
+              resource.data.decision == 'pending' );
+        }
+
+        // Procurement / Vendor Log (Public/JS/procurement.js) — two lists on
+        // one card (vendors directory + purchase/contract records), both
+        // governed by the same 'procurementCard' Permissions grants, same
+        // access model as the Decision Log above.
+        match /vendors/{vendorId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isOwnerEmail() || canCardAction(biz, proj, 'procurementCard', 'add');
+          allow update: if isOwnerEmail() || canCardAction(biz, proj, 'procurementCard', 'edit');
+          allow delete: if isOwnerEmail() || canCardAction(biz, proj, 'procurementCard', 'delete');
+        }
+        match /purchases/{purchaseId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isOwnerEmail() || canCardAction(biz, proj, 'procurementCard', 'add');
+          allow update: if isOwnerEmail() || canCardAction(biz, proj, 'procurementCard', 'edit');
+          allow delete: if isOwnerEmail() || canCardAction(biz, proj, 'procurementCard', 'delete');
+        }
+
+        // Saved Status Reports (Public/JS/status-report.js). Each record
+        // points at a PDF in Storage (reports/{biz}/{proj}/{reportId}) and
+        // lists `allowedRoles`: the roles that can view EVERY section the
+        // report contains. Only the owner and those roles can read it, so a
+        // report with budget detail is never visible to a role that can't
+        // see the budget on the dashboard (the Storage rules apply the same
+        // check to the file itself). No download link is stored here. The
+        // list a role sees is queried with
+        // where('allowedRoles','array-contains', <role>).
+        // Reports are immutable once saved — only deleted.
+        match /statusReports/{reportId} {
+          allow read: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              projectRole(biz, proj) in resource.data.allowedRoles );
+
+          allow create: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              request.resource.data.createdByUid == request.auth.uid &&
+              request.resource.data.createdBy == request.auth.token.email &&
+              request.resource.data.createdAt == request.time &&
+              request.resource.data.allowedRoles is list &&
+              request.resource.data.sections is list &&
+              request.resource.data.storagePath ==
+                'reports/' + biz + '/' + proj + '/' + reportId );
+
+          allow update: if false;
+
+          allow delete: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              resource.data.createdByUid == request.auth.uid );
+        }
+
+        // Document Register (Public/JS/document-register.js) + "Ask the
+        // Project". Each imported project document has a metadata record here
+        // with `allowedRoles` — the roles that may see it and ask the AI about
+        // it. A role lists its documents with
+        // where('allowedRoles','array-contains', <role>), exactly like saved
+        // status reports. Only the owner writes (import / edit visibility /
+        // delete).
+        match /documents/{docId} {
+          allow read: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              projectRole(biz, proj) in resource.data.allowedRoles );
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Project Documents (Public/JS/document-register.js) "share privately" —
+        // a file the owner uploads for exactly one project member. Deliberately
+        // its own collection, not a flag on `files`: a flag there would break
+        // File Manager's plain, unfiltered listener the moment even one file
+        // became unreadable to the current viewer (Firestore denies a whole
+        // list query if any doc it would return fails the rule — rules aren't a
+        // silent per-row filter). Only the owner and the named recipient
+        // (sharedWithUid) may ever read one; only the owner writes.
+        match /privateFiles/{fileId} {
+          allow read: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) && request.auth.uid == resource.data.sharedWithUid );
+          allow create, delete: if isOwnerEmail();
+          allow update: if false;
+        }
+
+        // The extracted TEXT of those documents (sections). Never readable by
+        // a client except the owner: the askProject Cloud Function reads it
+        // with admin rights and applies each asker's role itself, so raw text
+        // is only ever exposed as a cited answer excerpt.
+        match /documentText/{docId} {
+          allow read, write: if isOwnerEmail();
+        }
+
+        // Saved Ask the Project conversations (Public/JS/ask-project.js). Each one is kept by the
+        // person who held it: they can read/continue their own while it is open; the owner can read
+        // every role's (the sidebar's "by role" view) and delete. Once ended it is read-only.
+        // The role and email are stamped from the caller's real membership, so the owner's view of
+        // "who asked" can't be forged.
+        match /askChats/{chatId} {
+          allow read: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) && resource.data.uid == request.auth.uid );
+          allow create: if isOwnerOrProjectMember(biz, proj) &&
+            request.resource.data.uid == request.auth.uid &&
+            request.resource.data.email == request.auth.token.email &&
+            request.resource.data.status == 'open' &&
+            request.resource.data.messages is list &&
+            request.resource.data.role == (isOwnerEmail() ? 'owner' : projectRole(biz, proj));
+          allow update: if isOwnerOrProjectMember(biz, proj) &&
+            resource.data.uid == request.auth.uid &&
+            resource.data.status == 'open' &&
+            request.resource.data.uid == resource.data.uid &&
+            request.resource.data.role == resource.data.role &&
+            request.resource.data.email == resource.data.email &&
+            request.resource.data.messages is list;
+          allow delete: if isOwnerEmail();
+        }
+
+        // Dependencies tracker (Public/JS/dependencies.js) — same access
+        // model as the Decision Log above.
+        match /dependencies/{dependencyId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create: if isOwnerEmail() || canCardAction(biz, proj, 'dependenciesCard', 'add');
+          allow update: if isOwnerEmail() || canCardAction(biz, proj, 'dependenciesCard', 'edit');
+          allow delete: if isOwnerEmail() || canCardAction(biz, proj, 'dependenciesCard', 'delete');
+        }
+
+        // Lessons Learned Register (Public/JS/lessonsLearned.js). Any project
+        // member (or the owner) can log a lesson, stamped with who logged it;
+        // after that only the owner or the person who logged it can edit or
+        // delete it (same "own item" idea as qna/files), and the author
+        // stamp itself can never be changed.
+        match /lessonsLearned/{lessonId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+
+          allow create: if isOwnerOrProjectMember(biz, proj) &&
+            request.resource.data.title is string &&
+            request.resource.data.title.size() > 0 &&
+            request.resource.data.createdByUid == request.auth.uid &&
+            request.resource.data.createdBy == request.auth.token.email &&
+            request.resource.data.createdAt == request.time;
+
+          allow update: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              resource.data.createdByUid == request.auth.uid &&
+              !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['createdBy', 'createdByUid', 'createdAt']) &&
+              request.resource.data.title is string &&
+              request.resource.data.title.size() > 0 );
+
+          allow delete: if isOwnerEmail() ||
+            ( isProjectMember(biz, proj) &&
+              resource.data.createdByUid == request.auth.uid );
         }
       }
     }

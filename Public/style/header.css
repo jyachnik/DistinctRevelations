@@ -1,66 +1,119 @@
-/* Sticky top header */
+/* Dashboard header — matches the home page's topbar design language
+   (Public/style/home.css: dark near-black bar, blurred sticky, small
+   pill-shaped controls, muted/accent text) per explicit request for
+   visual consistency between the marketing site and the client portal,
+   instead of the old large blue-gradient banner with a giant title. */
+/* Grid, not flex — .header-left and .header-right hold different amounts
+   of content (just a logo vs. logo+user row+logout), so flex's "shared
+   remaining space" centering left .header-center visually off-center,
+   pulled toward whichever side was narrower. Two equal 1fr columns force
+   the center column to sit at the header's true horizontal midpoint
+   regardless of how wide either side's real content is. */
 #dashboardHeader {
   position: sticky;
   top: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(180deg, #004e92, #000428);
-  box-shadow: 0 4px 8px rgba(0,0,0.15);
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
+  gap: 16px;
+  padding: 8px 28px;
+  min-height: 100px;
+  background: #0b0c10;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #222433;
   z-index: 1000;
-  color: #fff;
+  color: #e9ecf1;
 }
 
-/* Left logo */
+/* Left logo — sized to comfortably fit within the header's own content
+   box (not edge-to-edge) rather than stretched to its full height, which
+   let the logo's own wide aspect ratio balloon out and dominate the row. */
+#dashboardHeader .header-left {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+}
 #dashboardHeader .dr-logo {
-  height: 120px;
+  height: 150px;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 /* Center titles */
 #dashboardHeader .header-center {
   text-align: center;
-  flex: 1;
-  margin: 0 1rem;
+  justify-self: center;
+  min-width: 0;
 }
+/* Executive serif + a champagne-gold accent, distinct from the rest of
+   the (sans-serif, blue/gray) UI on purpose — this is the one title on
+   the page meant to read as a premium, editorial mark rather than a
+   plain UI label. */
 #dashboardHeader .header-center h1 {
   margin: 0;
-  font-size: 3.25rem;
-  font-weight: 1000;
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  color: #d4af6a;
 }
 #dashboardHeader .header-center h2 {
-  margin: 0;
-  font-size: 2rem;
+  margin: 4px 0 0;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #e9ecf1;
+  opacity: 1;
+  line-height: 1.15;
+}
+#dashboardHeader .header-project-name {
+  display: none; /* header.js reveals this once a project name resolves */
+  margin-top: 6px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e04b4b;
+}
+#dashboardHeader .header-project-name::before {
+  content: "Project: ";
   font-weight: 400;
-  opacity: 0.85;
+  color: #b6bdc9;
 }
 #dashboardHeader .header-last-updated {
   display: block;
-  margin-top: 4px;
-  font-size: 0.75rem;
-  opacity: 0.7;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: #7d8494;
 }
 
-/* Right section */
+/* Right section — stretched to the header's full height and
+   space-between'd so the company logo sits at the top and the
+   signed-in-user/logout row is pinned to the very bottom, rather than
+   the pair floating together as one vertically-centered block. */
 #dashboardHeader .header-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.4rem;
+  justify-content: space-between;
+  align-self: stretch;
+  justify-self: end;
+  gap: 0.35rem;
 }
 #dashboardHeader .header-right-top {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
+/* Circular badge, matching home.css's .brand-badge treatment for the
+   company/client logo instead of the old plain white square block. */
 #dashboardHeader .logo-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 4px;
+  width: 74px;
+  height: 74px;
+  border-radius: 9999px;
   overflow: hidden;
   background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 #dashboardHeader .logo-wrapper img {
   width: 100%;
@@ -68,186 +121,116 @@
   object-fit: contain;
 }
 
-/* Signed-in user + logout, shown under the company logo */
+/* Signed-in user + logout */
 #dashboardHeader .header-user-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 #dashboardHeader .header-user-email {
-  font-size: 0.78rem;
-  opacity: 0.9;
+  font-size: 0.88rem;
+  color: #b6bdc9;
   white-space: nowrap;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 #dashboardHeader .header-user-email-value.non-owner {
   color: #ff6b6b;
   opacity: 1;
   font-weight: 600;
 }
+/* Pill button, matching home.css's .btn-outline. */
 #dashboardHeader .header-logout-btn {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.4);
-  color: #fff;
-  padding: 0.25rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.78rem;
+  appearance: none;
+  background: transparent;
+  border: 1px solid #365fb6;
+  color: #e9ecf1;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   cursor: pointer;
   transition: background 0.2s;
   white-space: nowrap;
 }
 #dashboardHeader .header-logout-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(76, 139, 245, 0.1);
 }
 
-/* Upload button: hidden by default, shown when .owner is on the header */
-#uploadLogoBtn {
-  background: #00aaff;
-  border: none;
-  color: #fff;
-  padding: 0.4rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  display: none;
-}
-#uploadLogoBtn:hover {
-  background: #008fcc;
-}
-#dashboardHeader.owner #uploadLogoBtn {
-  display: inline-block;
-}
-/* Make the entire dashboard white */
+/* The dashboard's own content area (cards, charts, etc.) stays on its
+   existing light background — only the header itself adopts the home
+   page's dark styling. */
 body, .container, .dashboard-container, .leftside, .middle, .rightside {
   background: #fff !important;
 }
 
-/* Sticky top header */
-#dashboardHeader {
-  position: sticky;
-  top: 0;
+/* Portal footer — bookends #dashboardHeader above with the exact same
+   dark bar/logo treatment (same colors as home.css's own dark theme:
+   #0b0c10 background, #e9ecf1 text, #b6bdc9 muted, #4c8bf5 accent — see
+   home.css :root), so the app reads as one consistent design top-to-
+   bottom rather than a light dashboard with an unrelated dark header. */
+.portal-footer {
+  background: #0b0c10;
+  color: #e9ecf1;
+  padding: 28px 28px 18px;
+  margin-top: 40px;
+}
+.portal-footer-grid {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(0deg, #102841, #8e95d1);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  z-index: 1000;
-  color: #fff;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #222433;
 }
-
-
-
-/* Center titles */
-#dashboardHeader .header-center {
-  text-align: center;
-  flex: 1;
-  margin: 0 1rem;
-}
-
-
-/* Right section */
-#dashboardHeader .header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.4rem;
-}
-#dashboardHeader .header-right-top {
-  display: flex;
+.portal-footer-brand { max-width: 320px; }
+/* White badge behind the logo, same reasoning as #dashboardHeader
+   .logo-wrapper above — the mark isn't guaranteed to read well placed
+   directly on the dark bar, so it gets the same light backdrop there. */
+.portal-footer-logo-wrap {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-}
-#dashboardHeader .logo-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 4px;
-  overflow: hidden;
+  justify-content: center;
   background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
 }
-#dashboardHeader .logo-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.portal-footer-logo { height: 26px; width: auto; display: block; }
+.portal-footer-brand p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #b6bdc9;
 }
-
-/* Signed-in user + logout, shown under the company logo */
-#dashboardHeader .header-user-row {
+.portal-footer-links {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+}
+.portal-footer-links a {
+  color: #b6bdc9;
+  font-size: 0.86rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.portal-footer-links a:hover { color: #4c8bf5; }
+.portal-footer-bottom {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-}
-#dashboardHeader .header-user-email {
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 14px;
   font-size: 0.78rem;
-  opacity: 0.9;
-  white-space: nowrap;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #8a92a3;
 }
-#dashboardHeader .header-user-email-value.non-owner {
-  color: #ff6b6b;
-  opacity: 1;
-  font-weight: 600;
-}
-#dashboardHeader .header-logout-btn {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.4);
-  color: #fff;
-  padding: 0.25rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  white-space: nowrap;
-}
-#dashboardHeader .header-logout-btn:hover {
-  background: rgba(255,255,255,0.3);
-}
-
-/* Upload button: hidden by default, shown when .owner is on the header */
-#uploadLogoBtn {
-  background: #00aaff;
-  border: none;
-  color: #fff;
-  padding: 0.4rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  display: none;
-}
-#uploadLogoBtn:hover {
-  background: #008fcc;
-}
-#dashboardHeader.owner #uploadLogoBtn {
-  display: inline-block;
-}
-/* make that 🌟 Upload Logo 🌟 label look like a button */
-.upload-logo-label {
-  background: #00aaff;
-  color: #fff;
-  padding: 0.4rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s;
-  display: inline-block;
-}
-.upload-logo-label:hover {
-  background: #008fcc;
-}
-
-/* only show it for the owner */
-#dashboardHeader .upload-logo-label {
-  display: none;
-}
-#dashboardHeader.owner .upload-logo-label {
-  display: inline-block;
+.portal-footer-bottom p { margin: 0; }
+.portal-footer-bottom a { color: #8a92a3; text-decoration: none; }
+.portal-footer-bottom a:hover { color: #4c8bf5; }
+@media (max-width: 640px) {
+  .portal-footer-grid { flex-direction: column; }
 }

@@ -1,0 +1,64 @@
+/* Public/style/dr-progress.css — shared indeterminate progress overlay
+   (see dr-progress.js). Same overlay-dim convention as .dr-modal-overlay
+   (change-report.css) for visual consistency, but not dismissible by the
+   user — it reflects real in-flight work (Run Analysis, an import),
+   closed only by that work finishing. */
+
+.dr-progress-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 4, 40, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  z-index: 10001; /* above .dr-modal-overlay */
+  padding: 20px;
+}
+.dr-progress-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.dr-progress-box {
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 20px 60px rgba(0, 4, 40, 0.35);
+  padding: 24px 28px;
+  text-align: center;
+}
+
+.dr-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: #e2e5ea;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.dr-progress-bar-fill {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, #2a78d6, #004e92);
+  border-radius: 999px;
+  animation: dr-progress-slide 1.1s ease-in-out infinite;
+}
+@keyframes dr-progress-slide {
+  0%   { left: -40%; }
+  60%  { left: 100%; }
+  100% { left: 100%; }
+}
+
+.dr-progress-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #33404f;
+}

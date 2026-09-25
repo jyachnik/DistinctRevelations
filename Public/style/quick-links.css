@@ -1,0 +1,257 @@
+/* Public/style/quick-links.css — small "Go to Q&A" / "Go to Files" links
+   in the bottom-right corner of every card/section (see quick-links.js).
+   Kept intentionally tiny so it fits in existing corner whitespace
+   instead of needing to resize the card or its chart/table above it. */
+
+/* Excludes .report-index-card — it never gets quick-links treatment
+   (excluded in quick-links.js) but WAS still picking up this rule, and
+   since .card and .report-index-card carry equal specificity (one class
+   each), this rule — loaded LAST of every stylesheet in <head> — won the
+   position property by source order, silently overriding that card's own
+   position:fixed the entire time no matter how that rule itself was
+   written. Same equal-specificity/load-order trap as the th[data-sort]
+   sticky-header bug elsewhere in this app, just without even a
+   specificity difference this time. */
+.card:not(.report-index-card),
+#qnaSection {
+  position: relative; /* anchors the absolutely-positioned corner links */
+}
+
+.quick-links-corner {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  display: flex;
+  gap: 8px;
+  z-index: 1;
+}
+
+.quick-links-corner a {
+  font-size: 0.62rem;
+  line-height: 1;
+  color: #2a78d6;
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+.quick-links-corner a:hover {
+  text-decoration: underline;
+  opacity: 1;
+  color: #000;
+  font-weight: 700;
+}
+
+/* "About this chart" info button (see chart-info.js) — sits on the card's
+   OUTER top-right corner, half outside the border (a small round badge),
+   rather than tucked inside the card's own padding. Hovering it reveals
+   the info panel right there (no click needed to preview); clicking still
+   opens the full window.drModal popup too, for touch devices and anyone
+   who wants to keep it open while reading. .chart-info-wrap is what's
+   absolutely positioned against .card (the nearest position:relative
+   ancestor, set inline by chart-info.js) — the button/panel inside it are
+   both positioned relative to the wrap itself, not the card, so this
+   works identically regardless of which DOM parent the wrap got appended
+   into. */
+.chart-info-wrap {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 6;
+}
+.chart-info-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 50%;
+  background: #fff;
+  padding: 0;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  opacity: 0.85;
+}
+.chart-info-btn:hover {
+  opacity: 1;
+}
+.chart-info-panel {
+  display: none;
+  position: absolute;
+  top: 26px;
+  right: 0;
+  width: 280px;
+  max-width: 80vw;
+  background: #fff;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-text-primary, #333);
+  text-align: left;
+}
+.chart-info-panel p { margin: 0 0 8px; }
+.chart-info-panel p:last-child { margin-bottom: 0; }
+.chart-info-panel dl { margin: 0 0 8px; }
+.chart-info-panel dt { font-weight: 700; margin-top: 6px; }
+.chart-info-panel dd { margin: 0 0 4px 0; }
+.chart-info-wrap:hover .chart-info-panel,
+.chart-info-wrap:focus-within .chart-info-panel {
+  display: block;
+}
+@media (max-width: 640px) {
+  /* No hover on touch — the panel would be unreachable, so clicking the
+     button (which still opens the full modal) is the only path there. */
+  .chart-info-panel { display: none !important; }
+}
+
+/* AI Insight box (see ai-insights.js) — sits at the end of a card's own
+   content, just above where .quick-links-corner floats over the bottom-
+   right corner; the bottom margin clears that corner so the two never
+   overlap. margin-top:auto pins it to the bottom of the card whenever the
+   card itself is a flex column (every card in the top summary row and the
+   charts row already is — see dashboard1.css/projectStatus.css/etc.), so
+   insight boxes land at the same Y position across a row of equal-height
+   cards instead of drifting with however much content sits above each. */
+.ai-insight-box {
+  /* Bottom margin increased (18px -> 26px) — .quick-links-corner is
+     position:absolute against the CARD's own bottom edge (bottom:4px),
+     so it doesn't get "pushed down" by this box's own margin the way a
+     normal sibling would; it only ever gets clearance if the box's
+     content genuinely ends far enough above where the corner sits. */
+  margin: 8px 0 26px;
+  margin-top: auto;
+  padding: 6px 10px 0;
+  background: transparent;
+  /* Left, not center — a multi-line centered paragraph reads ragged on
+     both edges; left keeps one clean edge and reads as a single aligned
+     block regardless of how many lines it wraps to, and matches the
+     icon now sitting inline before the first word (see ai-insights.js)
+     rather than needing its own centered line. */
+  text-align: left;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #333;
+}
+.ai-insight-label {
+  margin-right: 2px;
+}
+.ai-insight-text {
+  font-style: italic;
+}
+.ai-insight-text strong {
+  font-weight: 700;
+}
+/* Hard 2-line visual cap — see ai-insights.js's applyText(), which
+   stopped trying to measure and pixel-trim this itself (a fragile
+   approach that reproducibly failed to ever clamp for a handful of
+   cards, never root-caused) in favor of just always rendering the FULL
+   text and letting CSS clamp it. -webkit-line-clamp is well-supported
+   cross-browser today despite the prefix (Chrome/Edge/Safari/Firefox
+   68+). The "…more detail" button (a sibling right after this, only
+   rendered at all past a length threshold) opens the complete,
+   unclamped text in a modal regardless of exactly where this cuts off. */
+.ai-insight-headline {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.ai-insight-viewmore {
+  display: inline-block;
+  margin-top: 2px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 600;
+  color: #2a78d6;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ai-insight-viewmore:hover {
+  text-decoration: underline;
+}
+
+/* "View more" popup body (window.drModal.open, see ai-insights.js) */
+.dr-insight-modal-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #1c2733;
+}
+.dr-insight-modal-text strong {
+  font-weight: 700;
+}
+
+/* Cross-reference codes (D-003, A-055, ISS-001, ACT-01, M-01, etc.) —
+   see Public/JS/dr-cross-refs.js. Same inline-link treatment as
+   .ai-insight-viewmore above, just bold (the code itself is the
+   at-a-glance part of the sentence). */
+.dr-ref-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-style: normal;
+  font-weight: 700;
+  color: #2a78d6;
+  cursor: pointer;
+}
+.dr-ref-link:hover {
+  text-decoration: underline;
+}
+
+/* Cross-reference detail popup (window.drModal.open, see dr-cross-refs.js) */
+.dr-ref-summary {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #1c2733;
+}
+.dr-ref-field {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #333;
+}
+.dr-ref-field-label {
+  font-weight: 600;
+  color: #555;
+}
+.dr-ref-found-in {
+  margin: 12px 0 10px;
+  font-size: 0.8rem;
+  color: #666;
+}
+.dr-ref-goto-btn {
+  border: 1px solid #004e92;
+  background: #fff;
+  color: #004e92;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dr-ref-goto-btn:hover {
+  background: #f0f6ff;
+}
+.dr-ref-no-access {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #999;
+  font-style: italic;
+}
+
+/* Brief highlight flash on the target card after "Go to <card>" jumps to
+   it — confirms which card scrollIntoView actually landed on. */
+.dr-ref-highlight {
+  outline: 3px solid #2a78d6;
+  outline-offset: 2px;
+  transition: outline-color 1.2s ease;
+}

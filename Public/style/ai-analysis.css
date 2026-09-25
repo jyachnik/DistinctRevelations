@@ -1,0 +1,184 @@
+/* Public/style/ai-analysis.css
+   AI Project Analysis panel (above the Gantt Timeline, see ai-analysis.js)
+   and the Insight Mode settings panel (see insight-mode-settings.js).
+   Reuses the .dr-modal-* palette (change-report.css) for visual
+   consistency with the app's other modals — same blue/navy header
+   gradient, same muted grays — rather than introducing a new look. */
+
+.ai-analysis-card {
+  border: 1px solid #e2e5ea;
+  border-left: 6px solid var(--color-primary, #004e92);
+  margin-bottom: 16px;
+}
+.ai-analysis-card .section-header h2 {
+  margin-bottom: 2px;
+  text-align: center;
+}
+.ai-analysis-card .section-header .section-subtext {
+  text-align: center;
+}
+
+.ai-analysis-body {
+  padding: 2px 0 6px;
+}
+
+.ai-analysis-summary {
+  margin: 0 0 10px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: #1c2733;
+}
+.ai-analysis-summary.is-placeholder {
+  color: #8a92a0;
+  font-style: italic;
+}
+
+.ai-analysis-prev-review {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  background: #f2f0fb;
+  border-left: 3px solid #4a3aa7;
+  border-radius: 4px;
+  font-size: 0.84rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: #33404f;
+}
+.ai-analysis-prev-review strong {
+  font-weight: 700;
+}
+
+.ai-analysis-watchlist {
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-watch-item {
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: #33404f;
+  background: #f5f8fc;
+  border-left: 3px solid #eb6834;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+.ai-watch-what {
+  font-weight: 600;
+}
+.ai-watch-what::before {
+  content: '🔎 ';
+}
+.ai-watch-viewmore {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-left: 2px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #2a78d6;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ai-watch-viewmore:hover {
+  text-decoration: underline;
+}
+
+.ai-analysis-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f3;
+  flex-wrap: wrap;
+}
+.ai-analysis-meta {
+  font-size: 0.74rem;
+  color: #8a92a0;
+}
+.ai-analysis-run-btn {
+  border: none;
+  background: #004e92;
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ai-analysis-run-btn:hover { background: #003b70; }
+.ai-analysis-run-btn:disabled { background: #a9b3bf; cursor: default; }
+
+.ai-analysis-mode-note {
+  font-size: 0.74rem;
+  color: #8a92a0;
+}
+
+/* ---------- Insight Mode settings panel ---------- */
+.insight-mode-desc {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: #5a6472;
+}
+.insight-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  color: #33404f;
+}
+.insight-mode-option:hover { border-color: #a9c6ea; }
+.insight-mode-option input { margin-top: 3px; }
+
+/* ---------- Notification Phone Number settings panel ---------- */
+.notification-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.86rem;
+  color: #33404f;
+  margin-bottom: 12px;
+}
+.notification-settings-field input {
+  padding: 8px 10px;
+  border: 1px solid #d5d9e0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.notification-settings-field input.is-invalid {
+  border-color: #dd3333;
+}
+.notification-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.notification-settings-status {
+  font-size: 0.82rem;
+}
+.notification-settings-status.ok { color: #2f9e44; }
+.notification-settings-status.err { color: #dd3333; }
+
+/* ---- Summary (executive) / Detail wording ---- */
+.ai-view-toggle { display: flex; gap: 18px; margin: 4px 0 10px; font-size: 0.85rem; }
+.ai-view-toggle label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; color: #1c2733; }
+.ai-view-toggle[hidden], .ai-exec[hidden], .ai-detail[hidden] { display: none; }
+.ai-exec-headline { font-size: 1.12rem; font-weight: 700; line-height: 1.35; margin: 0 0 8px; color: #0b2545; }
+.ai-exec-assessment, .ai-exec-outlook { margin: 0 0 10px; line-height: 1.5; }
+.ai-exec-messages { margin: 0 0 12px 18px; padding: 0; line-height: 1.5; }
+.ai-exec-messages li { margin: 3px 0; }
+.ai-exec-h { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #5a6b7d; margin: 12px 0 6px; }
+.ai-exec-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.ai-exec-cards li { border: 1px solid #dfe5ec; border-left: 4px solid #c9a45c; border-radius: 6px; background: #fbfcfd; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; font-size: 0.86rem; line-height: 1.4; }
+.ai-exec-decisions li { border-left-color: #004e92; }
+.ai-exec-cards li em { font-style: normal; font-weight: 600; color: #5a6b7d; }
+.ai-analysis-card.ai-both-views .ai-detail { border-top: 1px dashed #c9d2dc; margin-top: 14px; padding-top: 12px; }

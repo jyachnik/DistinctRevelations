@@ -1,0 +1,13 @@
+{
+  "name": "distinct-revelations-rules-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test rules.test.mjs && node --test storage.test.mjs && node --test multi-project-rules.test.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.12.2",
+    "firebase-admin": "^14.2.0"
+  }
+}

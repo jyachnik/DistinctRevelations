@@ -6,9 +6,13 @@
  padding: 8px 0;         /* top/bottom 8, left/right 12 */
   margin: 4px 0;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left-width: 6px;
-  border-left-color: var(--color-primary);
+  border: 1px solid var(--color-border, #e0e0e0);
+  /* Every other card's left accent bar uses this exact full shorthand
+     with a fallback (metrics.css, projectStatus.css, projectProgress.css,
+     qnaStats.css) — this one used to split it into border-left-width/
+     border-left-color with no fallback on the color, which rendered as no
+     visible bar at all. Matching the established pattern fixes it. */
+  border-left: 6px solid var(--color-primary, #004e92);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
 }
@@ -23,7 +27,13 @@
   align-items: flex-start;
   text-align: left;
   background-color: #fbfafd;
-  margin-left: -12px;
+  /* Was margin-left:-12px — a leftover from an earlier version of
+     .qna-section that had horizontal padding to counteract; it's since
+     been reduced to 0 (see .qna-section below), so this negative margin
+     had nothing left to compensate for and just bled the header 12px
+     past the card's own left edge — squarely into the fixed Report Index
+     card's column now that this section sits right up against it. */
+  margin-left: 0;
   width: 100%;
   line-height: 20px;
   margin-top: -20px;
@@ -36,18 +46,25 @@
   color: #002b45;
   margin: 0;
   white-space: nowrap;
+  align-self: center;
 }
 .qna-header p {
   margin-top: 4px;
   font-size: 14px;
   color: #666666;
+  align-self: center;
+  text-align: center;
 }
 
 /* ─── Controls Row ─── */
 .qna-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;  /* filters sit at bottom */
+  flex-wrap: wrap;
+  /* Filters now live inline inside .qna-form-row, pushed to the extreme
+     right via .qna-filters' margin-left:auto — see qna-form-row/qna-filters
+     below — rather than their own separate row. */
+  justify-content: flex-start;
+  align-items: flex-start;
   gap: var(--space-xs);
   margin-bottom: var(--space-sm);
   padding: 0 var(--space-md);
@@ -57,24 +74,39 @@
 .qna-form {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: var(--space-xxs);
   margin: 0 0 4px;
   padding: 0 12px;             /* match header/table padding */
 }
-.qna-form textarea {
+/* Message and Response textareas side by side, an exact 50%/50% grid
+   (not flex-basis calc, which didn't reliably split evenly) — .qna-form-row
+   (Type/Assigned/Due/Add/filters) still wraps to its own full-width line
+   below. */
+.qna-form-textareas {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xxs);
+}
+.qna-form-textareas textarea {
+  width: 100%;
+  min-width: 0;
   padding: 0;
   height: 60px;
   font-size: var(--font-size-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   resize: vertical;
+  box-sizing: border-box;
 }
 
-/* ─── Form Row (selects + add) ─── */
+/* ─── Form Row (selects + add + filters) ─── */
 .qna-form-row {
+  flex: 1 1 100%; /* always its own full-width line, below the 2-column textareas above */
   display: flex;
-  gap: 0;  /* flush against each other */
+  flex-wrap: wrap;
+  gap: 0;  /* flush against each other; filters below overrides its own gap */
   align-items: center;
   margin: 0;
 }
@@ -93,13 +125,37 @@
   color: #fff;
   border: none;
 }
+/* Shown only while editing an existing item (see qna.js's startEdit/
+   cancelEdit) — returns the form to "Add" mode without saving. */
+.qna-cancel-edit-btn {
+  height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #6c757d;
+  color: #fff;
+  cursor: pointer;
+}
+.qna-cancel-edit-btn:hover {
+  background: #575d63;
+}
 
-/* ─── Filters (stacked at right) ─── */
+/* ─── Filters — same line as Type/Assigned/Due/Add, pushed to the
+   extreme right of .qna-form-row via margin-left:auto ─── */
 .qna-filters {
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-xxs);
-  margin: 0;
+  margin: 0 0 0 auto;
+}
+.qna-filters-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary, #666);
+  margin-right: 2px;
 }
 .qna-filters select {
   height: 28px;
@@ -116,7 +172,14 @@
   overflow-y: auto;
   overflow-x: auto;
   margin-top: 4px;
-  padding: 0 12px 8px;         /* same 12px left/right */
+  /* Was 12px — .milestone-section (the card right above this one in the
+     page, and the one users compare it against) insets ITS table 20px
+     from its own card edge; at 12px, Q&A's table right edge landed 8px
+     closer to its card's true edge than Milestone's does, even though the
+     two CARDS are now (as of the width fix) exactly the same width —
+     making the tables look misaligned despite the cards themselves
+     lining up. Matching the 20px inset fixes that. */
+  padding: 0 20px 8px;
 }
 .qna-table-wrapper::-webkit-scrollbar {
   width: 6px;
@@ -129,7 +192,13 @@
 /* ─── Table ─── */
 .qna-table {
   width: 100%;
-  min-width: 760px;
+  /* Was 760px — File Manager sits in an identically-wide card right below
+     this one (both full-width rows in #filesQnaRow) but only needs
+     620px, so whenever the row narrowed below 760px, Q&A alone popped a
+     horizontal scrollbar while File Manager stayed scroll-free right
+     underneath it — same floor as File Manager now, so both behave the
+     same way at the same width instead of one looking "too wide". */
+  min-width: 620px;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
@@ -138,6 +207,15 @@
 .qna-table td {
   padding: 4px 6px;
   border-bottom: 1px solid var(--color-border);
+  /* Every short/fixed-vocab column centers (Type, Responded, Assigned To,
+     Due Date, Status, Done, Actions) — Message/Response stay left below,
+     same "long-form free text stays left" convention used for
+     Description/Statement/Notes elsewhere in this app (see metrics.css's
+     .risk-assumptions-table-wrap :not(.wrap-text) comment). */
+  text-align: center;
+}
+.qna-table td:nth-child(2),
+.qna-table td:nth-child(3) {
   text-align: left;
 }
 /* Every header cell centered, matching File Manager/Activity Log's table
@@ -348,7 +426,14 @@
    (#007bff), not the darker #004e92 this used before, so every table in
    the app has the same header color instead of Q&A being the odd one
    out. */
-.qna-table-wrapper .qna-table thead th {
+.qna-table-wrapper .qna-table thead th,
+#qna-table thead th {
+  /* ID selector (#qna-table) needed alongside the class-based one above —
+     metrics.css's global ".qna-section table thead th[data-sort]" rule
+     sets position:relative at higher specificity than the 2-class
+     selector alone, which silently broke sticky on every sortable column
+     (this table's columns are all data-sort) — same bug already fixed
+     for the Assumptions/Risk/Constraints/Quality/Issue logs elsewhere. */
   position: sticky;
   top: 0;
   z-index: 10;
@@ -370,10 +455,6 @@
   text-align: center !important;
 }
 
-/* And if needed, push the Q&A down to align */
-.qna-section {
-  margin-top: 2rem;
-}
 
 /* Center the Done column header & cells (Done is column 8) */
 .qna-table th:nth-child(8),
@@ -432,4 +513,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Final column-width pass (deliberately placed last so it wins over the
+   several earlier width blocks above, all same nth-child specificity) —
+   Message and Response are the actual free-text user-input content
+   (the question and its answer), so they get the bulk of the row's
+   width; every metadata column (Type, Responded, Assigned To, Due Date,
+   Status, Done) shrinks to whatever it actually needs for its own header
+   text, rather than each claiming a similar-sized share by default.
+   Actions stays a fixed 120px (icons only, set above) — not a
+   percentage, so it isn't part of this rebalance. */
+.qna-table th:nth-child(1), .qna-table td:nth-child(1) { width: 7%; }
+.qna-table th:nth-child(2), .qna-table td:nth-child(2) { width: 27%; }
+.qna-table th:nth-child(3), .qna-table td:nth-child(3) { width: 23%; }
+.qna-table th:nth-child(4), .qna-table td:nth-child(4) { width: 10%; }
+.qna-table th:nth-child(5), .qna-table td:nth-child(5) { width: 9%; }
+.qna-table th:nth-child(6), .qna-table td:nth-child(6) { width: 7%; }
+.qna-table th:nth-child(7), .qna-table td:nth-child(7) { width: 5%; }
+.qna-table th:nth-child(8), .qna-table td:nth-child(8) { width: 4%; }
 

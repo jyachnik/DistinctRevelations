@@ -28,6 +28,23 @@
     console.warn('[business-loader] No business key found (URL or localStorage)');
   }
 
+  // Phase 2 of the multi-project feature — resolve/persist the project id
+  // the same way the business key just was above. Every business always
+  // has at least the auto-created 'default' project (see
+  // functions/index.js's ensureDefaultProject/mirror functions, and
+  // select-project.js's own treatment of 'default' as the implicit
+  // project when nothing's been explicitly picked), so this now always
+  // resolves to a real value instead of leaving window.PROJECT_KEY
+  // undefined — every card module reading it can assume it's set, the
+  // same guarantee window.BIZ_KEY already provides.
+  const projFromUrl = (params.get('project') || '').trim();
+  const projFromLS = (localStorage.getItem('projectKey') || '').trim();
+  const proj = projFromUrl || projFromLS || 'default';
+  try { localStorage.setItem('projectKey', proj); } catch (_) {}
+  try { sessionStorage.setItem('projectKey', proj); } catch (_) {}
+  window.PROJECT_KEY = proj;
+  window.dispatchEvent(new CustomEvent('project:ready', { detail: { projectId: proj } }));
+
   // Optional: kick File Manager after auth (keeps your previous behavior)
   const { auth } = window;
   if (auth && typeof auth.onAuthStateChanged === 'function' && biz) {

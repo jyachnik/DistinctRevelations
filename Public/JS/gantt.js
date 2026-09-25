@@ -17,6 +17,7 @@
   var db = null;
   var auth = null;
   var bizKey = null;
+  var projKey = null;
   var userEmail = null;
   var userUid = null;
   var isOwner = false;
@@ -24,6 +25,19 @@
   var milestoneDocs = [];
   var activityDocs = [];
   var container = null;
+  var wbsColumnEl = null;
+
+  // WBS + Timeline combined view — a wbs-tree key -> true/false override,
+  // set only once a row is actually clicked; every branch starts collapsed
+  // by default (see isWbsRowCollapsed) until the user opens it.
+  var collapseOverride = {};
+  // The last WBS-ordered row list buildTasks() produced (task + depth +
+  // hasChildren + collapsed + key per row) — buildTasks() itself only
+  // returns the flat frappe task array (so the existing `var tasks =
+  // buildTasks()` call site in render() needs no change); the WBS column
+  // renderer reads this side channel to know how to draw the frozen
+  // left-hand labels for exactly the rows frappe just drew.
+  var lastWbsRows = [];
 
   // Tracks whichever view mode the user last picked from the dropdown, so
   // a fresh render (e.g. from a Firestore update) reopens on the same
@@ -64,12 +78,24 @@
     bizKey = fromUrl || fromLocal || window.BIZ_KEY || bizKey;
     if (!bizKey) { warn('no business key; cannot load gantt'); return false; }
 
+    // Multi-project cutover — every business always has at least the
+    // auto-created 'default' project (dashboard-business-loader.js
+    // guarantees window.PROJECT_KEY is set by the time this runs).
+    projKey = window.PROJECT_KEY || projKey || 'default';
+
     var user = auth.currentUser;
     var email = (user && user.email) || userEmail || '';
     userEmail = email;
     userUid = (user && user.uid) || userUid;
     isOwner = !!email && !!OWNER_EMAIL && email.toLowerCase() === OWNER_EMAIL.toLowerCase();
     return true;
+  }
+
+  // Multi-project cutover — every milestones/activities read or write in
+  // this file goes through here rather than businesses/{bizKey} directly.
+  function projRef() {
+    return db.collection('businesses').doc(bizKey)
+      .collection('projects').doc(projKey || 'default');
   }
 
   // ---------- Date helpers ----------
@@ -101,6 +127,34 @@
     var r = new Date(d.getTime());
     r.setDate(r.getDate() + n);
     return r;
+  }
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+  // ---------- WBS tree helpers (same logic the old standalone WBS Tree
+  // card used — a node's parent is its own wbs string with the last
+  // dot-segment removed; a node whose parent segment isn't itself present
+  // becomes a root, adapting to whatever numbering convention the import
+  // used) ----------
+  function parentWbs(wbs) {
+    var parts = String(wbs).split('.');
+    if (parts.length <= 1) return null;
+    return parts.slice(0, -1).join('.');
+  }
+  function wbsCompare(a, b) {
+    var pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+    var len = Math.max(pa.length, pb.length);
+    for (var i = 0; i < len; i++) {
+      var va = pa[i] || 0, vb = pb[i] || 0;
+      if (va !== vb) return va - vb;
+    }
+    return 0;
+  }
+  // Default (never-clicked) collapsed state: every branch starts
+  // collapsed. Once a row has actually been clicked, its real state lives
+  // in collapseOverride instead.
+  function isWbsRowCollapsed(key, depth) {
+    return Object.prototype.hasOwnProperty.call(collapseOverride, key) ? collapseOverride[key] : true;
   }
 
   // Rounds down to the start of whatever unit the active view mode uses
@@ -142,12 +196,14 @@
     return Math.round(map[key] !== undefined ? map[key] : days);
   }
 
-  // Draws a thin vertical "today" marker directly into the Gantt's own
-  // SVG grid, at the same x-coordinate Frappe would compute for a bar
+  // Draws a thin dashed vertical "today" line directly into the Gantt's
+  // own SVG grid, at the same x-coordinate Frappe would compute for a bar
   // starting today — so it stays correctly positioned across every view
   // mode (Day through Year) and pans naturally with horizontal scroll,
   // since it lives inside the same scrollable SVG as the bars themselves
-  // rather than as a separately-positioned overlay element.
+  // rather than as a separately-positioned overlay element. Just the
+  // dashed line itself (no flag/box) — explained in the legend note
+  // instead, the same way the critical-path dashed outline is.
   function drawTodayLine(ganttInstance, container) {
     var svg = container.querySelector('svg.gantt');
     if (!svg || !ganttInstance.config || !ganttInstance.gantt_start || !ganttInstance.gantt_end) return;
@@ -169,34 +225,101 @@
     line.setAttribute('y1', 0);
     line.setAttribute('y2', svgHeight);
     svg.appendChild(line);
+  }
 
-    // A small yellow/black tab sitting right above the line, at the true
-    // top of the grid (y=0) regardless of scroll — makes "today" read as
-    // a flag pinned to the date, not just a thin line easy to miss among
-    // the grid lines and bars.
-    var tabWidth = 42, tabHeight = 15;
-    var g = document.createElementNS(ns, 'g');
-    g.setAttribute('class', 'gantt-today-tab');
+  // ---------- Frozen WBS column ----------
+  // Measures the ACTUAL rendered position of each bar (by data-id, not
+  // DOM order — safer against any future frappe render-order change) and
+  // sizes the WBS column's header spacer + per-row height to match
+  // exactly, rather than hardcoding bar_height/padding math that would
+  // silently drift if those constants ever change — same "measure the
+  // real value, don't guess" approach this file already uses elsewhere
+  // (availableWidth/fillWidthColumn, the bounds-correction block above).
+  function measureRowLayout(tasksInOrder) {
+    if (!container) return null;
+    var containerRect = container.getBoundingClientRect();
+    var tops = [];
+    for (var i = 0; i < tasksInOrder.length && tops.length < 2; i++) {
+      var el = container.querySelector('.bar-wrapper[data-id="' + tasksInOrder[i].id + '"]');
+      if (el) tops.push(el.getBoundingClientRect().top - containerRect.top);
+    }
+    if (!tops.length) return null;
+    return { headerHeight: tops[0], rowHeight: tops.length > 1 ? (tops[1] - tops[0]) : 24 };
+  }
 
-    var rect = document.createElementNS(ns, 'rect');
-    rect.setAttribute('x', x - tabWidth / 2);
-    rect.setAttribute('y', 0);
-    rect.setAttribute('width', tabWidth);
-    rect.setAttribute('height', tabHeight);
-    rect.setAttribute('rx', 3);
-    rect.setAttribute('class', 'gantt-today-tab-bg');
-    g.appendChild(rect);
+  function wbsToggleClick(e) {
+    var btn = e.target.closest('.gantt-wbs-toggle');
+    if (!btn) return;
+    var key = btn.getAttribute('data-key');
+    var depth = parseInt(btn.getAttribute('data-depth'), 10) || 0;
+    collapseOverride[key] = !isWbsRowCollapsed(key, depth);
+    render();
+  }
 
-    var label = document.createElementNS(ns, 'text');
-    label.setAttribute('class', 'gantt-today-tab-label');
-    label.setAttribute('x', x);
-    label.setAttribute('y', tabHeight / 2);
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('dominant-baseline', 'central');
-    label.textContent = 'Today';
-    g.appendChild(label);
+  function renderWbsColumn(tasksInOrder) {
+    if (!wbsColumnEl) return;
+    var layout = measureRowLayout(tasksInOrder);
+    if (!layout) { wbsColumnEl.innerHTML = ''; return; }
 
-    svg.appendChild(g);
+    // A real header, not a blank spacer — position:sticky within
+    // wbsColumnEl's own real (native) vertical scroll, so it's guaranteed
+    // by the browser to stay put while the rows scroll beneath it, the
+    // same way Frappe's own date header on the right stays fixed during
+    // vertical scroll (see wireWbsScrollSync — wbsColumnEl's scrollTop is
+    // mirrored to/from .gantt-container's, its own scrollbar hidden via
+    // CSS so only one scrollbar is ever visible).
+    var headerHtml = '<div class="gantt-wbs-header" style="height:' + layout.headerHeight + 'px">' +
+      '<div class="gantt-wbs-header-title">Tasks/Milestones</div>' +
+      '<div class="gantt-wbs-header-subtitle">Click ▸/▾ to expand or collapse a WBS phase.</div>' +
+      '<div class="gantt-wbs-header-legend">📝 Activity &nbsp; <em class="gantt-wbs-row-milestone">📌 Milestone</em></div>' +
+      '</div>';
+
+    var rowsHtml = lastWbsRows.map(function (r) {
+      var t = r.task;
+      var toggle = r.hasChildren
+        ? '<button type="button" class="gantt-wbs-toggle" data-key="' + esc(r.key) + '" data-depth="' + r.depth + '" title="' + (r.collapsed ? 'Expand' : 'Collapse') + '">' + (r.collapsed ? '▸' : '▾') + '</button>'
+        : '<span class="gantt-wbs-toggle-spacer"></span>';
+      var indent = 8 + r.depth * 16;
+      var rowClass = (t._isSummary ? ' gantt-wbs-row-summary' : '') + (t._isMilestone ? ' gantt-wbs-row-milestone' : '');
+      return '<div class="gantt-wbs-row' + rowClass + '" style="height:' + layout.rowHeight + 'px" title="' + esc(t._title) + '">' +
+        '<span class="gantt-wbs-indent" style="width:' + indent + 'px"></span>' +
+        toggle +
+        '<span class="gantt-wbs-dot" style="background:' + esc(t.color) + '"></span>' +
+        (t._wbs ? '<span class="gantt-wbs-code">' + esc(t._wbs) + '</span>' : '') +
+        '<span class="gantt-wbs-title">' + esc(t._title) + '</span>' +
+        '</div>';
+    }).join('');
+    wbsColumnEl.innerHTML = headerHtml + rowsHtml;
+
+    if (!wbsColumnEl.__wired) {
+      wbsColumnEl.__wired = true;
+      wbsColumnEl.addEventListener('click', wbsToggleClick);
+    }
+  }
+
+  // Frappe's own .gantt-container owns the real (both-axis) scrollbar, so
+  // its sticky date header keeps working natively — the WBS column just
+  // mirrors that box's vertical scroll position onto its own rows via a
+  // transform, the standard technique for a frozen column that lives in a
+  // separate DOM box from the pane that actually scrolls. Re-wired every
+  // render since Frappe rebuilds .gantt-container fresh each time
+  // (container.innerHTML is wiped at the top of render()), so there is no
+  // stale listener to guard against with a "wired once" flag here.
+  function wireWbsScrollSync() {
+    if (!container || !wbsColumnEl) return;
+    var scrollEl = container.querySelector('.gantt-container');
+    if (!scrollEl) return;
+    // Real scrollTop mirroring (not a CSS transform) — wbsColumnEl is now a
+    // genuine (native, if visually hidden) scroll container itself, so its
+    // own position:sticky header is guaranteed by the browser to stay put,
+    // rather than relying on a hand-computed offset. A guard flag stops
+    // the two listeners from bouncing off each other.
+    var syncing = false;
+    function fromChart() { if (syncing) return; syncing = true; wbsColumnEl.scrollTop = scrollEl.scrollTop; syncing = false; }
+    function fromWbs() { if (syncing) return; syncing = true; scrollEl.scrollTop = wbsColumnEl.scrollTop; syncing = false; }
+    scrollEl.addEventListener('scroll', fromChart);
+    wbsColumnEl.addEventListener('scroll', fromWbs);
+    fromChart();
   }
 
   // Hard floor: nothing before 2026 is ever shown. The chart's visible
@@ -228,103 +351,174 @@
     return '#8a8a8a'; // done / no due date
   }
 
-  // ---------- Build Frappe Gantt tasks from Firestore docs ----------
-  function buildTasks() {
-    var tasks = [];
+  // ---------- Build one Frappe task object per Firestore doc (unchanged
+  // per-item logic, just extracted so it can be called from a WBS-tree
+  // walk instead of a flat push loop) ----------
+  function makeMilestoneTask(item) {
+    var d = item.data;
+    var due = toJsDate(d.dueDate);
+    if (!due) return null; // nothing to place on the timeline without a date
+
+    due = dateOnly(due);
+    var start = toJsDate(d.startDate);
+    // start strictly AFTER due, with an explicit startDate set, is
+    // genuinely broken data — not the "no startDate yet" fallback case
+    // below, and not a 0-duration milestone either (those legitimately
+    // have start === due, which is valid, not inverted). Flag only the
+    // true inversion visibly rather than silently faking a 1-day bar,
+    // so a bad edit made before validation existed doesn't quietly look
+    // fine forever.
+    var hasInvertedDates = !!start && dateOnly(start).getTime() > due.getTime();
+    start = start ? dateOnly(start) : addDays(due, -3);
+    // Clamp the RENDERED start to the floor too, not just filter on the
+    // end date — otherwise one task with a wildly early/corrupted start
+    // (still due 2026+, so it isn't filtered out) drags Frappe's own
+    // auto-computed calendar range back with it, pulling pre-2026 years
+    // into the header even though every task in the list looks fine.
+    if (start < GANTT_FLOOR_DATE) start = GANTT_FLOOR_DATE;
+    var end = start.getTime() >= due.getTime() ? addDays(start, 1) : due;
+    if (!withinYearFloor(start, end)) return null;
+
     var today = dateOnly(new Date());
+    var occurred = due < today; // a past-dated milestone has "occurred", not "overdue"
+    var progress = typeof d.progress === 'number' ? d.progress : (occurred ? 100 : 0);
+    progress = Math.max(0, Math.min(100, progress));
+    var mChangeLog = d.changeLog || [];
+    var venue = d.status || d.location || '';
+    if (venue === 'Other' && d.locationOther) venue += ': ' + d.locationOther;
+    var title = d.title || 'Untitled milestone';
 
-    milestoneDocs.forEach(function (item) {
-      var d = item.data;
-      var due = toJsDate(d.dueDate);
-      if (!due) return; // nothing to place on the timeline without a date
+    return {
+      id: 'milestone_' + item.id,
+      name: (hasInvertedDates ? '⚠️ INVALID DATES: ' : '') + (mChangeLog.length ? '🔄 ' : '') + '📌 ' + title,
+      start: fmtISO(start),
+      end: fmtISO(end),
+      progress: progress,
+      color: ganttBarColor(d.startDate || d.createdAt, d.dueDate, occurred),
+      custom_class: d.critical ? 'gantt-critical-task' : '',
+      _collection: 'milestones',
+      _docId: item.id,
+      _changeLog: mChangeLog,
+      _detailLabel: 'Venue',
+      _detail: venue,
+      _wbs: d.wbs ? String(d.wbs).trim() : '',
+      _title: title,
+      _isMilestone: true,
+      _isSummary: false
+    };
+  }
 
-      due = dateOnly(due);
-      var start = toJsDate(d.startDate);
-      // start strictly AFTER due, with an explicit startDate set, is
-      // genuinely broken data — not the "no startDate yet" fallback case
-      // below, and not a 0-duration milestone either (those legitimately
-      // have start === due, which is valid, not inverted). Flag only the
-      // true inversion visibly rather than silently faking a 1-day bar,
-      // so a bad edit made before validation existed doesn't quietly look
-      // fine forever.
-      var hasInvertedDates = !!start && dateOnly(start).getTime() > due.getTime();
-      start = start ? dateOnly(start) : addDays(due, -3);
-      // Clamp the RENDERED start to the floor too, not just filter on the
-      // end date — otherwise one task with a wildly early/corrupted start
-      // (still due 2026+, so it isn't filtered out) drags Frappe's own
-      // auto-computed calendar range back with it, pulling pre-2026 years
-      // into the header even though every task in the list looks fine.
-      if (start < GANTT_FLOOR_DATE) start = GANTT_FLOOR_DATE;
-      var end = start.getTime() >= due.getTime() ? addDays(start, 1) : due;
-      if (!withinYearFloor(start, end)) return;
+  function makeActivityTask(item) {
+    var d = item.data;
+    var due = toJsDate(d.dueDate);
+    if (!due) return null;
 
-      var occurred = due < today; // a past-dated milestone has "occurred", not "overdue"
-      var progress = typeof d.progress === 'number' ? d.progress : (occurred ? 100 : 0);
-      var mChangeLog = d.changeLog || [];
-      var venue = d.status || d.location || '';
-      if (venue === 'Other' && d.locationOther) venue += ': ' + d.locationOther;
+    due = dateOnly(due);
+    var start = toJsDate(d.startDate);
+    // Strictly AFTER due only — start === due is a legitimate 0-day
+    // activity, not inverted data.
+    var hasInvertedDates = !!start && dateOnly(start).getTime() > due.getTime();
+    start = start ? dateOnly(start) : addDays(due, -3);
+    if (start < GANTT_FLOOR_DATE) start = GANTT_FLOOR_DATE;
+    var end = start.getTime() >= due.getTime() ? addDays(start, 1) : due;
+    if (!withinYearFloor(start, end)) return null;
 
-      tasks.push({
-        id: 'milestone_' + item.id,
-        name: (hasInvertedDates ? '⚠️ INVALID DATES: ' : '') + (mChangeLog.length ? '🔄 ' : '') + '📌 ' + (d.title || 'Untitled milestone'),
-        start: fmtISO(start),
-        end: fmtISO(end),
-        progress: Math.max(0, Math.min(100, progress)),
-        color: ganttBarColor(d.startDate || d.createdAt, d.dueDate, occurred),
-        custom_class: d.critical ? 'gantt-critical-task' : '',
-        _collection: 'milestones',
-        _docId: item.id,
-        _changeLog: mChangeLog,
-        _detailLabel: 'Venue',
-        _detail: venue
-      });
-    });
+    var isCompleted = (d.status || '').toLowerCase() === 'completed';
+    var progress = d.progress;
+    if (typeof progress !== 'number') {
+      var s = (d.status || '').toLowerCase();
+      progress = isCompleted ? 100 : s === 'in progress' ? 50 : 0;
+    }
+    progress = Math.max(0, Math.min(100, progress));
+    var aChangeLog = d.changeLog || [];
+    var title = d.title || d.activity || 'Untitled activity';
 
+    return {
+      id: 'activity_' + item.id,
+      name: (hasInvertedDates ? '⚠️ INVALID DATES: ' : '') + (aChangeLog.length ? '🔄 ' : '') + '📝 ' + title,
+      start: fmtISO(start),
+      end: fmtISO(end),
+      progress: progress,
+      color: ganttBarColor(d.startDate || d.createdAt, d.dueDate, isCompleted),
+      custom_class: d.critical ? 'gantt-critical-task' : '',
+      _collection: 'activities',
+      _docId: item.id,
+      _changeLog: aChangeLog,
+      _detailLabel: 'Description',
+      _detail: d.description || '',
+      _wbs: d.wbs ? String(d.wbs).trim() : '',
+      _title: title,
+      _isMilestone: false,
+      _isSummary: !!d.isSummary
+    };
+  }
+
+  // ---------- WBS-ordered task list ----------
+  // Groups every milestone/activity task into a WBS tree (same technique
+  // the old standalone WBS Tree card used), walks it depth-first skipping
+  // any collapsed branch, and returns the resulting flat array IN THAT
+  // ORDER — frappe-gantt draws bars top-to-bottom in array order, so
+  // controlling this array's order is what makes the timeline's row order
+  // match the WBS hierarchy. A task with no usable wbs value becomes its
+  // own root row (keyed by its own id) rather than being dropped — every
+  // dated milestone/activity that showed up in the old flat Gantt must
+  // still show up here.
+  function buildTasks() {
+    // Real imports can genuinely reuse the same WBS code for two different
+    // rows (confirmed against this project's own data — an activity and a
+    // milestone both stamped "1.1"). When that happens, whichever one
+    // claims the key first wins the children that actually belong to the
+    // real phase, and the other becomes its own (wrongly childless-or-
+    // orphaned) row — so summary/phase activities are given first claim,
+    // ahead of plain activities, ahead of milestones (a milestone is a
+    // single point in time; it is essentially never the intended parent of
+    // other tasks, so a collision there should never win the key).
+    var summaryTasks = [], otherActivityTasks = [], milestoneTasks = [];
     activityDocs.forEach(function (item) {
-      var d = item.data;
-      var due = toJsDate(d.dueDate);
-      if (!due) return;
-
-      due = dateOnly(due);
-      var start = toJsDate(d.startDate);
-      // Strictly AFTER due only — start === due is a legitimate 0-day
-      // activity, not inverted data.
-      var hasInvertedDates = !!start && dateOnly(start).getTime() > due.getTime();
-      start = start ? dateOnly(start) : addDays(due, -3);
-      if (start < GANTT_FLOOR_DATE) start = GANTT_FLOOR_DATE;
-      var end = start.getTime() >= due.getTime() ? addDays(start, 1) : due;
-      if (!withinYearFloor(start, end)) return;
-
-      var isCompleted = (d.status || '').toLowerCase() === 'completed';
-      var progress = d.progress;
-      if (typeof progress !== 'number') {
-        var s = (d.status || '').toLowerCase();
-        progress = isCompleted ? 100 : s === 'in progress' ? 50 : 0;
-      }
-      var aChangeLog = d.changeLog || [];
-
-      tasks.push({
-        id: 'activity_' + item.id,
-        name: (hasInvertedDates ? '⚠️ INVALID DATES: ' : '') + (aChangeLog.length ? '🔄 ' : '') + '📝 ' + (d.title || d.activity || 'Untitled activity'),
-        start: fmtISO(start),
-        end: fmtISO(end),
-        progress: Math.max(0, Math.min(100, progress)),
-        color: ganttBarColor(d.startDate || d.createdAt, d.dueDate, isCompleted),
-        custom_class: d.critical ? 'gantt-critical-task' : '',
-        _collection: 'activities',
-        _docId: item.id,
-        _changeLog: aChangeLog,
-        _detailLabel: 'Description',
-        _detail: d.description || ''
-      });
+      var t = makeActivityTask(item);
+      if (!t) return;
+      (t._isSummary ? summaryTasks : otherActivityTasks).push(t);
     });
+    milestoneDocs.forEach(function (item) { var t = makeMilestoneTask(item); if (t) milestoneTasks.push(t); });
+    var rawTasks = summaryTasks.concat(otherActivityTasks, milestoneTasks);
 
-    return tasks;
+    var byKey = {};
+    rawTasks.forEach(function (t) {
+      var key = t._wbs || ('__no_wbs__' + t.id);
+      while (byKey[key]) key = key + '_dup'; // collision guard (see above) — never drop a task
+      byKey[key] = { task: t, children: [], key: key };
+    });
+    var roots = [];
+    Object.keys(byKey).forEach(function (key) {
+      var node = byKey[key];
+      var parentKey = node.task._wbs ? parentWbs(node.task._wbs) : null;
+      if (parentKey && byKey[parentKey]) byKey[parentKey].children.push(node);
+      else roots.push(node);
+    });
+    function sortKeyOf(node) { return node.task._wbs || node.key; }
+    function sortRec(node) {
+      node.children.sort(function (a, b) { return wbsCompare(sortKeyOf(a), sortKeyOf(b)); });
+      node.children.forEach(sortRec);
+    }
+    roots.sort(function (a, b) { return wbsCompare(sortKeyOf(a), sortKeyOf(b)); });
+    roots.forEach(sortRec);
+
+    var rows = [];
+    function walk(node, depth) {
+      var hasChildren = node.children.length > 0;
+      var collapsed = hasChildren && isWbsRowCollapsed(node.key, depth);
+      rows.push({ task: node.task, depth: depth, hasChildren: hasChildren, collapsed: collapsed, key: node.key });
+      if (hasChildren && !collapsed) node.children.forEach(function (c) { walk(c, depth + 1); });
+    }
+    roots.forEach(function (r) { walk(r, 0); });
+
+    lastWbsRows = rows;
+    return rows.map(function (r) { return r.task; });
   }
 
   // ---------- Persist owner edits (with a visible change history) ----------
   function taskRef(task) {
-    return db.collection('businesses').doc(bizKey).collection(task._collection).doc(task._docId);
+    return projRef().collection(task._collection).doc(task._docId);
   }
 
   function sourceDocData(task) {
@@ -428,7 +622,7 @@
       (window.drDateFmt ? window.drDateFmt.date(task._start) : task.start) +
       ' – ' +
       (window.drDateFmt ? window.drDateFmt.date(task._end) : task.end) +
-      ' · ' + task.progress + '% complete' +
+      ' · <span style="color:' + esc(task.color) + ';font-weight:700">' + task.progress + '% complete</span>' +
       '</div>';
 
     if (task._detail) {
@@ -476,7 +670,40 @@
 
     if (!tasks.length) {
       container.innerHTML = '<p class="gantt-empty">No dated milestones or activities yet — add a due date to a milestone or activity to see it here.</p>';
+      if (wbsColumnEl) wbsColumnEl.innerHTML = '';
+      if (window.drInsight) window.drInsight.set('ganttSection', '');
       return;
+    }
+
+    if (window.drInsight) {
+      var todayIso = fmtISO(dateOnly(new Date()));
+      var overdueTasks = tasks.filter(function (t) { return t.end < todayIso && t.progress < 100; });
+      var criticalTasks = tasks.filter(function (t) { return t.custom_class === 'gantt-critical-task'; });
+      var upcoming = tasks.filter(function (t) { return t.end >= todayIso; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
+      // The single worst offender — most overdue, least progress — named
+      // specifically so the reader has one concrete bar to go click on
+      // instead of a bare count. changedTasks (🔄-marked) get first look
+      // since "what changed" is usually the more useful click.
+      var changedTasks = overdueTasks.filter(function (t) { return t.name.indexOf('🔄') !== -1; });
+      var worst = (changedTasks.length ? changedTasks : overdueTasks).slice().sort(function (a, b) {
+        return a.end < b.end ? -1 : (a.end > b.end ? 1 : a.progress - b.progress);
+      })[0];
+
+      var text = tasks.length + ' item' + (tasks.length === 1 ? '' : 's') + ' on the timeline';
+      if (overdueTasks.length) {
+        text += ', ' + overdueTasks.length + ' past due.';
+      } else {
+        text += ', none past due.';
+      }
+      if (criticalTasks.length) {
+        text += ' ' + criticalTasks.length + ' flagged critical path.';
+      }
+      if (worst) {
+        text += ' Click into "' + worst.name.replace(/^[^\w]*/, '') + '" (due ' + worst.end + ', ' + Math.round(worst.progress) + '% complete) to see what changed and why it slipped.';
+      } else if (upcoming) {
+        text += ' Next up: ' + upcoming.name.replace(/^[^\w]*/, '') + ' (due ' + upcoming.end + ').';
+      }
+      window.drInsight.set('ganttSection', text);
     }
 
     if (typeof window.Gantt !== 'function') {
@@ -517,6 +744,11 @@
           ' (earliest: "' + earliestTask.name + '", latest: "' + latestTask.name + '")'
         : '';
     }
+    // Reset here too (not just where it's populated below) so a render
+    // that skips the correction step entirely doesn't leave a stale
+    // second line from a previous render still showing.
+    var boundsNoteGridElReset = document.getElementById('ganttBoundsNoteGrid');
+    if (boundsNoteGridElReset) boundsNoteGridElReset.textContent = '';
 
     // Every Frappe built-in view mode pads the grid beyond the actual task
     // dates (Month: 2 months, Year: 2 years, Week: 1 month) — that padding
@@ -735,6 +967,19 @@
         if (correctedStart < GANTT_FLOOR_DATE) correctedStart = GANTT_FLOOR_DATE;
         var correctedEnd = endOfUnitExclusive(toJsDate(latestTask.end), unit);
 
+        // Widen the corrected range to always include today, even if every
+        // imported task's dates fall entirely before or after it (e.g. the
+        // schedule's last milestone already occurred, or nothing has
+        // started yet). Without this, drawTodayLine()'s own
+        // today < gantt_start || today > gantt_end guard silently drops
+        // the yellow "Today" marker any time the real task data doesn't
+        // happen to straddle today's date — exactly the case for a
+        // project whose latest imported milestone is already in the past.
+        var todayFloor = startOfUnit(new Date(), unit);
+        var todayCeil = endOfUnitExclusive(new Date(), unit);
+        if (correctedStart > todayFloor) correctedStart = todayFloor;
+        if (correctedEnd < todayCeil) correctedEnd = todayCeil;
+
         // Applied UNCONDITIONALLY now, not just when gantt_start/gantt_end
         // already look wrong — comparing Frappe's own computed bounds
         // against the target and skipping the correction when they
@@ -769,9 +1014,12 @@
         // Visible confirmation of what the grid actually ended up showing
         // after the correction attempt, whether it succeeded or not — lets
         // a mismatch against the "Showing ..." target above be spotted
-        // directly on the page without devtools.
-        if (boundsNoteEl) {
-          boundsNoteEl.textContent += ' | grid: ' +
+        // directly on the page without devtools. Its own second footer
+        // line (centered, underneath the first), not appended onto the
+        // "Showing ..." line.
+        var boundsNoteGridEl = document.getElementById('ganttBoundsNoteGrid');
+        if (boundsNoteGridEl) {
+          boundsNoteGridEl.textContent = 'grid: ' +
             (ganttInstance.gantt_start && ganttInstance.gantt_start.toDateString()) + ' → ' +
             (ganttInstance.gantt_end && ganttInstance.gantt_end.toDateString());
           // Decisive check: compares Frappe's internal this.dates array
@@ -784,7 +1032,7 @@
             var firstDrawn = container.querySelector('.upper-text');
             var upperTexts = container.querySelectorAll('.upper-text');
             var lastDrawn = upperTexts.length ? upperTexts[upperTexts.length - 1] : null;
-            boundsNoteEl.textContent += ' | dates[]: ' +
+            boundsNoteGridEl.textContent += ' | dates[]: ' +
               ganttInstance.dates[0].toDateString() + ' … ' +
               ganttInstance.dates[ganttInstance.dates.length - 1].toDateString() +
               ' (' + ganttInstance.dates.length + ' cols) | painted header: "' +
@@ -842,6 +1090,8 @@
       lastRenderedViewMode = currentViewMode;
 
       drawTodayLine(ganttInstance, container);
+      renderWbsColumn(tasks);
+      wireWbsScrollSync();
 
       // #ganttViewModeGroup lives outside this container (in
       // dashboard.html), so unlike everything above it survives the
@@ -869,9 +1119,116 @@
       } else {
         warn('#ganttViewModeGroup not found in the DOM — check dashboard.html has that markup');
       }
+
+      // Up/down/left/right page-scroll buttons — same "outside this
+      // container, survives the innerHTML wipe, wire once" reasoning as
+      // the view-mode buttons above. The scroll target itself
+      // (.gantt-container) IS recreated on every render, so that's
+      // looked up fresh inside each click handler rather than cached.
+      var pageUpBtn = document.getElementById('ganttPageUp');
+      var pageDownBtn = document.getElementById('ganttPageDown');
+      var pageLeftBtn = document.getElementById('ganttPageLeft');
+      var pageRightBtn = document.getElementById('ganttPageRight');
+      function scrollGanttByPage(axis, direction) {
+        var scrollEl = container.querySelector('.gantt-container');
+        if (!scrollEl) return;
+        // A smaller step per click (was 90% of the viewport, nearly a
+        // full page — too large a jump per click) so each press moves a
+        // controlled, readable amount instead.
+        var size = (axis === 'x' ? scrollEl.clientWidth : scrollEl.clientHeight) * 0.25;
+        var opts = { behavior: 'smooth' };
+        opts[axis === 'x' ? 'left' : 'top'] = direction * size;
+        scrollEl.scrollBy(opts);
+      }
+      if (pageUpBtn && !pageUpBtn.__ganttWired) {
+        pageUpBtn.__ganttWired = true;
+        pageUpBtn.addEventListener('click', function () { scrollGanttByPage('y', -1); });
+      }
+      if (pageDownBtn && !pageDownBtn.__ganttWired) {
+        pageDownBtn.__ganttWired = true;
+        pageDownBtn.addEventListener('click', function () { scrollGanttByPage('y', 1); });
+      }
+      if (pageLeftBtn && !pageLeftBtn.__ganttWired) {
+        pageLeftBtn.__ganttWired = true;
+        pageLeftBtn.addEventListener('click', function () { scrollGanttByPage('x', -1); });
+      }
+      if (pageRightBtn && !pageRightBtn.__ganttWired) {
+        pageRightBtn.__ganttWired = true;
+        pageRightBtn.addEventListener('click', function () { scrollGanttByPage('x', 1); });
+      }
     } catch (e) {
       error('render failed', e);
     }
+  }
+
+  // ---------- Predecessors cell parser (for the Dependencies card) ----------
+  // MS Project writes a row's predecessors as task IDs with an optional link
+  // type and lag: "5", "5FS", "5SS+2 days", "8FF-1d", separated by "," or ";".
+  // Returns [{ id, relationship, lag }] — relationship defaults to
+  // Finish-to-Start (MS Project's own default); lag is the raw "+2 days" text
+  // ('' when none). Tokens that don't parse are ignored.
+  var LINK_TYPES = { FS: 'Finish-to-Start', SS: 'Start-to-Start', FF: 'Finish-to-Finish', SF: 'Start-to-Finish' };
+  function parsePredecessors(cell) {
+    var out = [];
+    String(cell == null ? '' : cell).split(/[;,]/).forEach(function (token) {
+      var m = /^\s*(\d+)\s*(FS|SS|FF|SF)?\s*([+-]\s*[\d.]+\s*[a-z%]*)?\s*$/i.exec(token);
+      if (!m) return;
+      out.push({
+        id: m[1],
+        relationship: LINK_TYPES[(m[2] || 'FS').toUpperCase()],
+        lag: (m[3] || '').replace(/\s+/g, ' ').replace(/^([+-])\s/, '$1').trim()
+      });
+    });
+    return out;
+  }
+
+  // Turns the file's predecessor links into Firestore writes for the
+  // Dependencies card. Pure (no Firestore access) so it can be tested alone.
+  //   candidates: [{ taskId, preds }]   scheduleTasks: { fileId: { wbs, title, startDate, dueDate, isSummary, responsible } }
+  //   byWbs: { wbs: 'activity:<docId>' | 'milestone:<docId>' }   existing: { depDocId: data }
+  // A new link gets defaults (status Open, owner = the predecessor's
+  // resource, need-by = the successor's start); an existing one only has the
+  // schedule-owned fields refreshed, so nothing a person typed is lost.
+  function planScheduleDependencies(candidates, scheduleTasks, byWbs, existing, who) {
+    var writes = [], seen = {}, created = 0, updated = 0, skipped = 0;
+    candidates.forEach(function (c) {
+      var succ = scheduleTasks[c.taskId];
+      parsePredecessors(c.preds).forEach(function (p) {
+        var pred = scheduleTasks[p.id];
+        if (!succ || !pred || !succ.wbs || !pred.wbs || succ.isSummary || pred.isSummary ||
+            !byWbs[succ.wbs] || !byWbs[pred.wbs]) { skipped++; return; }
+        var depId = ('sched_' + pred.wbs + '__' + succ.wbs).replace(/\//g, '_');
+        if (seen[depId]) return;
+        seen[depId] = true;
+        var fields = {
+          title: pred.title + ' → ' + succ.title,
+          predecessorId: byWbs[pred.wbs], predecessorTitle: pred.title,
+          successorId: byWbs[succ.wbs], successorTitle: succ.title,
+          relationship: p.relationship, lag: p.lag,
+          source: 'schedule', scheduleSyncedAt: new Date()
+        };
+        var needBy = succ.startDate || succ.dueDate || null;
+        if (existing[depId]) {
+          if (!existing[depId].needByEdited) fields.needByDate = needBy;
+          writes.push({ id: depId, data: fields, isNew: false });
+          updated++;
+        } else {
+          fields.dependencyType = 'Task / Milestone';
+          fields.status = 'Open';
+          fields.owner = pred.responsible || '';
+          fields.needByDate = needBy;
+          fields.impact = '';
+          fields.linkedRiskId = '';
+          fields.linkedRiskTitle = '';
+          fields.createdAt = new Date();
+          fields.createdBy = (who && who.email) || null;
+          fields.createdByUid = (who && who.uid) || null;
+          writes.push({ id: depId, data: fields, isNew: true });
+          created++;
+        }
+      });
+    });
+    return { writes: writes, created: created, updated: updated, skipped: skipped };
   }
 
   // ---------- Import (owner only) — reuses SheetJS already loaded for Activity import ----------
@@ -906,6 +1263,7 @@
       }
 
       var file = input.files[0];
+      if (window.drProgress) window.drProgress.show('Importing schedule…');
 
       file.arrayBuffer().then(function (data) {
         var wb = XLSX.read(data, { type: 'array' });
@@ -929,7 +1287,7 @@
         var idxStart = colIndex(['start', 'startdate', 'start date', 'start_date']);
         var idxDue = colIndex(['due', 'duedate', 'due date', 'end', 'enddate', 'end date', 'finish', 'finish_date', 'finish date']);
         var idxProgress = colIndex(['progress', '% complete', 'percent complete', 'percent_complete']);
-        var idxOutline = colIndex(['outline_level', 'outline level', 'outlinelevel', 'wbs level']);
+        var idxOutline = colIndex(['outline_level', 'outline level', 'outlinelevel', 'wbs level', 'outline', 'level']);
         var idxResource = colIndex(['resource_names', 'resource names', 'resources', 'responsible']);
         var idxWbs = colIndex(['wbs']);
         var idxDuration = colIndex(['duration']);
@@ -938,11 +1296,11 @@
         // stat tile. MS Project computes EAC/CPI/CV itself; we don't
         // recompute those, only derive AC = EV / CPI and ETC = EAC - AC
         // from them (see renderCostPerformance in burndown.js).
-        var idxCost = colIndex(['cost']);
-        var idxEac = colIndex(['eac']);
-        var idxCpi = colIndex(['cpi']);
-        var idxCv = colIndex(['cv']);
-        var idxSv = colIndex(['sv']);
+        var idxCost = colIndex(['cost', 'total cost', 'cost ($)']);
+        var idxEac = colIndex(['eac', 'estimate at completion', 'eac (estimate at completion)']);
+        var idxCpi = colIndex(['cpi', 'cost performance index', 'cpi (cost performance index)']);
+        var idxCv = colIndex(['cv', 'cost variance', 'cv (cost variance)']);
+        var idxSv = colIndex(['sv', 'schedule variance', 'sv (schedule variance)']);
         // Real baseline/actual cost + baseline schedule — when present
         // (this project's latest export has them), the EVM chart in
         // burndown.js uses these directly instead of approximating PV from
@@ -957,6 +1315,18 @@
         // the custom_class on each task below) rather than a separate
         // report, so critical-path status is visible right on the chart.
         var idxCritical = colIndex(['critical']);
+        // Total Slack (float) — how many days a task can slip before it
+        // delays the project finish. Feeds the Critical Path card's "how
+        // critical" column; a task can be Critical=Yes with 0 slack, or
+        // this can be missing entirely (older exports) and the card just
+        // shows the Yes/No flag alone.
+        var idxSlack = colIndex(['total slack', 'total_slack', 'slack (days)', 'slack']);
+        // Task links — MS Project's "Predecessors" column lists the task IDs
+        // (the "ID" column, NOT Unique ID) each row waits on, e.g.
+        // "5FS+2 days,8". Used to seed the Dependencies card (see
+        // syncScheduleDependencies below).
+        var idxTaskId = colIndex(['id', 'task id', 'task_id']);
+        var idxPred = colIndex(['predecessors', 'predecessor']);
 
         if (idxTitle === -1 || idxDue === -1) {
           alert('Excel sheet must have at least Title and Due Date columns.');
@@ -967,8 +1337,32 @@
           title: header[idxTitle], due: header[idxDue],
           cost: idxCost >= 0 ? header[idxCost] : '(not found)',
           baselineCost: idxBaselineCost >= 0 ? header[idxBaselineCost] : '(not found)',
-          actualCost: idxActualCost >= 0 ? header[idxActualCost] : '(not found)'
+          actualCost: idxActualCost >= 0 ? header[idxActualCost] : '(not found)',
+          outlineLevel: idxOutline >= 0 ? header[idxOutline] : '(not found)',
+          eac: idxEac >= 0 ? header[idxEac] : '(not found)',
+          cpi: idxCpi >= 0 ? header[idxCpi] : '(not found)',
+          cv: idxCv >= 0 ? header[idxCv] : '(not found)',
+          sv: idxSv >= 0 ? header[idxSv] : '(not found)',
+          totalSlack: idxSlack >= 0 ? header[idxSlack] : '(not found)'
         });
+        // The single gate for Cost Performance Index and the Cash Flow
+        // stat row — both read from the Outline-Level-0 "whole project"
+        // summary row's own Cost/EAC/CPI columns (see boundsRow below),
+        // not from any per-task row. Without this column matched, neither
+        // can ever update no matter what the individual Cost/EAC/CPI
+        // columns say, which reads very confusingly as "the data's right
+        // there in the file but nothing changes" — so call it out loudly
+        // here rather than leaving it to be inferred from two separately-
+        // empty cards.
+        if (idxOutline === -1) {
+          warn('No Outline Level column matched — Cost Performance Index and the Cash Flow stat row will NOT update from this import. Rename the column to "Outline Level" (or similar) and re-import.');
+        } else if (idxEac === -1 || idxCpi === -1) {
+          warn('Outline Level column found, but ' + (idxEac === -1 ? 'EAC' : '') + (idxEac === -1 && idxCpi === -1 ? ' and ' : '') + (idxCpi === -1 ? 'CPI' : '') +
+            ' not matched — Cost Performance Index will show incomplete data even if the summary row itself was found.');
+        }
+        if (idxSlack === -1) {
+          warn('No Total Slack column matched — the Critical Path card will show the Critical Yes/No flag only, with no slack (days) figure. Add a "Total Slack" column and re-import to include it.');
+        }
 
         function parseCell(v) {
           if (v == null || v === '') return null;
@@ -999,8 +1393,8 @@
         // exist (matched by WBS, the stable id MS Project assigns each
         // row) rather than creating duplicates every time — so fetch
         // what's already there first and match against it below.
-        var milestonesQuery = db.collection('businesses').doc(bizKey).collection('milestones').get();
-        var activitiesQuery = db.collection('businesses').doc(bizKey).collection('activities').get();
+        var milestonesQuery = projRef().collection('milestones').get();
+        var activitiesQuery = projRef().collection('activities').get();
 
         Promise.all([milestonesQuery, activitiesQuery]).then(function (snaps) {
           var existingByWbs = { milestones: {}, activities: {} };
@@ -1020,6 +1414,11 @@
 
           var ops = [];
           var createdCount = 0, updatedCount = 0, movedCount = 0, costFoundCount = 0;
+          // For the Dependencies card: every imported task by its file ID,
+          // and each row's raw Predecessors cell.
+          var scheduleTasks = {};
+          var depCandidates = [];
+          var depMessage = '';
 
           for (var r = 1; r < rows.length; r++) {
             var row = rows[r] || [];
@@ -1044,9 +1443,15 @@
             var otherCollection = collection === 'milestones' ? 'activities' : 'milestones';
 
             var dueDate = idxDue >= 0 ? parseCell(row[idxDue]) : null;
+            var startDate = idxStart >= 0 ? parseCell(row[idxStart]) : null;
+            // A milestone is a zero-duration event — Start and Finish are
+            // meant to be the same day. If the source file's Start was
+            // edited but Finish wasn't (or vice versa, e.g. a hand edit
+            // that only touched one column), Start is the field that
+            // actually carries the intended milestone date, so it wins.
+            if (isMilestone && startDate) dueDate = startDate;
             if (!dueDate) continue;
 
-            var startDate = idxStart >= 0 ? parseCell(row[idxStart]) : null;
             // MS Project's own CSV export writes Percent_Complete as a 0-1
             // fraction (0.33 = 33%), not 0-100 — but some other sources
             // (e.g. a manually built sheet) might already use 0-100. Treat
@@ -1066,8 +1471,16 @@
                 var rowActualCost = idxActualCost >= 0 ? parseFloat(row[idxActualCost]) : NaN;
                 var rowBaselineCost = idxBaselineCost >= 0 ? parseFloat(row[idxBaselineCost]) : NaN;
                 var rowSv = idxSv >= 0 ? parseFloat(row[idxSv]) : NaN;
+                // The whole project's OWN baseline Start/Finish — distinct
+                // from startDate/dueDate above (the CURRENT schedule, which
+                // drifts as the plan changes). Forecast Finish Date needs
+                // the original planned window, same reasoning as BAC
+                // needing baselineCost rather than the current Cost.
+                var rowBaselineStartTop = idxBaselineStart >= 0 ? parseCell(row[idxBaselineStart]) : null;
+                var rowBaselineFinishTop = idxBaselineFinish >= 0 ? parseCell(row[idxBaselineFinish]) : null;
                 boundsRow = {
                   level: level, start: startDate, due: dueDate,
+                  baselineStart: rowBaselineStartTop, baselineFinish: rowBaselineFinishTop,
                   progressPct: progress, // 0-100
                   cost: isNaN(rowCost) ? null : rowCost,
                   eac: isNaN(rowEac) ? null : rowEac,
@@ -1078,6 +1491,37 @@
                   baselineCost: isNaN(rowBaselineCost) ? null : rowBaselineCost
                 };
               }
+            }
+
+            // A "summary" WBS row (e.g. "1.0 Project Management") already
+            // rolls up every one of its own children's Cost/Duration/
+            // Progress — that's how MS Project computes it. Importing it
+            // as a peer alongside those same children, with nothing to
+            // tell them apart, meant every cost/task-count aggregate
+            // across the dashboard (BAC, EVM, Burndown/Burnup/Velocity
+            // task counts, Health Scorecard, etc.) summed the same
+            // underlying work multiple times over — once at each WBS
+            // level above a leaf task, plus once for the leaf itself.
+            // Detected here: a row is a summary if the very next row in
+            // the file sits at a DEEPER Outline_Level — the standard
+            // depth-first ordering every MS Project export uses — and
+            // carried through so burndown.js can exclude these rows from
+            // every aggregate instead of over-counting.
+            var isSummaryRow = false;
+            if (idxOutline >= 0) {
+              var thisOutlineLevel = row[idxOutline] != null && row[idxOutline] !== '' ? Number(row[idxOutline]) : null;
+              var nextRawRow = rows[r + 1];
+              var nextOutlineLevel = (nextRawRow && nextRawRow[idxOutline] != null && nextRawRow[idxOutline] !== '') ? Number(nextRawRow[idxOutline]) : null;
+              if (thisOutlineLevel != null && nextOutlineLevel != null && nextOutlineLevel > thisOutlineLevel) isSummaryRow = true;
+            } else if (idxWbs >= 0) {
+              // No Outline Level column (e.g. a plain WBS export): a row is a
+              // summary if the next row's WBS is nested under it ("1" then
+              // "1.1"), or it is the project root ("0"). Keeps summary rows
+              // out of the task/cost aggregates just like the Outline case.
+              var thisWbsKey = row[idxWbs] != null ? String(row[idxWbs]).trim() : '';
+              var nextRawWbs = rows[r + 1];
+              var nextWbsKey = (nextRawWbs && nextRawWbs[idxWbs] != null) ? String(nextRawWbs[idxWbs]).trim() : '';
+              if (thisWbsKey && nextWbsKey && (nextWbsKey.indexOf(thisWbsKey + '.') === 0 || (thisWbsKey === '0' && nextWbsKey !== '0'))) isSummaryRow = true;
             }
 
             var wbs = (idxWbs >= 0 && row[idxWbs] != null) ? String(row[idxWbs]).trim() : '';
@@ -1094,6 +1538,7 @@
             var rowActualCostVal = idxActualCost >= 0 ? parseFloat(row[idxActualCost]) : NaN;
             var rowBaselineStart = idxBaselineStart >= 0 ? parseCell(row[idxBaselineStart]) : null;
             var rowBaselineFinish = idxBaselineFinish >= 0 ? parseCell(row[idxBaselineFinish]) : null;
+            var rowSlackVal = idxSlack >= 0 ? parseFloat(row[idxSlack]) : NaN;
 
             if (!isNaN(rowCostVal)) costFoundCount++;
 
@@ -1108,7 +1553,9 @@
               actualCost: isNaN(rowActualCostVal) ? null : rowActualCostVal,
               baselineStart: rowBaselineStart || null,
               baselineFinish: rowBaselineFinish || null,
-              critical: idxCritical >= 0 && String(row[idxCritical] || '').trim().toLowerCase() === 'yes'
+              critical: idxCritical >= 0 && String(row[idxCritical] || '').trim().toLowerCase() === 'yes',
+              totalSlack: isNaN(rowSlackVal) ? null : rowSlackVal,
+              isSummary: isSummaryRow
             };
 
             if (collection === 'activities') {
@@ -1120,9 +1567,20 @@
               payload.status = 'On-site';
             }
 
+            var taskFileId = (idxTaskId >= 0 && row[idxTaskId] != null) ? String(row[idxTaskId]).trim() : '';
+            if (taskFileId) {
+              scheduleTasks[taskFileId] = {
+                wbs: wbs, title: title, startDate: startDate, dueDate: dueDate,
+                isSummary: isSummaryRow, responsible: payload.responsible || ''
+              };
+            }
+            if (idxPred >= 0 && taskFileId && row[idxPred] != null && String(row[idxPred]).trim()) {
+              depCandidates.push({ taskId: taskFileId, preds: String(row[idxPred]) });
+            }
+
             var existingMatch = wbs ? existingByWbs[collection][wbs] : null;
             var existingInOther = wbs ? existingByWbs[otherCollection][wbs] : null;
-            var docRef = db.collection('businesses').doc(bizKey);
+            var docRef = projRef();
 
             if (existingMatch) {
               // Same WBS, same type as before — update in place and log
@@ -1183,9 +1641,68 @@
             return;
           }
 
-          var bizDocRef = db.collection('businesses').doc(bizKey);
+          // These rollups (project dates, EAC/CPI/CV/SV, baseline/actual cost, cost snapshots) belong to THIS
+          // project — never the shared company document, which every project in the company would read.
+          var bizDocRef = projRef();
+
+          // Task links -> Dependencies card. Runs once every task write above
+          // has landed (so each task's Firestore id exists), and never fails
+          // the schedule import: a problem here just adds a note to the
+          // completion message.
+          function syncScheduleDependencies() {
+            if (idxPred === -1) return Promise.resolve('');
+            if (idxTaskId === -1) return Promise.resolve(' A Predecessors column was found, but there is no "ID" column, so no dependencies were created (add the ID column to the export).');
+            if (idxWbs === -1) return Promise.resolve(' A Predecessors column was found, but there is no WBS column, so no dependencies were created.');
+            if (!depCandidates.length) return Promise.resolve(' No predecessor links were found in the Predecessors column.');
+
+            var depCol = projRef().collection('dependencies');
+            return Promise.all([
+              projRef().collection('milestones').get(),
+              projRef().collection('activities').get(),
+              depCol.get()
+            ]).then(function (res) {
+              var byWbs = {};
+              [['milestone', res[0]], ['activity', res[1]]].forEach(function (pair) {
+                pair[1].forEach(function (d) {
+                  var w = (d.data() || {}).wbs;
+                  if (w) byWbs[String(w).trim()] = pair[0] + ':' + d.id;
+                });
+              });
+              var existing = {};
+              res[2].forEach(function (d) { existing[d.id] = d.data() || {}; });
+
+              var plan = planScheduleDependencies(depCandidates, scheduleTasks, byWbs, existing,
+                { email: userEmail, uid: userUid });
+              var writes = plan.writes;
+              var created = plan.created, updated = plan.updated, skipped = plan.skipped;
+
+              // Firestore batches hold at most 500 writes.
+              var chunks = [];
+              for (var i = 0; i < writes.length; i += 400) chunks.push(writes.slice(i, i + 400));
+              return chunks.reduce(function (chain, chunk) {
+                return chain.then(function () {
+                  var batch = db.batch();
+                  chunk.forEach(function (w) {
+                    var ref = depCol.doc(w.id);
+                    if (w.isNew) batch.set(ref, w.data); else batch.update(ref, w.data);
+                  });
+                  return batch.commit();
+                });
+              }, Promise.resolve()).then(function () {
+                return ' Dependencies: ' + created + ' created, ' + updated + ' updated' +
+                  (skipped ? ', ' + skipped + ' link(s) skipped (a task wasn\'t imported or is a summary row)' : '') + '.';
+              });
+            });
+          }
 
           return Promise.all(ops).then(function () {
+            return syncScheduleDependencies().then(function (msg) {
+              depMessage = msg;
+            }, function (err) {
+              error('dependency sync failed', err);
+              depMessage = ' Dependencies could not be created from this file (' + (err && err.message ? err.message : err) + ').';
+            });
+          }).then(function () {
             if (!boundsRow) return;
             // Kept as informational record on the business doc (from
             // the import file's own top-level summary row) — dates are
@@ -1215,6 +1732,16 @@
               return bizDocRef.set({
                 projectStartDate: s,
                 projectEndDate: e,
+                // The ORIGINAL planned window (Baseline Start/Finish on the
+                // top-level summary row), distinct from projectStartDate/
+                // projectEndDate above (the CURRENT schedule, which drifts
+                // as the plan changes) — Forecast Finish Date needs this to
+                // compare "where we'll actually land" against "where the
+                // plan originally said," same reasoning as BAC needing
+                // baselineCost rather than the current Cost. Null when the
+                // import has no Baseline_Start/Baseline_Finish columns.
+                projectBaselineStartDate: boundsRow.baselineStart ? dateOnly(boundsRow.baselineStart) : null,
+                projectBaselineEndDate: boundsRow.baselineFinish ? dateOnly(boundsRow.baselineFinish) : null,
                 projectPercentComplete: boundsRow.progressPct,
                 projectCost: boundsRow.cost,
                 projectEAC: boundsRow.eac,
@@ -1233,7 +1760,8 @@
               (boundsRow ? ' Project window set to ' + dfmt(boundsRow.start) + ' – ' + dfmt(boundsRow.due) + '.' : '') +
               ' Cost column read on ' + costFoundCount + ' of ' + (createdCount + updatedCount) + ' rows' +
               (idxCost >= 0 ? ' (found column "' + header[idxCost] + '").' : ' (no Cost column matched in the header — EVM chart will stay empty).') +
-              (idxWbs === -1 ? ' Note: no WBS column was found, so every row was created as new rather than matched against existing entries.' : '')
+              (idxWbs === -1 ? ' Note: no WBS column was found, so every row was created as new rather than matched against existing entries.' : '') +
+              depMessage
             );
             input.value = '';
             render();
@@ -1241,6 +1769,8 @@
         }).catch(function (err) {
           error('import failed', err);
           alert('Import failed: ' + (err && err.message ? err.message : err));
+        }).finally(function () {
+          if (window.drProgress) window.drProgress.hide();
         });
       });
     });
@@ -1264,8 +1794,8 @@
 
     btn.addEventListener('click', function () {
       btn.disabled = true;
-      var milestonesQuery = db.collection('businesses').doc(bizKey).collection('milestones').get();
-      var activitiesQuery = db.collection('businesses').doc(bizKey).collection('activities').get();
+      var milestonesQuery = projRef().collection('milestones').get();
+      var activitiesQuery = projRef().collection('activities').get();
 
       Promise.all([milestonesQuery, activitiesQuery]).then(function (snaps) {
         var totalDocs = snaps[0].size + snaps[1].size;
@@ -1334,14 +1864,14 @@
   // and immediately for anything that originates elsewhere (another user,
   // an import, a mirror function).
   function subscribe() {
-    db.collection('businesses').doc(bizKey).collection('milestones')
+    projRef().collection('milestones')
       .onSnapshot({ includeMetadataChanges: true }, function (snap) {
         if (snap.metadata.hasPendingWrites) return;
         milestoneDocs = snap.docs.map(function (d) { return { id: d.id, data: d.data() || {} }; });
         render();
       }, function (err) { error('milestones snapshot failed', err); });
 
-    db.collection('businesses').doc(bizKey).collection('activities')
+    projRef().collection('activities')
       .onSnapshot({ includeMetadataChanges: true }, function (snap) {
         if (snap.metadata.hasPendingWrites) return;
         activityDocs = snap.docs.map(function (d) { return { id: d.id, data: d.data() || {} }; });
@@ -1382,6 +1912,7 @@
     db = window.db || null;
     auth = window.auth || null;
     container = document.getElementById('ganttChart');
+    wbsColumnEl = document.getElementById('ganttWbsColumn');
 
     if (!db || !auth || !container) {
       setTimeout(start, 200);

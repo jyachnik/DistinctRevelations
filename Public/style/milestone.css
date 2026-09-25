@@ -1,12 +1,20 @@
 /* Public/style/milestone.css */
 
-/* Adjustable column widths */
+/* Adjustable column widths — 8 columns now (Title, Type, Location, Place,
+   Date, Status, Confirmed, Actions); percentages sum to 100%. Type and
+   Location both widened (were 8%/11% — too narrow for their own header
+   text plus real values like "Off-site"/"Conference Room 101") and a new
+   Confirmed column added, so Place/Date/Status each gave up a little room
+   to make space. */
 :root {
-  --milestone-title-col-width: 30%;
-  --milestone-location-col-width: 22%;
-  --milestone-date-col-width: 18%;
-  --milestone-rag-col-width: 15%;
-  --milestone-actions-col-width: 15%;
+  --milestone-title-col-width: 18%;
+  --milestone-type-col-width: 11%;
+  --milestone-location-col-width: 14%;
+  --milestone-place-col-width: 13%;
+  --milestone-date-col-width: 10%;
+  --milestone-rag-col-width: 12%;
+  --milestone-confirmed-col-width: 12%;
+  --milestone-actions-col-width: 10%;
 }
 
 /* Card header icon – keeps HTML untouched */
@@ -35,8 +43,11 @@
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
-  background-color: #fbfafd;
-  margin-left: -12px;
+  background-color: transparent;
+  /* Same fix as qna.css/filemanager.css/activity.css — a leftover
+     negative margin that reduces this section's buffer before the fixed
+     Report Index card's own column. */
+  margin-left: 0;
   width: 100%;
   line-height: 20px;
   margin-top: -20px;
@@ -48,15 +59,25 @@
   color: #002b45;
   margin: 0;
   white-space: nowrap;
+  align-self: center;
 }
 .card.milestone-section .section-header .section-subtext {
   margin-top: 4px;
   font-size: 14px;
   color: #666666;
+  align-self: center;
+  text-align: center;
 }
 
 /* Top form spacing */
+/* Inline row — inputs wrap naturally, with the Add/Update and Cancel Edit
+   buttons sitting right next to the Date field (the last input) instead
+   of stacked full-width below everything. */
 #milestoneForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -64,24 +85,45 @@
 #milestoneForm select,
 #milestoneForm input[type="date"] {
   max-width: 100%;
-  margin-bottom: 8px;
 }
 
-/* Add / update button */
-#milestoneForm button[type="submit"] {
-  width: 100%;
-  margin-top: 4px;
-}
-
-/* Cancel edit button appears just under the card when needed */
-.milestone-cancel-edit {
-  margin-top: 8px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid #999;
-  background-color: #f5f5f5;
-  font-size: 0.8rem;
+/* Add/Update and Cancel Edit — same size, same shape; color is the only
+   thing that varies (Add/Update stay in the blue family, Cancel Edit is
+   gray) so they read as one consistent button group. */
+.milestone-btn {
+  padding: 8px 16px;
+  min-width: 130px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s ease;
+}
+
+.milestone-btn-submit {
+  background-color: #0066cc; /* "Add Milestone" */
+  color: #ffffff;
+}
+.milestone-btn-submit:hover {
+  background-color: #0052a3;
+}
+/* "Update Milestone" state — a darker shade of the same blue, not a
+   different color, so Add/Update read as variations of one button. */
+.milestone-btn-submit.milestone-update-mode {
+  background-color: #004480;
+}
+.milestone-btn-submit.milestone-update-mode:hover {
+  background-color: #00366a;
+}
+
+.milestone-btn-cancel {
+  background-color: #6c757d;
+  color: #ffffff;
+}
+.milestone-btn-cancel:hover {
+  background-color: #575d63;
 }
 
 /* Scroll container (was previously unstyled, letting table-layout:fixed
@@ -92,10 +134,27 @@
   overflow-x: auto;
 }
 
+/* Sticky header — stays visible while scrolling a long Meetings/Events
+   list. ID selector (not just a class) so it reliably outranks
+   metrics.css's global ".card table thead th[data-sort]" rule, which
+   sets position:relative and would otherwise win on every sortable
+   column here (all of them) — same bug already fixed for the other
+   table cards across the app. */
+#milestoneTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 /* Milestone table layout */
 #milestoneTable {
   width: 100%;
-  min-width: 560px; /* floor so 5 columns never get squeezed */
+  /* Was 640px, then 500px, from when this section used to share its row
+     50/50 with Activity Log — it's since become a full-width standalone
+     card (see dashboard.html), so there's much more room than this floor
+     implies, but 380px is still a sensible minimum in a narrow window and
+     there's no reason to force a wider one. */
+  min-width: 380px;
   border-collapse: collapse;
   table-layout: fixed; /* use column widths */
   font-size: 0.9rem;
@@ -109,12 +168,35 @@
 #milestoneTable th,
 #milestoneTable td {
   padding: 8px 10px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   border-bottom: 1px solid #e0e0e0;
+  /* Without this, an unbroken long value (a long meeting Title, or a
+     Place entry) had nothing stopping it from rendering wider than its
+     own column under table-layout:fixed — pushing the table's real
+     rendered width past its defined 100%/min-width and triggering the
+     container's horizontal scrollbar regardless of how the column
+     percentages/min-width were tuned. Ellipsis-truncate by default;
+     Title gets white-space:normal back below since wrapping a title
+     across 2 lines reads better than truncating it. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#milestoneTable td:nth-child(1) {
+  white-space: normal;
+  word-break: break-word;
+}
+#milestoneTable thead th {
+  text-align: center;
 }
 
-/* Column widths – tweak these vars in :root as needed */
+/* Column widths – tweak these vars in :root as needed. Real column order
+   is now Title, Type, Location, Place, Date, Status, Confirmed, Actions
+   (8 columns) — Confirmed inserted as the new 7th column, shifting
+   Actions down one; keep this mapping in sync with dashboard.html's
+   actual <th> order or it silently goes stale (this exact class of bug
+   has happened before on this table). */
 #milestoneTable th:nth-child(1),
 #milestoneTable td:nth-child(1) {
   width: var(--milestone-title-col-width);
@@ -122,22 +204,38 @@
 
 #milestoneTable th:nth-child(2),
 #milestoneTable td:nth-child(2) {
-  width: var(--milestone-location-col-width);
+  width: var(--milestone-type-col-width);
 }
 
 #milestoneTable th:nth-child(3),
 #milestoneTable td:nth-child(3) {
-  width: var(--milestone-date-col-width);
+  width: var(--milestone-location-col-width);
 }
 
 #milestoneTable th:nth-child(4),
 #milestoneTable td:nth-child(4) {
-  width: var(--milestone-rag-col-width);
-  text-align: center;
+  width: var(--milestone-place-col-width);
 }
 
 #milestoneTable th:nth-child(5),
 #milestoneTable td:nth-child(5) {
+  width: var(--milestone-date-col-width);
+}
+
+#milestoneTable th:nth-child(6),
+#milestoneTable td:nth-child(6) {
+  width: var(--milestone-rag-col-width);
+  text-align: center;
+}
+
+#milestoneTable th:nth-child(7),
+#milestoneTable td:nth-child(7) {
+  width: var(--milestone-confirmed-col-width);
+  text-align: center;
+}
+
+#milestoneTable th:nth-child(8),
+#milestoneTable td:nth-child(8) {
   width: var(--milestone-actions-col-width);
   text-align: center;
 }
@@ -165,6 +263,19 @@
   display: none;
 }
 
+/* table-layout:fixed sizes each column from its own explicit percentage
+   and does NOT redistribute a hidden column's share to the rest — with
+   Actions gone, the other 7 columns' widths only summed to 90%, leaving a
+   blank gap the width of the missing Actions column on the table's right
+   edge (this is what made the table look narrower than Q&A Tracker/File
+   Manager). Confirmed (last visible column) absorbs that freed space. */
+#milestoneTable:not(.owner) th:nth-child(7),
+#milestoneTable:not(.owner) td:nth-child(7) {
+  width: calc(var(--milestone-confirmed-col-width) + var(--milestone-actions-col-width));
+}
+
+.milestone-checklist-btn,
+.milestone-minutes-btn,
 .milestone-edit-btn,
 .milestone-delete-btn {
   border: none;
@@ -175,6 +286,8 @@
   padding: 2px 4px;
 }
 
+.milestone-checklist-btn:hover,
+.milestone-minutes-btn:hover,
 .milestone-edit-btn:hover {
   transform: scale(1.1);
 }
@@ -183,7 +296,3 @@
   transform: scale(1.1);
 }
 
-/* When in update mode, highlight the submit button slightly */
-.milestone-update-mode {
-  background-color: #004b9a !important;
-}

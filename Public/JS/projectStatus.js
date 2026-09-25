@@ -136,7 +136,8 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
           row.style.cursor = "default";
         });
 
-        var docRef = DR.db.collection("businesses").doc(bizKey);
+        // The status light and its SPI/CPI reasoning are per PROJECT (the company document is shared).
+        var docRef = DR.db.collection("businesses").doc(bizKey).collection("projects").doc(window.PROJECT_KEY || "default");
         var lastUpdatedEl = document.getElementById("headerLastUpdated");
 
         // Live listener — also drives the header's "Last updated" text
@@ -170,6 +171,22 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
               lastUpdatedEl.textContent = d && !isNaN(d.getTime())
                 ? 'Last updated: ' + (window.drDateFmt ? window.drDateFmt.dateTime(d) : d.toLocaleString())
                 : '';
+            }
+
+            if (window.drInsight) {
+              if (code === 'unknown') {
+                window.drInsight.set('projectStatusCard', '');
+              } else {
+                var spi = typeof data.spi === 'number' ? data.spi : null;
+                var cpi = typeof data.cpi === 'number' ? data.cpi : null;
+                var reasons = [];
+                if (spi !== null) reasons.push('SPI ' + spi.toFixed(2) + (spi < 1 ? ' (behind schedule)' : ' (on/ahead of schedule)'));
+                if (cpi !== null) reasons.push('CPI ' + cpi.toFixed(2) + (cpi < 1 ? ' (over budget)' : ' (on/under budget)'));
+                var statusText = (STATUS_META[code] || STATUS_META.unknown).label;
+                var text = 'Overall status is ' + statusText + '.';
+                if (reasons.length) text += ' Driven by ' + reasons.join(' and ') + '.';
+                window.drInsight.set('projectStatusCard', text);
+              }
             }
           },
           function (err) {

@@ -2,10 +2,13 @@
 const $ = (id) => document.getElementById(id);
 
 const fields = [
-  { el: () => $('cf-name'),    err: () => $('err-name'),    name: 'Name',    min: 2 },
-  { el: () => $('cf-email'),   err: () => $('err-email'),   name: 'Email',   email: true },
-  { el: () => $('cf-company'), err: () => $('err-company'), name: 'Company', min: 2 },
-  { el: () => $('cf-message'), err: () => $('err-message'), name: 'Message', min: 10 },
+  { el: () => $('cf-first'),    err: () => $('err-first'),    name: 'First name',        min: 1 },
+  { el: () => $('cf-last'),     err: () => $('err-last'),     name: 'Last name',         min: 1 },
+  { el: () => $('cf-business'), err: () => $('err-business'), name: 'Business name',     min: 1 },
+  { el: () => $('cf-category'), err: () => $('err-category'), name: 'Business category' },
+  { el: () => $('cf-email'),    err: () => $('err-email'),    name: 'Email',              email: true },
+  { el: () => $('cf-phone'),    err: () => $('err-phone'),    name: 'Phone',              min: 7 },
+  { el: () => $('cf-message'),  err: () => $('err-message'),  name: 'Message',            min: 10 },
 ];
 
 // Simple, pragmatic email check (on top of type="email")

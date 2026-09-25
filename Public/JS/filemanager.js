@@ -23,6 +23,12 @@
   (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
   (window.ownerEmail) ||
   '';
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
   // ---- DOM helpers ----
   function $(sel, root) {
     return (root || document).querySelector(sel);
@@ -34,6 +40,7 @@
   // ---- State ----
   var ctx = {
     biz: null,
+    proj: null,
     userEmail: '',
     userUid: '',
     isOwner: false,
@@ -41,8 +48,10 @@
     companyMembers: {},   // { emailLower: email } from businesses/{biz}/users + owner
     allUsers: [],
     allTypes: [],
-    sort: { key: 'name', dir: 'asc' }
+    sort: { key: 'name', dir: 'asc' },
+    page: 1
   };
+  var FILE_PAGE_SIZE = 15;
 
   // ---- DOM refs ----
   var dom = {
@@ -51,7 +60,10 @@
     typeFilter: null,
     fileInput: null,
     uploadBtn: null,
-    table: null
+    table: null,
+    pagePrev: null,
+    pageNext: null,
+    pageInfo: null
   };
 
   // ---- Firebase helpers ----
@@ -65,6 +77,17 @@
   }
   function getStorage() {
     return (window.firebase && window.firebase.storage && window.firebase.storage()) || null;
+  }
+
+  // Own-file ownership AND the Permissions matrix's Delete grant — a
+  // non-owner needs both, since Firestore rules already restrict this
+  // write to "owner or the file's own uploader" regardless of what this
+  // matrix says, so the matrix can only narrow further, never widen.
+  function canDeleteOwnFile(ownerUid, ownerEmail) {
+    if (ctx.isOwner) return true;
+    var isOwnFile = (ctx.userUid && ownerUid && ownerUid === ctx.userUid) ||
+      (ctx.userEmail && ownerEmail && String(ownerEmail).toLowerCase() === ctx.userEmail.toLowerCase());
+    return isOwnFile && !!(window.drAccess && window.drAccess.canUseAction('fileManagerSection', 'Delete'));
   }
 
   // Business key resolver (same logic as other components)
@@ -213,14 +236,26 @@
     if (!rows.length) {
       dom.tableBody.innerHTML =
         '<tr><td colspan="6" class="empty">No files uploaded yet.</td></tr>';
+      if (dom.pageInfo) dom.pageInfo.textContent = '';
+      if (dom.pagePrev) dom.pagePrev.disabled = true;
+      if (dom.pageNext) dom.pageNext.disabled = true;
+      if (window.drInsight) window.drInsight.set('fileManagerSection', '');
       return;
     }
 
+    var filteredRows = rows;
+    var totalPages = Math.max(1, Math.ceil(rows.length / FILE_PAGE_SIZE));
+    if (ctx.page > totalPages) ctx.page = totalPages;
+    if (ctx.page < 1) ctx.page = 1;
+    var startIdx = (ctx.page - 1) * FILE_PAGE_SIZE;
+    rows = rows.slice(startIdx, startIdx + FILE_PAGE_SIZE);
+
+    if (dom.pageInfo) dom.pageInfo.textContent = 'Page ' + ctx.page + ' of ' + totalPages;
+    if (dom.pagePrev) dom.pagePrev.disabled = ctx.page <= 1;
+    if (dom.pageNext) dom.pageNext.disabled = ctx.page >= totalPages;
+
     dom.tableBody.innerHTML = rows.map(function (r) {
-      var canDelete = ctx.isOwner ||
-        (ctx.userUid && r.ownerUid && r.ownerUid === ctx.userUid) ||
-        (ctx.userEmail && r.owner &&
-          r.owner.toLowerCase() === ctx.userEmail.toLowerCase());
+      var canDelete = canDeleteOwnFile(r.ownerUid, r.owner);
 
       var size = fmtSize(r.size);
       var created = fmtDate(r.createdAt);
@@ -232,7 +267,8 @@
       // "Open" (inline preview) removed — it never worked reliably across
       // file types (Office docs never preview at all; browsers vary on
       // PDFs/images). Download is the one dependable action.
-      var dlBtn = rawUrl
+      var canDownload = ctx.isOwner || !!(window.drAccess && window.drAccess.canUseAction('fileManagerSection', 'Download'));
+      var dlBtn = (rawUrl && canDownload)
         ? '<button type="button" class="file-download-btn" data-id="' + r.id + '" title="Download">⬇</button>'
         : '';
       var delBtn = canDelete
@@ -254,6 +290,18 @@
     }).join('');
 
     wireRowActions();
+
+    if (window.drInsight) {
+      var totalSize = filteredRows.reduce(function (s, r) { return s + (r.size || 0); }, 0);
+      var byOwner = {};
+      filteredRows.forEach(function (r) { var o = r.owner || 'Unknown'; byOwner[o] = (byOwner[o] || 0) + 1; });
+      var topOwner = Object.keys(byOwner).sort(function (a, b) { return byOwner[b] - byOwner[a]; })[0];
+      var text = filteredRows.length + ' file' + (filteredRows.length === 1 ? '' : 's') + ' on hand, totaling ' + fmtSize(totalSize) + '.';
+      if (topOwner) {
+        text += ' Most uploads (' + byOwner[topOwner] + ') came from ' + topOwner + '.';
+      }
+      window.drInsight.set('fileManagerSection', text);
+    }
   }
 
   function wireRowActions() {
@@ -358,6 +406,14 @@
     });
   }
 
+  // ---- Firestore refs ----
+  function filesRef() {
+    var db = getDB();
+    return db.collection('businesses').doc(ctx.biz)
+      .collection('projects').doc(ctx.proj || 'default')
+      .collection('files');
+  }
+
   // ---- Firestore subscription ----
   function subscribeFiles(biz, user) {
     var db = getDB();
@@ -367,6 +423,10 @@
     }
 console.log('[filemanager] biz key =', biz);
     ctx.biz = biz;
+    // Multi-project cutover — every business always has at least the
+    // auto-created 'default' project (dashboard-business-loader.js
+    // guarantees window.PROJECT_KEY is set by the time this runs).
+    ctx.proj = window.PROJECT_KEY || 'default';
     ctx.userEmail = (user && user.email ? user.email : '').toLowerCase();
     ctx.userUid = (user && user.uid) || '';
     ctx.isOwner = ctx.userEmail === OWNER_EMAIL.toLowerCase();
@@ -374,7 +434,7 @@ console.log('[filemanager] biz key =', biz);
 
     loadCompanyMembers(db, biz);
 
-    var col = db.collection('businesses').doc(biz).collection('files');
+    var col = filesRef();
     col.orderBy('createdAt', 'desc').onSnapshot(function (snap) {
       console.log('[filemanager] snapshot size =', snap.size); // add this
       var rows = [];
@@ -472,13 +532,23 @@ console.log('[filemanager] biz key =', biz);
         storagePath: path,
         url: url
       };
-      return db.collection('businesses').doc(ctx.biz).collection('files').add(doc);
+      return filesRef().add(doc);
     });
   }).then(function () {
     dom.fileInput.value = '';
+    if (window.drModal) {
+      window.drModal.open({ title: 'Upload Complete', bodyHtml: '<p>"' + esc(file.name) + '" was uploaded successfully.</p>' });
+    } else {
+      alert('"' + file.name + '" was uploaded successfully.');
+    }
   }).catch(function (err) {
     console.error(NS, 'upload failed', err);
-    alert('Upload failed: ' + (err && err.message ? err.message : err));
+    var msg = (err && err.message) ? err.message : String(err);
+    if (window.drModal) {
+      window.drModal.open({ title: 'Upload Failed', bodyHtml: '<p>' + esc(msg) + '</p>' });
+    } else {
+      alert('Upload failed: ' + msg);
+    }
   }).finally(function () {
     dom.uploadBtn.disabled = false;
   });
@@ -502,7 +572,7 @@ console.log('[filemanager] biz key =', biz);
     var storage = getStorage();
     if (!db) return;
 
-    var docRef = db.collection('businesses').doc(ctx.biz).collection('files').doc(id);
+    var docRef = filesRef().doc(id);
 
     docRef.get().then(function (doc) {
       if (!doc.exists) return;
@@ -510,9 +580,7 @@ console.log('[filemanager] biz key =', biz);
       var data = doc.data() || {};
       var owner = (data.owner || '').toLowerCase();
       var ownerUid = data.ownerUid || '';
-      var canDelete = ctx.isOwner ||
-        (ctx.userUid && ownerUid && ownerUid === ctx.userUid) ||
-        (ctx.userEmail && owner === ctx.userEmail.toLowerCase());
+      var canDelete = canDeleteOwnFile(ownerUid, owner);
 
       if (!canDelete) {
         alert('You can only delete your own files.');
@@ -554,6 +622,7 @@ console.log('[filemanager] biz key =', biz);
         } else {
           ctx.sort = { key: key, dir: 'asc' };
         }
+        ctx.page = 1;
         render();
       });
     });
@@ -567,15 +636,29 @@ console.log('[filemanager] biz key =', biz);
     dom.typeFilter = $('#fileTypeFilter');
     dom.fileInput = $('#fileInput');
     dom.uploadBtn = $('#fileUploadBtn');
+    dom.pagePrev = $('#filePagePrev');
+    dom.pageNext = $('#filePageNext');
+    dom.pageInfo = $('#filePageInfo');
 
     if (dom.userFilter) {
-      dom.userFilter.addEventListener('change', render);
+      dom.userFilter.addEventListener('change', function () { ctx.page = 1; render(); });
     }
     if (dom.typeFilter) {
-      dom.typeFilter.addEventListener('change', render);
+      dom.typeFilter.addEventListener('change', function () { ctx.page = 1; render(); });
     }
     if (dom.uploadBtn) {
       dom.uploadBtn.addEventListener('click', onUploadClick);
+    }
+    if (dom.pagePrev) {
+      dom.pagePrev.addEventListener('click', function () {
+        if (ctx.page > 1) { ctx.page--; render(); }
+      });
+    }
+    if (dom.pageNext) {
+      dom.pageNext.addEventListener('click', function () {
+        ctx.page++;
+        render();
+      });
     }
   }
 
@@ -598,8 +681,19 @@ console.log('[filemanager] biz key =', biz);
       resolveBizKey(true).then(function (biz) {
         if (!biz) return;
         subscribeFiles(biz, user);
+        if (window.drAccess) window.drAccess.whenReady().then(applyActionAccess);
       });
     });
+  }
+
+  // Hides the Upload button entirely for a non-owner role that hasn't
+  // been granted "Upload" — also re-renders the table so Download/Delete
+  // buttons (which read window.drAccess too) reflect the resolved grant
+  // instead of whatever they showed before access was ready.
+  function applyActionAccess() {
+    var canUpload = ctx.isOwner || !!(window.drAccess && window.drAccess.canUseAction('fileManagerSection', 'Upload'));
+    if (dom.uploadBtn) dom.uploadBtn.style.display = canUpload ? '' : 'none';
+    render();
   }
 
   if (document.readyState === 'loading') {

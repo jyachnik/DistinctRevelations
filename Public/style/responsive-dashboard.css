@@ -1,0 +1,262 @@
+/* Public/style/responsive-dashboard.css — Client Portal (dashboard.html)
+   ============================================================================
+   FIRST PASS — structural shell + a few representative "hard" cases
+   (chart, wide table, Gantt), per explicit direction, before the same
+   patterns get rolled out to every individual card. Loaded LAST so it can
+   override existing rules by cascade order (same-specificity selectors)
+   rather than needing !important or touching every file that currently
+   styles these elements.
+
+   Breakpoint scale (matches responsive.css, the home-page counterpart):
+     Mobile:      <= 640px   (phone)
+     Tablet:      641px – 1024px
+     Desktop:     1025px – 1919px  (the baseline every other stylesheet in
+                  this app already targets — no extra rules needed here)
+     Big Screen:  >= 1920px  (conference-room TV / large monitor)
+
+   Strategy, per explicit direction:
+     - Mobile + Tablet (<= 1024px): the Dashboard view's dense multi-
+       column layout is NOT reflowed into a narrow column — it's replaced
+       outright by the Tiled view (titles-view.js), which is already
+       card/tile-based and built for this. The View Selector is hidden
+       and titles-view.js force-locks Tiled at this width (see the
+       matching change in titles-view.js) — there's nothing to switch
+       between once Dashboard isn't an option.
+     - Big Screen (>= 1920px): optimized for glanceability from across a
+       room (larger type, more breathing room, higher-contrast status
+       colors) while staying fully usable for someone sitting at it
+       directly — more real estate is used for READABILITY, not just
+       "more columns because there's room."
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   Summary row card titles — icon held in its own left-hand column instead
+   of sitting inline with the text (the old markup was just "🚦 Project
+   Status" as one text node). Inline meant the icon only ever stayed
+   attached to line 1 whenever the title wrapped to 2 lines ("Project" /
+   "Status"), which read lopsided — text now centers as its own block
+   regardless of how many lines it wraps to, with the icon offset to the
+   left of that centered block. Loads after projectStatus.css/
+   projectProgress.css/qnaStats.css/metrics.css so it wins their existing
+   same-specificity "display:block; text-align:center" title rules.
+   --------------------------------------------------------------------------- */
+.project-status h2,
+.project-progress h2,
+.qna-stats-horizontal h2,
+.schedule-performance h2,
+.cost-performance h2 {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 6px;
+}
+.card-title-icon {
+  grid-column: 1;
+  text-align: left;
+  line-height: 1.3;
+}
+.card-title-text {
+  grid-column: 2;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ---------------------------------------------------------------------------
+   MOBILE + TABLET (<= 1024px)
+   --------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* Nothing to pick once Dashboard view is unavailable at this width —
+     see titles-view.js's matching lockToTiledBelowBreakpoint(). */
+  #drViewSelectWrap { display: none; }
+
+  /* Sidebar drops out of its fixed 150px column and becomes a normal,
+     full-width bar directly under the header instead — Ask the Project
+     and the Time Frame dropdown stay reachable (both real functionality,
+     not just navigation); the Reports index list is hidden because
+     Tiled view's own tiles already ARE the navigation at this width — a
+     second, cramped vertical link list would just be redundant here. */
+  .report-sidebar {
+    position: static;
+    width: 100%;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 16px 0;
+    box-sizing: border-box;
+  }
+  .report-sidebar .ask-side-card,
+  .report-sidebar .dr-timeframe-select-wrap {
+    flex: 1 1 220px;
+  }
+  .report-sidebar .report-index-card { display: none; }
+
+  /* The collapsible "View & Time Frame" toggle (see
+     sidebar-settings-toggle.js) only exists to save vertical room in the
+     narrow 150px DESKTOP sidebar column — at this width the sidebar is
+     already a full-width horizontal bar with room to spare, and View
+     itself is hidden anyway (#drViewSelectWrap, above), so there's
+     nothing worth collapsing. The toggle button hides and its wrapper +
+     body both go display:contents — "unwrapping" them so Time Frame
+     becomes a direct flex child of .report-sidebar again (the flex:1 1
+     220px rule above only has an effect on a direct flex child), always
+     visible, matching how Ask the Project already behaves here. */
+  .dr-sidebar-settings-toggle { display: none; }
+  .report-sidebar .dr-sidebar-settings,
+  .report-sidebar .dr-sidebar-settings-body {
+    display: contents;
+  }
+  /* display:contents on the body also drops its own [hidden] effect
+     (a hidden CONTENTS-displayed element's children still hide, but
+     let's be explicit rather than relying on that) — force it visible
+     regardless of the collapsed/expanded state left over from a wider
+     viewport. */
+  .report-sidebar .dr-sidebar-settings-body[hidden] {
+    display: contents;
+  }
+
+  /* The summary row's position:fixed-under-the-header layout (and the
+     clipping bug already fixed once for it) assumes there's room for 6
+     cards side by side — there isn't, at this width. It becomes a
+     horizontally swipeable strip in normal document flow instead (one
+     continuous row, scrolled with a thumb, each card snapping into
+     place), directly below the sidebar bar above. */
+  .dashboard-summary-row {
+    position: static;
+    top: auto;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding: 10px 16px 16px;
+    box-shadow: none;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
+  }
+  .dashboard-summary-row > * {
+    flex: 0 0 78%;
+    scroll-snap-align: start;
+  }
+  /* No longer reserving space for a fixed row that's back in normal flow. */
+  .dashboard-summary-row-spacer { display: none; }
+
+  /* Tiled view (the only view available at this width) no longer needs
+     to reserve the sidebar's 150px, or the fixed summary row's height —
+     both are now normal in-flow content directly above it. */
+  #titlesSubtitlesView {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px 16px 60px;
+  }
+
+  /* Content that WOULD render under Dashboard view (hidden at this
+     width, but fixed for the rare moment it's still transitioning) —
+     same 150px reservation removed, for consistency/safety. */
+  .charts-and-gantt-column,
+  #riskAssumptionsRow,
+  #filesQnaRow {
+    margin-left: 0;
+  }
+
+  /* A tile-hosted card's popup gets more room to work with on a
+     touch-sized screen — full-bleed instead of a centered box with
+     generous side margins meant for a mouse-driven desktop layout. */
+  .tv-card-modal-overlay { padding: 0; }
+  .tv-card-modal-box,
+  .tv-card-modal-box-wide {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   HEADER — laptop/tablet real estate (<= 1440px). #dashboardHeader was
+   only ever sized for a full desktop-width bar (150px-tall logo, 2.4rem
+   serif heading, 100px min-height) with zero reduction below that until
+   the phone-width full-stack rewrite further down — meaning the single
+   most common real width (a laptop's own screen, ~1280-1440px) always
+   got the maximum-size header, permanently eating the most vertical
+   room from the content competing for the exact same space right below
+   it (--dr-header-height feeds the summary row's and sidebar's own top
+   offset). Moderately scaled down here — still the same 3-column grid,
+   just smaller — well short of the full phone-width stack below, which
+   still applies on top of this at <= 640px. --------------------------------------------------------------------------- */
+@media (max-width: 1440px) {
+  #dashboardHeader { min-height: 64px; padding: 6px 20px; gap: 10px; }
+  #dashboardHeader .dr-logo { height: 76px; }
+  #dashboardHeader .header-center h1 { font-size: 1.7rem; }
+  #dashboardHeader .header-center h2 { font-size: 1.2rem; margin-top: 2px; }
+  #dashboardHeader .header-project-name { font-size: 0.92rem; margin-top: 3px; }
+  #dashboardHeader .header-last-updated { font-size: 0.72rem; margin-top: 3px; }
+  #dashboardHeader .header-right-top .logo-wrapper { width: 52px; height: 52px; }
+  #dashboardHeader .header-user-email { font-size: 0.8rem; }
+}
+
+@media (max-width: 640px) {
+  /* Header: the 3-column grid (logo | title | user info), a 150px-tall
+     logo, and a 2.4rem serif heading are sized for a desktop-width bar —
+     unmodified, they'd overlap badly on a phone. Stacked instead: logo
+     row, then titles, then the signed-in/logout row, each centered. */
+  #dashboardHeader {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 12px 16px;
+    min-height: 0;
+    row-gap: 6px;
+  }
+  #dashboardHeader .header-left { justify-self: center; }
+  #dashboardHeader .dr-logo { height: 64px; }
+  #dashboardHeader .header-center { justify-self: center; }
+  #dashboardHeader .header-center h1 { font-size: 1.5rem; }
+  #dashboardHeader .header-center h2 { font-size: 1.05rem; }
+  #dashboardHeader .header-right {
+    align-items: center;
+    align-self: auto;
+    justify-self: center;
+  }
+  #dashboardHeader .header-right-top .logo-wrapper { width: 44px; height: 44px; }
+  #dashboardHeader .header-user-email { font-size: 0.78rem; }
+
+  .report-sidebar { flex-direction: column; }
+  .report-sidebar .ask-side-card,
+  .report-sidebar .dr-timeframe-select-wrap { flex-basis: auto; }
+
+  .dashboard-summary-row > * { flex-basis: 90%; }
+
+  #titlesSubtitlesView { padding: 12px 12px 60px; }
+
+  .portal-footer-grid { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------------------------------------------------------------------------
+   BIG SCREEN (>= 1920px) — conference-room TV / large monitor. Legible at
+   a glance from across a room: bigger type and numbers, more breathing
+   room between elements, without breaking normal mouse/keyboard use for
+   anyone sitting at it directly.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1920px) {
+  /* Tiled view: more columns because there's genuinely more room, AND
+     each tile itself scales up — the point isn't just "fit more," it's
+     "everything stays easy to read from a distance." */
+  .tv-tile-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
+  .tv-tile { padding: 20px 22px; min-height: 140px; }
+  .tv-tile-icon { font-size: 1.6rem; }
+  .tv-tile-title { font-size: 1rem; }
+  .tv-tile-subtitle { font-size: 0.88rem; }
+
+  #titlesSubtitlesView { padding-left: 32px; padding-right: 32px; }
+
+  /* The pinned summary row (Project Status, SPI, CPI, etc.) is exactly
+     the kind of glanceable-from-across-the-room content this tier is
+     for — its headline numbers get noticeably larger. */
+  .dashboard-summary-row { padding-left: 32px; padding-right: 32px; }
+  .health-overall-value, .health-value,
+  .cost-performance-value { font-size: 1.35em; }
+
+  /* A tile-hosted card's popup can afford a wider box on a screen this
+     size instead of capping at the same 1000px used for a normal
+     monitor. */
+  .tv-card-modal-box { max-width: 1280px; }
+  .tv-card-modal-box-wide { max-width: 92vw; }
+}

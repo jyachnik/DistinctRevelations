@@ -116,27 +116,170 @@ p {
 .dashboard-charts-row > .card {
   margin-bottom: 0;
   min-width: 0;
+  /* CSS Grid stretches every card in a row to match its tallest sibling
+     (e.g. Project Health Scorecard's long stat list) by default — a flex
+     column here lets the chart wrap below grow into that extra height
+     instead of staying a fixed size with dead space left under it. */
+  display: flex;
+  flex-direction: column;
 }
+/* Cash Flow, EVM, Budgeted vs. Actual, Health Scorecard, Defect Trend,
+   EAC Trend, and Resource Hours Trend are all .owner-only-card — and
+   .owner-only-card.owner { display: block } (metrics.css, loaded AFTER
+   this file) has the exact same specificity (2 classes) as the rule
+   above, so it was winning the display property by source order alone
+   and silently resetting every owner-only chart card back to block,
+   undoing the flex-column fill for exactly the cards most likely to have
+   extra content (like Cash Flow's stat row) that actually needs it. This
+   4-class selector outranks that 2-class one regardless of load order —
+   same fix pattern as the th[data-sort] sticky-header bug and the
+   quick-links.css .card{position:relative} bug elsewhere in this app. */
+.dashboard-charts-row > .card.owner-only-card.owner {
+  display: flex;
+}
+/* Same tie, same fix, for a role granted access via the Permissions
+   matrix instead of literal ownership — metrics.css toggles
+   "report-access-granted" (not "owner") in that case, and without this
+   pairing a granted non-owner role would get the card back at
+   display:block, losing the flex-column fill exactly like the .owner
+   case above did before its own fix. */
+.dashboard-charts-row > .card.owner-only-card.report-access-granted {
+  display: flex;
+}
+
+/* Milestone Trend, Resource Hours, Critical Path, and Top Slipped Tasks
+   share this one 2-column grid, spanning the FULL row width (not just 2
+   of its 3 columns) so each visible card gets an equal 50% share of the
+   row's horizontal space. A hidden card (report-hidden, from the
+   Permissions matrix) is skipped by grid auto-flow like any other
+   display:none item, so whichever of the four ARE visible pack together
+   left-to-right with no dead space — this is why all four live in one
+   shared wrapper instead of two separate fixed pairs. */
+.dashboard-charts-row > .charts-row-two-col {
+  grid-column: span 3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+.dashboard-charts-row > .charts-row-two-col > .card {
+  margin-bottom: 0;
+  min-width: 0;
+  /* Same flex-column reasoning as the row above — lets each card's
+     ai-insight-box (margin-top:auto) settle at the bottom of the row's
+     shared stretched height instead of wherever its own content ends. */
+  display: flex;
+  flex-direction: column;
+}
+
 @media (max-width: 1400px) {
   .dashboard-charts-row {
     grid-template-columns: repeat(2, 1fr);
+  }
+  /* Row is 2 columns wide here — span both so the pair still fills the
+     full row width at a clean 50/50 split. */
+  .dashboard-charts-row > .charts-row-two-col {
+    grid-column: span 2;
+    grid-template-columns: 1fr 1fr;
   }
 }
 @media (max-width: 800px) {
   .dashboard-charts-row {
     grid-template-columns: 1fr;
   }
+  /* Too narrow for a 50/50 split to stay readable — stack instead. */
+  .dashboard-charts-row > .charts-row-two-col {
+    grid-column: span 1;
+    grid-template-columns: 1fr;
+  }
 }
 
-/* ─── Summary row: Project Status, Project Progress, Q&A Summary — one
-   horizontal row above the Engagement Timeline ─── */
+/* ─── Summary row: Project Status, Project Progress, Q&A Summary,
+   Schedule Performance Index, Cost Performance Index — one horizontal
+   row above the Engagement Timeline, kept visible (sticky) no matter how
+   far down the page you've scrolled, same idea as #dashboardHeader
+   itself. Its actual rendered height is measured in report-index.js and
+   written to --dr-summary-row-height, so the Report Index sidebar card
+   (also fixed near the top) can sit just below it instead of the two
+   overlapping. ─── */
 .dashboard-summary-row {
   display: flex;
-  gap: var(--space-md);
+  /* Tightened from var(--space-md) (24px) — 5 gaps across 6 cards was
+     eating real width each card could otherwise use, per explicit
+     request for more room per card. */
+  gap: 12px;
   margin-bottom: var(--space-lg);
+  /* position:fixed rather than sticky — sticky has repeatedly failed to
+     hold for the Report Index sidebar card elsewhere on this page for
+     reasons that didn't show up in static CSS review, so fixed (anchored
+     to the viewport, immune to a container's own height/stacking quirks)
+     is used here from the start instead of risking the same failure. */
+  position: fixed;
+  /* --dr-header-height is measured live (report-index.js) — the header's
+     real height varies with its content (business name length, whether
+     "Last updated" is shown, the owner-only Upload Logo button, etc.), so
+     a hardcoded guess here previously left this row positioned partly
+     UNDER the header, hidden behind its opaque, higher-z-index background. */
+  top: var(--dr-header-height, 130px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--color-background, #f9f9f9);
+  /* Top padding, not 0 — each card's "About this chart" info badge
+     (.chart-info-wrap) sits half OUTSIDE its own card's top-right corner
+     (top:-10px — see quick-links.css). With zero top padding here, that
+     10px overflow landed inside the HEADER's own territory just above
+     this row (header z-index:1000 vs. this row's 20), so the header's
+     opaque background painted over the icon — and with the row's cards
+     themselves starting at literally y:0 of this box, their own rounded
+     top corners sat flush against the header with no breathing room
+     either. This gives that overflow real room regardless of exactly how
+     accurate --dr-header-height's live measurement is. */
+  padding: 14px 16px 8px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  /* Hard ceiling, independent of whatever's inside each card. Without
+     this, a card whose AI Insight text isn't clamping to 2 lines (a
+     separate bug, still being chased — see ai-insights.js) makes this
+     WHOLE fixed row balloon to match it (align-items:stretch's default),
+     and since --dr-summary-row-height is a LIVE measurement of this
+     row's real height, that inflated number then feeds straight into
+     .report-sidebar's own top/max-height calc below, pushing it far
+     past the bottom of the viewport and collapsing its max-height
+     negative — one oversized row was silently taking the header cutoff
+     fix, the page's own scrollability, AND the entire Reports sidebar
+     down with it. Capped at 45% of the viewport and internally
+     scrollable so the row can never exceed that regardless of content,
+     and the rest of the page (and the sidebar's own math) stays sane
+     even while the real truncation bug is still being tracked down. */
+  max-height: 45vh;
+  overflow-y: auto;
+}
+/* Reserves the row's own height in normal flow so the charts/Gantt
+   content below doesn't jump up underneath the now out-of-flow fixed
+   row — height is measured live in report-index.js (content wraps at
+   narrow widths, so a fixed guess would drift) and written to this
+   variable. */
+.dashboard-summary-row-spacer {
+  height: var(--dr-summary-row-height, 140px);
 }
 .dashboard-summary-row > * {
   flex: 1 1 0;
   margin-bottom: 0;
   min-width: 0; /* let flex children shrink below their content's natural width */
 }
+/* Overrides the flex:1 1 0 equal-share rule above — this button stays its
+   own small natural size instead of competing for a share of the row. */
+.summary-row-toggle {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-primary, #004e92);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.summary-row-toggle:hover { background: #f0f5fb; }

@@ -8,3 +8,6 @@ ui-debug.log
 functions/.env
 functions/.env.*
 !functions/.env.example
+
+# Claude Code local tool config — not part of the site/app
+.claude/

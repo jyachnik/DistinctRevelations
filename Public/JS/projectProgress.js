@@ -1,14 +1,13 @@
 // /Public/JS/projectProgress.js
-// Vertical cylinder project progress linked to businesses/{biz}.projectProgress
-
+// Two automatically-computed progress bars — Time Elapsed and Tasks
+// Completed — linked to businesses/{biz}.autoTimeElapsedProgress and
+// .autoTaskProgress (see burndown.js's writeAutoProjectProgress, which
+// computes both from the real schedule/task data every render). No more
+// manual click-to-set: both numbers are objective facts derivable from
+// the imported schedule, not something an Owner should have to eyeball.
 
 (function () {
   var LOG = "[projectProgress]";
-  // Read owner email from a global or environment config
-var OWNER_EMAIL =
-  (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
-  (window.ownerEmail) ||
-  '';
 
   function clamp(num, min, max) {
     return Math.min(max, Math.max(min, num));
@@ -37,14 +36,11 @@ var OWNER_EMAIL =
     setTimeout(function () { waitForBusinessKey(cb); }, 150);
   }
 
-  function renderProgress(percent, card, fillEl, labelEl) {
+  function renderBar(percent, fillEl, labelEl) {
     var p = clamp(Math.round(percent || 0), 0, 100);
-
     if (fillEl) fillEl.style.width = p + "%";
     if (labelEl) labelEl.textContent = p + "%";
-    if (card) card.setAttribute("data-progress", String(p));
-
-    console.log(LOG, "renderProgress →", p);
+    return p;
   }
 
   function init() {
@@ -52,86 +48,54 @@ var OWNER_EMAIL =
 
     waitForFirebase(function (DR) {
       waitForBusinessKey(function (bizKey) {
-        var user = DR.auth.currentUser || {};
-        var email = (user.email || "").toLowerCase();
-        var isOwner = email === OWNER_EMAIL;
+        var card = document.getElementById("projectProgressCard");
+        var timeContainer = document.getElementById("time-elapsed-bar-container");
+        var timeFill = document.getElementById("time-elapsed-bar-fill");
+        var timeLabel = document.getElementById("time-elapsed-label");
+        var taskContainer = document.getElementById("task-progress-bar-container");
+        var taskFill = document.getElementById("task-progress-bar-fill");
+        var taskLabel = document.getElementById("task-progress-label");
 
-        console.log(LOG, "context:", {
-          bizKey: bizKey,
-          email: user.email || "",
-          isOwner: isOwner
-        });
-
-        // DOM lookups
-        var card =
-          document.querySelector("section.project-progress") ||
-          document.querySelector(".project-progress.card");
-
-        var container = document.getElementById("progress-bar-container");
-        var fillEl = document.getElementById("progress-bar-fill");
-        var labelEl = document.getElementById("progress-label");
-
-        if (!card || !container || !fillEl || !labelEl) {
-          console.warn(LOG, "Required DOM not found", {
-            hasCard: !!card,
-            hasContainer: !!container,
-            hasFill: !!fillEl,
-            hasLabel: !!labelEl
-          });
+        if (!card || !timeContainer || !timeFill || !timeLabel || !taskContainer || !taskFill || !taskLabel) {
+          console.warn(LOG, "Required DOM not found");
           return;
         }
 
-        // Tag owner vs non-owner on the card for CSS
-        if (isOwner) card.classList.add("owner");
-        else card.classList.remove("owner");
+        // Progress bars are per PROJECT (the company document is shared by every project).
+        var docRef = DR.db.collection("businesses").doc(bizKey).collection("projects").doc(window.PROJECT_KEY || "default");
 
-        var docRef = DR.db.collection("businesses").doc(bizKey);
-
-        // Live Firestore listener
         docRef.onSnapshot(function (snap) {
-          if (!snap.exists) {
-            console.warn(LOG, "businesses/" + bizKey + " does not exist yet, defaulting to 0%");
-            renderProgress(0, card, fillEl, labelEl);
-            return;
+          var data = (snap.exists && snap.data()) || {};
+          var timePct = renderBar(data.autoTimeElapsedProgress, timeFill, timeLabel);
+          var taskPct = renderBar(data.autoTaskProgress, taskFill, taskLabel);
+          card.setAttribute("data-time-progress", String(timePct));
+          card.setAttribute("data-task-progress", String(taskPct));
+
+          if (window.drInsight) {
+            var text;
+            if (data.autoTaskProgress == null && data.autoTimeElapsedProgress == null) {
+              text = '';
+            } else {
+              text = timePct + '% of the project timeline has elapsed, with ' + taskPct + '% of tasks fully completed' +
+                (taskPct < timePct ? ' — behind the calendar pace.' : taskPct > timePct ? ' — ahead of the calendar pace.' : '.');
+              // Check-and-balance: "fully completed" (above) treats a task
+              // at 99% the same as one at 0%, which won't match MS
+              // Project's own work-weighted Percent_Complete on the
+              // imported summary row. Showing both, plus the import's own
+              // figure when available, makes that gap visible instead of
+              // reading as "the numbers are wrong."
+              if (typeof data.autoTaskProgressWeighted === 'number') {
+                text += ' Counting partial progress on in-progress tasks, work is ' + Math.round(data.autoTaskProgressWeighted) + '% complete.';
+              }
+              if (typeof data.projectPercentComplete === 'number') {
+                text += ' The imported schedule\'s own calculation reports ' + Math.round(data.projectPercentComplete) + '%.';
+              }
+            }
+            window.drInsight.set('projectProgressCard', text);
           }
-          var data = snap.data() || {};
-          var raw = data.projectProgress;
-          var value = typeof raw === "number" ? raw : parseFloat(raw || "0");
-          if (!isFinite(value)) value = 0;
-          renderProgress(value, card, fillEl, labelEl);
         }, function (err) {
           console.error(LOG, "Snapshot failed:", err);
         });
-
-        function persistProgress(percent) {
-          if (!isOwner) return;
-          var p = clamp(Math.round(percent || 0), 0, 100);
-          console.log(LOG, "Saving projectProgress", p, "for", bizKey);
-
-          docRef.update({ projectProgress: p }).catch(function (err) {
-            console.error(LOG, "Update failed:", err);
-            try {
-              alert("Could not update Project Progress: " + (err && err.message ? err.message : err));
-            } catch (e) {}
-          });
-        }
-
-        // Owner can click inside the bar to set progress
-        if (isOwner) {
-          container.addEventListener("click", function (evt) {
-            var rect = container.getBoundingClientRect();
-            var x = evt.clientX - rect.left;
-            var width = rect.width || 1;
-
-            // x from left; 0 → 0%, width → 100%
-            var percent = (x / width) * 100;
-            var clamped = clamp(percent, 0, 100);
-
-            console.log(LOG, "click →", { x: x, width: width, percent: clamped });
-            renderProgress(clamped, card, fillEl, labelEl);
-            persistProgress(clamped);
-          });
-        }
       });
     });
   }

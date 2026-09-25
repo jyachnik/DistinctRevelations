@@ -29,6 +29,7 @@
   var db = null;
   var auth = null;
   var bizKey = null;
+  var projKey = null;
   var isOwner = false;
   var defectRows = null; // null = not loaded yet; [] = loaded, genuinely empty
   var defectChartInstance = null;
@@ -56,6 +57,13 @@
   function resolveBusinessKey() {
     var params = new URLSearchParams(window.location.search || '');
     return params.get('business') || (window.localStorage && window.localStorage.getItem('businessKey')) || window.BIZ_KEY || null;
+  }
+
+  // Multi-project cutover — qualityDefects now lives on the project doc,
+  // not the business doc.
+  function projRef() {
+    return db.collection('businesses').doc(bizKey)
+      .collection('projects').doc(projKey || 'default');
   }
 
   function esc(s) {
@@ -88,20 +96,210 @@
     return rank >= 4 ? 'high' : rank === 3 ? 'high' : rank === 2 ? 'medium' : rank === 1 ? 'low' : 'unknown';
   }
 
+  // ---------- Sort / Filter / Pagination state ----------
+  var defectsSort = { key: null, dir: 'asc' };
+  var defectsFilters = { category: [], severity: [], foundIn: [], status: [], assignedTo: [] };
+  function matchesMulti(selected, value) {
+    return !selected.length || selected.indexOf(value) !== -1;
+  }
+  var defectsPage = 1;
+  var DEFECTS_PAGE_SIZE = 15;
+
+  function populateDefectsFilters(rows) {
+    var fields = [
+      { key: 'category', id: 'defectsFilterCategory', allLabel: 'All Categories' },
+      { key: 'severity', id: 'defectsFilterSeverity', allLabel: 'All Severity' },
+      { key: 'foundIn', id: 'defectsFilterFoundIn', allLabel: 'All Found In' },
+      { key: 'status', id: 'defectsFilterStatus', allLabel: 'All Status' },
+      { key: 'assignedTo', id: 'defectsFilterAssignedTo', allLabel: 'All Assigned To' }
+    ];
+    fields.forEach(function (f) {
+      var sel = document.getElementById(f.id);
+      if (!sel) return;
+      var current = sel.value;
+      var values = Array.from(
+        rows.reduce(function (set, r) {
+          var v = (r[f.key] || '').toString().trim();
+          if (v) set.add(v);
+          return set;
+        }, new Set())
+      ).sort(function (a, b) { return a.localeCompare(b); });
+
+      sel.innerHTML = '<option value="">' + f.allLabel + '</option>' +
+        values.map(function (v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+      if (values.indexOf(current) !== -1) sel.value = current;
+    });
+  }
+
+  function getFilteredSortedDefects(rows) {
+    var out = rows.filter(function (r) {
+      return matchesMulti(defectsFilters.category, r.category) &&
+        matchesMulti(defectsFilters.severity, r.severity) &&
+        matchesMulti(defectsFilters.foundIn, r.foundIn) &&
+        matchesMulti(defectsFilters.status, r.status) &&
+        matchesMulti(defectsFilters.assignedTo, r.assignedTo);
+    });
+
+    if (defectsSort.key) {
+      var key = defectsSort.key;
+      var dir = defectsSort.dir === 'desc' ? -1 : 1;
+      out = out.slice().sort(function (a, b) {
+        var av = a[key], bv = b[key];
+        // dateLogged/dateResolved may be real Date objects (or Firestore
+        // Timestamps) — comparing those via toString() would sort by
+        // weekday name, not chronologically.
+        var avDate = toJsDate(av), bvDate = toJsDate(bv);
+        if ((key === 'dateLogged' || key === 'dateResolved')) {
+          var at = avDate ? avDate.getTime() : -Infinity;
+          var bt = bvDate ? bvDate.getTime() : -Infinity;
+          return (at - bt) * dir;
+        }
+        var an = parseFloat(av), bn = parseFloat(bv);
+        var bothNumeric = av !== '' && bv !== '' && av != null && bv != null && !isNaN(an) && !isNaN(bn);
+        if (bothNumeric) return (an - bn) * dir;
+        av = (av || '').toString().toLowerCase();
+        bv = (bv || '').toString().toLowerCase();
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      });
+    }
+    return out;
+  }
+
+  function wireDefectsControls() {
+    var thead = document.querySelector('#qualityDefectsTable thead');
+    if (thead && !thead.__sortWired) {
+      thead.__sortWired = true;
+      thead.addEventListener('click', function (e) {
+        var th = e.target.closest('th[data-sort]');
+        if (!th) return;
+        var key = th.getAttribute('data-sort');
+        if (defectsSort.key === key) {
+          defectsSort.dir = defectsSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          defectsSort.key = key;
+          defectsSort.dir = 'asc';
+        }
+        defectsPage = 1;
+        renderDefectsTable();
+      });
+    }
+
+    ['Category', 'Severity', 'FoundIn', 'Status', 'AssignedTo'].forEach(function (label) {
+      var sel = document.getElementById('defectsFilter' + label);
+      var stateKey = label.charAt(0).toLowerCase() + label.slice(1);
+      if (sel && window.drCreateMultiSelectFilter) {
+        window.drCreateMultiSelectFilter(sel, function (values) {
+          defectsFilters[stateKey] = values;
+          defectsPage = 1;
+          renderDefectsTable();
+        });
+      }
+    });
+
+    var resetBtn = document.getElementById('defectsFilterReset');
+    if (resetBtn && !resetBtn.__wired) {
+      resetBtn.__wired = true;
+      resetBtn.addEventListener('click', function () {
+        defectsFilters = { category: [], severity: [], foundIn: [], status: [], assignedTo: [] };
+        ['Category', 'Severity', 'FoundIn', 'Status', 'AssignedTo'].forEach(function (label) {
+          var sel = document.getElementById('defectsFilter' + label);
+          if (sel && sel.__drMultiSelect) sel.__drMultiSelect.clear();
+        });
+        defectsPage = 1;
+        renderDefectsTable();
+      });
+    }
+
+    var pagePrevBtn = document.getElementById('defectsPagePrev');
+    var pageNextBtn = document.getElementById('defectsPageNext');
+    if (pagePrevBtn && !pagePrevBtn.__wired) {
+      pagePrevBtn.__wired = true;
+      pagePrevBtn.addEventListener('click', function () {
+        defectsPage--;
+        renderDefectsTable();
+      });
+    }
+    if (pageNextBtn && !pageNextBtn.__wired) {
+      pageNextBtn.__wired = true;
+      pageNextBtn.addEventListener('click', function () {
+        defectsPage++;
+        renderDefectsTable();
+      });
+    }
+
+    // Pages the table's own scroll box up/down — same reasoning as the
+    // Gantt chart's directional pad and every other table's up/down pair.
+    var upBtn = document.getElementById('defectsPageUp');
+    var downBtn = document.getElementById('defectsPageDown');
+    if (upBtn && !upBtn.__wired) {
+      upBtn.__wired = true;
+      upBtn.addEventListener('click', function () {
+        var scrollEl = document.querySelector('#qualityDefectsCard .risk-assumptions-table-wrap');
+        if (scrollEl) scrollEl.scrollBy({ top: -scrollEl.clientHeight * 0.6, behavior: 'smooth' });
+      });
+    }
+    if (downBtn && !downBtn.__wired) {
+      downBtn.__wired = true;
+      downBtn.addEventListener('click', function () {
+        var scrollEl = document.querySelector('#qualityDefectsCard .risk-assumptions-table-wrap');
+        if (scrollEl) scrollEl.scrollBy({ top: scrollEl.clientHeight * 0.6, behavior: 'smooth' });
+      });
+    }
+  }
+
   // ---------- Table ----------
   function renderDefectsTable() {
     var card = document.getElementById('qualityDefectsCard');
     var tbody = document.querySelector('#qualityDefectsTable tbody');
     var banner = document.getElementById('qualityDefectsSampleBanner');
     if (!card) return;
+    var canView = isOwner || (window.drAccess && window.drAccess.canViewReport('qualityDefectsCard'));
     card.classList.toggle('owner', isOwner);
-    if (!isOwner || !tbody) return;
+    card.classList.toggle('report-access-granted', canView);
+    if (!canView || !tbody) return;
+
+    wireDefectsControls();
 
     var usingSample = !defectRows || !defectRows.length;
-    var rows = usingSample ? SAMPLE_DEFECTS : defectRows;
+    var allRows = usingSample ? SAMPLE_DEFECTS : defectRows;
     if (banner) banner.hidden = !usingSample;
 
-    tbody.innerHTML = rows.map(function (r) {
+    populateDefectsFilters(allRows);
+    var rows = getFilteredSortedDefects(allRows);
+
+    document.querySelectorAll('#qualityDefectsTable thead th[data-sort]').forEach(function (th) {
+      th.classList.remove('asc', 'desc');
+      if (th.getAttribute('data-sort') === defectsSort.key) th.classList.add(defectsSort.dir);
+    });
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="12" class="metrics-empty">No defects match the selected filters.</td></tr>';
+      if (window.drInsight) window.drInsight.set('qualityDefectsCard', '');
+      var pageInfoElEmpty = document.getElementById('defectsPageInfo');
+      if (pageInfoElEmpty) pageInfoElEmpty.textContent = '';
+      var prevBtnElEmpty = document.getElementById('defectsPagePrev');
+      var nextBtnElEmpty = document.getElementById('defectsPageNext');
+      if (prevBtnElEmpty) prevBtnElEmpty.disabled = true;
+      if (nextBtnElEmpty) nextBtnElEmpty.disabled = true;
+      return;
+    }
+
+    var totalPages = Math.max(1, Math.ceil(rows.length / DEFECTS_PAGE_SIZE));
+    if (defectsPage > totalPages) defectsPage = totalPages;
+    if (defectsPage < 1) defectsPage = 1;
+    var startIdx = (defectsPage - 1) * DEFECTS_PAGE_SIZE;
+    var pageRows = rows.slice(startIdx, startIdx + DEFECTS_PAGE_SIZE);
+
+    var pageInfoEl = document.getElementById('defectsPageInfo');
+    if (pageInfoEl) pageInfoEl.textContent = 'Page ' + defectsPage + ' of ' + totalPages + ' (' + rows.length + (rows.length === 1 ? ' row' : ' rows') + ')';
+    var prevBtnEl = document.getElementById('defectsPagePrev');
+    var nextBtnEl = document.getElementById('defectsPageNext');
+    if (prevBtnEl) prevBtnEl.disabled = defectsPage <= 1;
+    if (nextBtnEl) nextBtnEl.disabled = defectsPage >= totalPages;
+
+    tbody.innerHTML = pageRows.map(function (r) {
       var sevClass = severityClass(r.severity);
       var titleAttr = esc([
         r.resolution ? 'Resolution: ' + r.resolution : '',
@@ -122,14 +320,40 @@
         '<td class="wrap-text">' + esc(r.notes) + '</td>' +
         '</tr>';
     }).join('');
+
+    if (window.drRefs) {
+      allRows.forEach(function (r) {
+        window.drRefs.register(r.id, {
+          cardId: 'qualityDefectsCard', cardLabel: 'Quality/Defects',
+          summary: r.description,
+          fields: [{ label: 'Severity', value: r.severity }, { label: 'Status', value: r.status }, { label: 'Assigned To', value: r.assignedTo }]
+        });
+      });
+    }
+
+    if (window.drInsight) {
+      var openRows = allRows.filter(function (r) { return (r.status || '').toLowerCase() !== 'closed' && (r.status || '').toLowerCase() !== 'resolved'; });
+      var critical = openRows.filter(function (r) { return severityClass(r.severity) === 'high'; });
+      var reopened = allRows.filter(function (r) { return (r.reopenedCount || 0) > 0; });
+      var text = allRows.length + ' defect' + (allRows.length === 1 ? '' : 's') + ' logged, ' + openRows.length + ' still open.';
+      if (critical.length) {
+        text += ' ' + critical.length + ' open at high severity' + (critical[0].description ? ', top one: ' + critical[0].id + ' — "' + critical[0].description + '".' : '.');
+      }
+      if (reopened.length) {
+        text += ' ' + reopened.length + ' defect' + (reopened.length === 1 ? ' has' : 's have') + ' been reopened at least once.';
+      }
+      if (usingSample) text += ' (sample data)';
+      window.drInsight.set('qualityDefectsCard', text);
+    }
   }
 
   function loadDefectRows() {
-    return db.collection('businesses').doc(bizKey).get().then(function (snap) {
+    return projRef().get().then(function (snap) {
       var data = (snap.exists && snap.data()) || {};
       defectRows = Array.isArray(data.qualityDefects) ? data.qualityDefects : [];
       renderDefectsTable();
       renderDefectTrend();
+      if (window.drLastUpdated) window.drLastUpdated.render('qualityDefectsLastUpdated', data.qualityDefectsLastImportedAt);
     }).catch(function (err) { error('load defects failed', err); });
   }
 
@@ -228,14 +452,18 @@
     var card = document.getElementById('defectTrendCard');
     var canvas = document.getElementById('defectTrendChart');
     if (!card) return;
+    var canView = isOwner || (window.drAccess && window.drAccess.canViewReport('defectTrendCard'));
     card.classList.toggle('owner', isOwner);
-    if (!isOwner || !canvas || typeof window.Chart === 'undefined') return;
+    card.classList.toggle('report-access-granted', canView);
+    if (window.drBurndownInternals) window.drBurndownInternals.applyTimeframeBadge('defectTrendCard', currentTimeframeUnit);
+    if (!canView || !canvas || typeof window.Chart === 'undefined') return;
 
     var usingSample = !defectRows || !defectRows.length;
     var rows = usingSample ? SAMPLE_DEFECTS : defectRows;
     var trend = computeDefectTrend(rows, currentTimeframeUnit);
     if (!trend) {
       setChartEmptyLocal(canvas, 'No defects logged yet.');
+      if (window.drInsight) window.drInsight.set('defectTrendCard', '');
       return;
     }
     clearChartEmptyLocal(canvas);
@@ -246,8 +474,8 @@
       data: {
         labels: trend.labels,
         datasets: [
-          { label: 'Opened (cumulative)', data: trend.opened, borderColor: '#dd3333', backgroundColor: '#dd3333', pointRadius: 2, borderWidth: 2, tension: 0.1 },
-          { label: 'Resolved (cumulative)', data: trend.resolved, borderColor: '#2f9e44', backgroundColor: '#2f9e44', pointRadius: 2, borderWidth: 2, tension: 0.1 }
+          { label: 'Opened (cumulative)', data: trend.opened, borderColor: '#dd3333', backgroundColor: '#dd3333', pointRadius: 1, pointHoverRadius: 3, borderWidth: 2, tension: 0.1 },
+          { label: 'Resolved (cumulative)', data: trend.resolved, borderColor: '#2f9e44', backgroundColor: '#2f9e44', pointRadius: 1, pointHoverRadius: 3, borderWidth: 2, tension: 0.1 }
         ]
       },
       options: {
@@ -265,6 +493,23 @@
         }
       }
     });
+
+    if (window.drInsight) {
+      var opened = trend.opened[trend.opened.length - 1];
+      var resolved = trend.resolved[trend.resolved.length - 1];
+      var openCount = opened - resolved;
+      var tfLabel = { week: 'this week', month: 'this month', '3month': 'this quarter', '6month': 'the last 6 months', year: 'this year', total: 'the full project' }[currentTimeframeUnit] || 'the selected period';
+      window.drInsight.set('defectTrendCard', opened + ' defects logged and ' + resolved + ' resolved ' + tfLabel + ' — ' + openCount + ' still open' + (usingSample ? ' (sample data).' : '.'));
+
+      if (window.drInsight.setHistory) {
+        var histTrend = computeDefectTrend(rows, 'month');
+        if (histTrend) {
+          var newPerMonth = histTrend.opened.map(function (v, i) { return i === 0 ? v : v - histTrend.opened[i - 1]; });
+          window.drInsight.setHistory('defectTrendCard',
+            'Across the full history (by month), new defects opened ranged from ' + Math.min.apply(null, newPerMonth) + ' to ' + Math.max.apply(null, newPerMonth) + ' per month.');
+        }
+      }
+    }
   }
 
   // ---------- Import ----------
@@ -288,6 +533,7 @@
 
     btn.addEventListener('click', function () {
       if (!input.files || !input.files[0]) { alert('Choose a Defects/Quality Log export file first.'); return; }
+      if (window.drProgress) window.drProgress.show('Importing quality/defects log…');
 
       input.files[0].arrayBuffer().then(function (data) {
         var wb = XLSX.read(data, { type: 'array' });
@@ -338,12 +584,14 @@
 
         if (!out.length) { alert('No valid rows found — each row needs an ID.'); return; }
 
-        db.collection('businesses').doc(bizKey).set({ qualityDefects: out }, { merge: true }).then(function () {
+        var defectsImportedAt = new Date();
+        projRef().set({ qualityDefects: out, qualityDefectsLastImportedAt: defectsImportedAt }, { merge: true }).then(function () {
           alert('Defects/Quality Log imported: ' + out.length + ' defects.');
           input.value = '';
           defectRows = out;
           renderDefectsTable();
           renderDefectTrend();
+          if (window.drLastUpdated) window.drLastUpdated.render('qualityDefectsLastUpdated', defectsImportedAt);
         }).catch(function (err) {
           error('save defects failed', err);
           alert('Import failed: ' + (err && err.message ? err.message : err));
@@ -351,6 +599,8 @@
       }).catch(function (err) {
         error('read defects failed', err);
         alert('Import failed: ' + (err && err.message ? err.message : err));
+      }).finally(function () {
+        if (window.drProgress) window.drProgress.hide();
       });
     });
   }
@@ -362,7 +612,12 @@
     bizKey = resolveBusinessKey();
     if (!bizKey) { setTimeout(start, 300); return; }
 
-    log('initialized', { bizKey: bizKey });
+    // Multi-project cutover — every business always has at least the
+    // auto-created 'default' project (dashboard-business-loader.js
+    // guarantees window.PROJECT_KEY is set by the time this runs).
+    projKey = window.PROJECT_KEY || 'default';
+
+    log('initialized', { bizKey: bizKey, projKey: projKey });
     wireImport();
 
     // Same global time frame control burndown.js's charts follow —
@@ -379,6 +634,20 @@
       isOwner = !!email && !!OWNER_EMAIL && email.toLowerCase() === OWNER_EMAIL.toLowerCase();
       wireImport();
       loadDefectRows();
+    });
+
+    // renderDefectsTable()/renderDefectTrend() each check
+    // window.drAccess.canViewReport() to decide whether to populate at
+    // all — if the Firestore snapshot that triggers them fires before
+    // dr-access-control.js finishes resolving role/permissions (a real
+    // timing race, not guaranteed either way), they'd render an
+    // permanently empty card with no second chance to try again. Both
+    // functions are safe to re-run with no arguments (they read cached
+    // module state), so just re-run them once access is known to be
+    // resolved either way.
+    if (window.drAccess) window.drAccess.whenReady().then(function () {
+      renderDefectsTable();
+      renderDefectTrend();
     });
   }
 

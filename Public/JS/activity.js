@@ -1,15 +1,22 @@
-// Public/JS/activity.js – Activity Log for businesses/{biz}/activity
-// Owner can create/update/delete; non‑owners are read‑only.
+// Public/JS/activity.js – Activity Log for businesses/{biz}/activities
+// Read-only report now — no add/edit/delete UI and no separate import of
+// its own. Fed entirely by the Schedule (Milestones & Activities) import
+// (see gantt.js), which already writes non-milestone rows into this SAME
+// "activities" subcollection — there's nothing this card needs that the
+// Schedule import doesn't already provide, so the standalone CRUD/import
+// path that used to live here was removed rather than left duplicating
+// it. Filters (Stage/Responsible/Due Date/Status) replace what the old
+// Actions column and add form used to be for.
 
 (function () {
   'use strict';
 
   var TAG = '[activity]';
   // Read owner email from a global or environment config
-var OWNER_EMAIL =
-  (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
-  (window.ownerEmail) ||
-  '';
+  var OWNER_EMAIL =
+    (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
+    (window.ownerEmail) ||
+    '';
 
   // ---------- helpers ----------
 
@@ -43,6 +50,12 @@ var OWNER_EMAIL =
       console.warn(TAG, 'fmtDate failed', e);
       return '';
     }
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
   }
 
   // "Ahead" / "On Schedule" / "Behind" — actual % complete vs. where the
@@ -155,25 +168,25 @@ var OWNER_EMAIL =
   // ---------- state + DOM ----------
 
   var ctx = {
-  biz: null,
-  isOwner: false,
-  userEmail: '',
-  rows: [], // { id, title, description, status, dueDate, createdAt, createdBy }
-  sort: { key: 'date', dir: 'desc' } // NEW: default sort by due date
-};
+    biz: null,
+    proj: null,
+    isOwner: false,
+    userEmail: '',
+    rows: [], // { id, title, description, status, dueDate, responsible, ... }
+    sort: { key: 'date', dir: 'desc' },
+    filters: { stage: '', responsible: '', dueDate: '', rag: '' },
+    page: 1
+  };
+  var ACTIVITY_PAGE_SIZE = 15;
 
   var dom = {
     table: null,
     tableBody: null,
-    form: null,
-    titleInput: null,
-    descInput: null,
-    statusInput: null,
-    responsibleInput: null,
-    dateInput: null,
-    submitBtn: null,
-    importInput: null,
-    importBtn: null
+    filterStage: null,
+    filterResponsible: null,
+    filterDueDate: null,
+    filterRag: null,
+    filterReset: null
   };
 
   function bindDOM() {
@@ -184,278 +197,294 @@ var OWNER_EMAIL =
       byId('activityTableBody') ||
       $('#activityTable');
 
-    dom.form = byId('activityForm');
-    if (dom.form) {
-      dom.titleInput = byId('activityTitle');
-      dom.descInput = byId('activityDesc');
-      dom.statusInput = byId('activityStatus');
-      dom.responsibleInput = byId('activityResponsible');
-      dom.dateInput = byId('activityDate');
-      dom.submitBtn = dom.form.querySelector('button[type="submit"]');
-    }
-
-    dom.importInput = byId('activityImport');
-    dom.importBtn = byId('importBtn');
+    dom.filterStage = byId('activityFilterStage');
+    dom.filterResponsible = byId('activityFilterResponsible');
+    dom.filterDueDate = byId('activityFilterDueDate');
+    dom.filterRag = byId('activityFilterRag');
+    dom.filterReset = byId('activityFilterReset');
   }
 
-// ---------- sorting ----------
-function sortedRows() {
-  var rows = (ctx.rows || []).slice();
-  var key = ctx.sort && ctx.sort.key;
-  var dir = ctx.sort && ctx.sort.dir === 'desc' ? -1 : 1;
-  if (!key) return rows;
-
-  rows.sort(function (a, b) {
-    var av, bv;
-
-    if (key === 'date') {
-      av = a.dueDate || a.dueDateText || '';
-      bv = b.dueDate || b.dueDateText || '';
-
-      av = av && av.toDate ? av.toDate() : (av instanceof Date ? av : new Date(av));
-      bv = bv && bv.toDate ? bv.toDate() : (bv instanceof Date ? bv : new Date(bv));
-
-      av = isNaN(av.getTime()) ? 0 : av.getTime();
-      bv = isNaN(bv.getTime()) ? 0 : bv.getTime();
-    } else if (key === 'title') {
-      av = (a.title  || '').toLowerCase();
-      bv = (b.title  || '').toLowerCase();
-    } else if (key === 'status') {
-      av = (a.status || '').toLowerCase();
-      bv = (b.status || '').toLowerCase();
-    } else if (key === 'responsible') {
-      av = (a.responsible || '').toLowerCase();
-      bv = (b.responsible || '').toLowerCase();
-    } else {
-      return 0;
-    }
-
-    if (av < bv) return -1 * dir;
-    if (av > bv) return  1 * dir;
-    return 0;
-  });
-
-  return rows;
-}
-
-
-
- // ---------- rendering ----------
-
-function render() {
-  if (!dom.tableBody) return;
-
-  // use sorted copy of rows
-  var rows = sortedRows();
-
-  if (!rows || !rows.length) {
-    dom.tableBody.innerHTML =
-      '<tr><td colspan="6" class="empty">No activity logged yet.</td></tr>';
-    return;
+  // ---------- filters ----------
+  // Populated from the actual imported rows' own distinct values, same
+  // convention as Quality/Defects Log/Constraints/etc. — not a fixed
+  // list, so it only ever offers values that actually exist right now.
+  function ragLabelFor(r) {
+    var completed = (r.status || '').toLowerCase() === 'completed';
+    var jeopardy = window.drRag ? window.drRag.compute(r.createdAt, r.dueDate, completed) : { label: '' };
+    return jeopardy.label || '';
   }
 
-  // update header sort arrow classes
-  if (dom.table) {
-    $all('thead th[data-sort]', dom.table).forEach(function (th) {
-      var key = th.getAttribute('data-sort');
-      th.classList.remove('sorted-asc', 'sorted-desc');
-      if (ctx.sort && ctx.sort.key === key) {
-        th.classList.add(ctx.sort.dir === 'desc' ? 'sorted-desc' : 'sorted-asc');
-      }
+  // Most-urgent-first rank for sorting the Status column — the RAG code
+  // itself (red/amber/green/done/none) has no natural alphabetical order,
+  // so sorting by ragLabelFor's text would group "At risk"/"Overdue"
+  // apart from each other despite both being red. This ranks by actual
+  // urgency instead.
+  var RAG_SORT_RANK = { red: 0, amber: 1, green: 2, done: 3, none: 4 };
+  function ragRankFor(r) {
+    var completed = (r.status || '').toLowerCase() === 'completed';
+    var jeopardy = window.drRag ? window.drRag.compute(r.createdAt, r.dueDate, completed) : { code: 'none' };
+    var rank = RAG_SORT_RANK[jeopardy.code];
+    return rank == null ? 5 : rank;
+  }
+
+  function populateActivityFilters(rows) {
+    var fields = [
+      { key: 'stage', el: dom.filterStage, get: function (r) { return r.status || ''; } },
+      { key: 'responsible', el: dom.filterResponsible, get: function (r) { return r.responsible || ''; } },
+      { key: 'dueDate', el: dom.filterDueDate, get: function (r) { return r.dueDate ? fmtDate(r.dueDate) : (r.dueDateText || ''); } },
+      { key: 'rag', el: dom.filterRag, get: ragLabelFor }
+    ];
+    fields.forEach(function (f) {
+      if (!f.el) return;
+      var current = f.el.value;
+      var values = Array.from(
+        rows.reduce(function (set, r) {
+          var v = (f.get(r) || '').toString().trim();
+          if (v) set.add(v);
+          return set;
+        }, new Set())
+      ).sort(function (a, b) { return a.localeCompare(b); });
+
+      var allLabel = f.el.options[0] ? f.el.options[0].textContent : 'All';
+      f.el.innerHTML = '<option value="">' + esc(allLabel) + '</option>' +
+        values.map(function (v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+      if (values.indexOf(current) !== -1) f.el.value = current;
     });
   }
 
-  dom.tableBody.innerHTML = rows
-    .map(function (r) {
-      var actions = '—';
-      if (ctx.isOwner) {
-        actions =
-          '<button type="button" class="edit-btn" data-id="' +
-          r.id +
-          '">✎</button>' +
-          '<button type="button" class="delete-btn" data-id="' +
-          r.id +
-          '">🗑</button>';
+  function getFilteredRows(rows) {
+    return rows.filter(function (r) {
+      return (!ctx.filters.stage || (r.status || '') === ctx.filters.stage) &&
+        (!ctx.filters.responsible || (r.responsible || '') === ctx.filters.responsible) &&
+        (!ctx.filters.dueDate || (r.dueDate ? fmtDate(r.dueDate) : (r.dueDateText || '')) === ctx.filters.dueDate) &&
+        (!ctx.filters.rag || ragLabelFor(r) === ctx.filters.rag);
+    });
+  }
+
+  function wireActivityFilters() {
+    [
+      { el: dom.filterStage, key: 'stage' },
+      { el: dom.filterResponsible, key: 'responsible' },
+      { el: dom.filterDueDate, key: 'dueDate' },
+      { el: dom.filterRag, key: 'rag' }
+    ].forEach(function (f) {
+      if (f.el && !f.el.__wired) {
+        f.el.__wired = true;
+        f.el.addEventListener('change', function () {
+          ctx.filters[f.key] = f.el.value;
+          ctx.page = 1;
+          render();
+        });
+      }
+    });
+
+    if (dom.filterReset && !dom.filterReset.__wired) {
+      dom.filterReset.__wired = true;
+      dom.filterReset.addEventListener('click', function () {
+        ctx.filters = { stage: '', responsible: '', dueDate: '', rag: '' };
+        [dom.filterStage, dom.filterResponsible, dom.filterDueDate, dom.filterRag].forEach(function (el) {
+          if (el) el.value = '';
+        });
+        ctx.page = 1;
+        render();
+      });
+    }
+  }
+
+  // ---------- sorting ----------
+  function sortedRows(rows) {
+    rows = rows.slice();
+    var key = ctx.sort && ctx.sort.key;
+    var dir = ctx.sort && ctx.sort.dir === 'desc' ? -1 : 1;
+    if (!key) return rows;
+
+    rows.sort(function (a, b) {
+      var av, bv;
+
+      if (key === 'date') {
+        av = a.dueDate || a.dueDateText || '';
+        bv = b.dueDate || b.dueDateText || '';
+
+        av = av && av.toDate ? av.toDate() : (av instanceof Date ? av : new Date(av));
+        bv = bv && bv.toDate ? bv.toDate() : (bv instanceof Date ? bv : new Date(bv));
+
+        av = isNaN(av.getTime()) ? 0 : av.getTime();
+        bv = isNaN(bv.getTime()) ? 0 : bv.getTime();
+      } else if (key === 'title') {
+        av = (a.title || '').toLowerCase();
+        bv = (b.title || '').toLowerCase();
+      } else if (key === 'status') {
+        av = (a.status || '').toLowerCase();
+        bv = (b.status || '').toLowerCase();
+      } else if (key === 'responsible') {
+        av = (a.responsible || '').toLowerCase();
+        bv = (b.responsible || '').toLowerCase();
+      } else if (key === 'rag') {
+        av = ragRankFor(a);
+        bv = ragRankFor(b);
+      } else {
+        return 0;
       }
 
-      var title = r.title || '';
-      var status = r.status || '';
-      var due = r.dueDate ? fmtDate(r.dueDate) : (r.dueDateText || '');
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
 
-      var completed = (r.status || '').toLowerCase() === 'completed';
-      var jeopardy = window.drRag
-        ? window.drRag.compute(r.createdAt, r.dueDate, completed)
-        : { code: 'none', label: '' };
-      var pace = computePace(r, completed);
-      var ragCell =
-        '<span class="dr-rag dr-rag-' + jeopardy.code + '" title="' + jeopardy.label + '"></span>' +
-        '<span class="dr-rag-label">' + jeopardy.label + '</span>' +
-        (pace ? '<div class="dr-pace dr-pace-' + pace.code + '">' + pace.label + '</div>' : '');
-
-      var responsible = r.responsible || '';
-
-      return (
-        '<tr data-id="' +
-        r.id +
-        '">' +
-        '<td>' +
-        title +
-        (r.description ? '<div class="activity-desc">' + r.description + '</div>' : '') +
-        '</td>' +
-        '<td>' +
-        status +
-        '</td>' +
-        '<td title="' + responsible + '">' +
-        responsible +
-        '</td>' +
-        '<td>' +
-        due +
-        '</td>' +
-        '<td class="dr-rag-cell">' +
-        ragCell +
-        '</td>' +
-        '<td class="actions">' +
-        actions +
-        '</td>' +
-        '</tr>'
-      );
-    })
-    .join('');
-
-  if (ctx.isOwner) {
-    wireRowActions();
+    return rows;
   }
-}
 
-  function wireRowActions() {
+  // ---------- rendering ----------
+
+  function render() {
     if (!dom.tableBody) return;
 
-    $all('.edit-btn', dom.tableBody).forEach(function (btn) {
-     btn.addEventListener('click', function () {
-        var id = btn.getAttribute('data-id');
-        var row = ctx.rows.find(function (r) {
-          return r.id === id;
-        })
-        if (!row || !dom.form) return;
+    populateActivityFilters(ctx.rows);
+    var rows = sortedRows(getFilteredRows(ctx.rows));
 
-        if (dom.titleInput) dom.titleInput.value = row.title || '';
-        if (dom.descInput) dom.descInput.value = row.description || '';
-       if (dom.statusInput) {
-  if (row.status) {
-    dom.statusInput.value = row.status;
-  } else {
-    // no saved status → reset so placeholder "Select Status" shows
-    dom.statusInput.value = '';
-  }
-}
-        if (dom.responsibleInput) dom.responsibleInput.value = row.responsible || '';
-        if (dom.dateInput) {
-          try {
-            if (row.dueDate && row.dueDate.toDate) {
-              var d = row.dueDate.toDate();
-              dom.dateInput.value = d.toISOString().slice(0, 10);
-            } else if (row.dueDate instanceof Date) {
-              dom.dateInput.value = row.dueDate.toISOString().slice(0, 10);
-            } else {
-              dom.dateInput.value = '';
-            }
-          } catch (_) {
-            dom.dateInput.value = '';
-          }
-        }
-        dom.form.setAttribute('data-edit-id', id);
-        if (dom.submitBtn) dom.submitBtn.textContent = 'Update Activity';
-      });
-    });
-
-    $all('.delete-btn', dom.tableBody).forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = btn.getAttribute('data-id');
-        if (!id || !ctx.biz || !ctx.isOwner) return;
-
-        var confirmed = window.drConfirm
-          ? window.drConfirm('Delete this activity item? This cannot be undone.', { title: 'Delete Activity' })
-          : Promise.resolve(window.confirm('Delete this activity item?'));
-
-        confirmed.then(function (ok) {
-          if (!ok) return;
-
-          var db = getDB();
-          if (!db) return;
-
-          db.collection('businesses')
-            .doc(ctx.biz)
-            .collection('activities')
-            .doc(id)
-            .delete()
-            .catch(function (err) {
-              console.error(TAG, 'Delete failed', err);
-              try {
-                alert(
-                  'Could not delete activity: ' +
-                    (err && err.message ? err.message : err)
-                );
-              } catch (_) {}
-            });
-        });
-      });
-    });
-  }
-function bindSortHeaders() {
-  if (!dom.table) return;
-  $all('thead th[data-sort]', dom.table).forEach(function (th) {
-    th.addEventListener('click', function () {
-      var key = th.getAttribute('data-sort');
-      if (!key) return;
-
-      if (ctx.sort && ctx.sort.key === key) {
-        ctx.sort.dir = ctx.sort.dir === 'asc' ? 'desc' : 'asc';
-      } else {
-        ctx.sort = { key: key, dir: 'asc' };
-      }
-      render();
-    });
-  });
-}
-  // ---------- Responsible-party dropdown (company roster + owner) ----------
-  function loadResponsibleOptions(db, biz) {
-    if (!dom.responsibleInput) return;
-
-    var seen = {};
-    var sel = dom.responsibleInput;
-    var current = sel.value || '';
-
-    function addOption(email) {
-      if (!email) return;
-      var key = email.toLowerCase();
-      if (seen[key]) return;
-      seen[key] = true;
-      var opt = document.createElement('option');
-      opt.value = email;
-      opt.textContent = email;
-      sel.appendChild(opt);
+    if (!rows || !rows.length) {
+      dom.tableBody.innerHTML =
+        '<tr><td colspan="5" class="empty">' + (ctx.rows.length ? 'No activities match the selected filters.' : 'No activity logged yet — import the Schedule to populate this.') + '</td></tr>';
+      if (window.drInsight) window.drInsight.set('activityPanelCard', '');
+      renderActivityPagination(0, 1);
+      return;
     }
 
-    sel.innerHTML = '';
-    var placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Responsible';
-    sel.appendChild(placeholder);
-
-    if (OWNER_EMAIL) addOption(OWNER_EMAIL);
-
-    db.collection('businesses').doc(biz).collection('users').get().then(function (snap) {
-      snap.forEach(function (doc) {
-        var u = doc.data() || {};
-        if (u.email) addOption(u.email);
+    // update header sort arrow classes
+    if (dom.table) {
+      $all('thead th[data-sort]', dom.table).forEach(function (th) {
+        var key = th.getAttribute('data-sort');
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (ctx.sort && ctx.sort.key === key) {
+          th.classList.add(ctx.sort.dir === 'desc' ? 'sorted-desc' : 'sorted-asc');
+        }
       });
-      if (current) sel.value = current;
-    }).catch(function (err) {
-      console.error(TAG, 'loadResponsibleOptions error', err);
+    }
+
+    var totalPages = Math.max(1, Math.ceil(rows.length / ACTIVITY_PAGE_SIZE));
+    if (ctx.page > totalPages) ctx.page = totalPages;
+    if (ctx.page < 1) ctx.page = 1;
+    var startIdx = (ctx.page - 1) * ACTIVITY_PAGE_SIZE;
+    var pageRows = rows.slice(startIdx, startIdx + ACTIVITY_PAGE_SIZE);
+
+    dom.tableBody.innerHTML = pageRows
+      .map(function (r) {
+        var title = r.title || '';
+        var status = r.status || '';
+        var due = r.dueDate ? fmtDate(r.dueDate) : (r.dueDateText || '');
+
+        var completed = (r.status || '').toLowerCase() === 'completed';
+        var jeopardy = window.drRag
+          ? window.drRag.compute(r.createdAt, r.dueDate, completed)
+          : { code: 'none', label: '' };
+        var pace = computePace(r, completed);
+        var ragCell =
+          '<span class="dr-rag dr-rag-' + jeopardy.code + '" title="' + jeopardy.label + '"></span>' +
+          '<span class="dr-rag-label">' + jeopardy.label + '</span>' +
+          (pace ? '<div class="dr-pace dr-pace-' + pace.code + '">' + pace.label + '</div>' : '');
+
+        var responsible = r.responsible || '';
+
+        return (
+          '<tr data-id="' +
+          r.id +
+          '">' +
+          '<td>' +
+          esc(title) +
+          (r.description ? '<div class="activity-desc">' + esc(r.description) + '</div>' : '') +
+          '</td>' +
+          '<td>' +
+          esc(status) +
+          '</td>' +
+          '<td title="' + esc(responsible) + '">' +
+          esc(responsible) +
+          '</td>' +
+          '<td>' +
+          esc(due) +
+          '</td>' +
+          '<td class="dr-rag-cell">' +
+          ragCell +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+
+    if (window.drInsight) {
+      var completedCount = rows.filter(function (r) { return (r.status || '').toLowerCase() === 'completed'; }).length;
+      var atRisk = rows.filter(function (r) {
+        var completed = (r.status || '').toLowerCase() === 'completed';
+        if (completed) return false;
+        var j = window.drRag ? window.drRag.compute(r.createdAt, r.dueDate, completed) : { code: 'none' };
+        return j.code === 'red' || j.code === 'amber';
+      });
+      var text = rows.length + ' activit' + (rows.length === 1 ? 'y' : 'ies') + ' logged, ' + completedCount + ' completed.';
+      if (atRisk.length) {
+        text += ' ' + atRisk.length + ' open item' + (atRisk.length === 1 ? ' is' : 's are') + ' at risk on schedule' +
+          (atRisk[0].title ? ', e.g. "' + atRisk[0].title + '".' : '.');
+      } else if (rows.length > completedCount) {
+        text += ' Remaining open items are on track.';
+      }
+      window.drInsight.set('activityPanelCard', text);
+    }
+
+    renderActivityPagination(rows.length, totalPages);
+  }
+
+  function renderActivityPagination(totalRows, totalPages) {
+    var pageInfoEl = byId('activityPageInfo');
+    if (pageInfoEl) {
+      pageInfoEl.textContent = totalRows
+        ? 'Page ' + ctx.page + ' of ' + totalPages + ' (' + totalRows + (totalRows === 1 ? ' row' : ' rows') + ')'
+        : '';
+    }
+    var prevBtn = byId('activityPagePrev');
+    var nextBtn = byId('activityPageNext');
+    if (prevBtn) prevBtn.disabled = ctx.page <= 1;
+    if (nextBtn) nextBtn.disabled = ctx.page >= totalPages;
+  }
+
+  function bindActivityPagination() {
+    var prevBtn = byId('activityPagePrev');
+    var nextBtn = byId('activityPageNext');
+    if (prevBtn && !prevBtn.__wired) {
+      prevBtn.__wired = true;
+      prevBtn.addEventListener('click', function () {
+        ctx.page--;
+        render();
+      });
+    }
+    if (nextBtn && !nextBtn.__wired) {
+      nextBtn.__wired = true;
+      nextBtn.addEventListener('click', function () {
+        ctx.page++;
+        render();
+      });
+    }
+  }
+
+  function bindSortHeaders() {
+    if (!dom.table) return;
+    $all('thead th[data-sort]', dom.table).forEach(function (th) {
+      th.addEventListener('click', function () {
+        var key = th.getAttribute('data-sort');
+        if (!key) return;
+
+        if (ctx.sort && ctx.sort.key === key) {
+          ctx.sort.dir = ctx.sort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          ctx.sort = { key: key, dir: 'asc' };
+        }
+        ctx.page = 1;
+        render();
+      });
     });
   }
 
   // ---------- Firestore subscription ----------
+  // Read-only: subscribes to businesses/{biz}/activities (written by the
+  // Schedule import in gantt.js) and renders whatever's there. No form,
+  // no per-row edit/delete, no separate import — see the file header.
 
   function subscribe(biz, user) {
     var db = getDB();
@@ -466,92 +495,59 @@ function bindSortHeaders() {
 
     var email = (user && user.email ? user.email : '').toLowerCase();
     ctx.biz = biz;
+    // Multi-project cutover — every business always has at least the
+    // auto-created 'default' project (dashboard-business-loader.js
+    // guarantees window.PROJECT_KEY is set by the time this runs).
+    ctx.proj = window.PROJECT_KEY || 'default';
     ctx.userEmail = email;
     ctx.isOwner = email === OWNER_EMAIL;
 
-    loadResponsibleOptions(db, biz);
+    var panel = document.querySelector('.card.activity-panel');
+    if (panel) panel.classList.toggle('owner', ctx.isOwner);
 
-    // Mark table owner/non‑owner so CSS can hide Actions column
-if (dom.table) {
-  if (ctx.isOwner) dom.table.classList.add('owner');
-  else dom.table.classList.remove('owner');
-}
-
-// Hide Add Activity form + Import bar for non‑owners
-var panel = document.querySelector('.card.activity-panel');
-if (!ctx.isOwner && panel) {
-  var formSection   = panel.querySelector('#activityForm');
-  var importSection = panel.querySelector('.activity-import');
-
-  if (formSection) {
-    formSection.style.display = 'none';
-  }
-  if (importSection) {
-    importSection.style.display = 'none';
-  }
-}
-var panel = document.querySelector('.card.activity-panel');
-
-// Table owner flag (for Actions column)
-if (dom.table) {
-  if (ctx.isOwner) dom.table.classList.add('owner');
-  else dom.table.classList.remove('owner');
-}
-
-// Panel owner flag (for form + import visibility via CSS)
-if (panel) {
-  if (ctx.isOwner) panel.classList.add('owner');
-  else panel.classList.remove('owner');
-}
-
-console.log('[activity] panel owner flag', {
-  email: ctx.userEmail,
-  isOwner: ctx.isOwner,
-  hasPanel: !!panel,
-  panelClasses: panel && panel.className
-});
+    console.log(TAG, 'panel owner flag', {
+      email: ctx.userEmail,
+      isOwner: ctx.isOwner,
+      hasPanel: !!panel
+    });
 
     var col = db
       .collection('businesses')
       .doc(biz)
+      .collection('projects')
+      .doc(ctx.proj || 'default')
       .collection('activities');
 
     col.orderBy('createdAt', 'desc').onSnapshot(
       function (snap) {
         var rows = [];
         snap.forEach(function (doc) {
-  var data = doc.data() || {};
+          var data = doc.data() || {};
 
-  // 1) Get raw status from Firestore/import
-  var rawStatus = data.status || '';
+          function normalizeStatus(s) {
+            s = (s || '').toLowerCase().trim();
+            if (!s) return '';
+            if (s === 'not started') return 'Not Started';
+            if (s === 'in progress') return 'In Progress';
+            if (s === 'completed' || s === 'complete') return 'Completed';
+            return s.charAt(0).toUpperCase() + s.slice(1);
+          }
 
-  // 2) Normalize to match your <select> options
-  function normalizeStatus(s) {
-    s = (s || '').toLowerCase().trim();
-    if (!s) return '';
-    if (s === 'not started') return 'Not Started';
-    if (s === 'in progress') return 'In Progress';
-    if (s === 'completed' || s === 'complete') return 'Completed';
-    // fallback: capitalize first letter
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  // 3) Use normalized status when building the row
-  rows.push({
-    id: doc.id,
-    title: data.title || data.activity || '',
-    description: data.description || data.desc || '',
-    status: normalizeStatus(rawStatus),
-    responsible: data.responsible || '',
-    dueDate: data.dueDate || data.due || null,
-    dueDateText: data.dueDateText || '',
-    startDate: data.startDate || null,
-    progress: data.progress,
-    changeLog: data.changeLog || [],
-    createdAt: data.createdAt || null,
-    createdBy: data.createdBy || ''
-  });
-});
+          rows.push({
+            id: doc.id,
+            title: data.title || data.activity || '',
+            description: data.description || data.desc || '',
+            status: normalizeStatus(data.status || ''),
+            responsible: data.responsible || '',
+            dueDate: data.dueDate || data.due || null,
+            dueDateText: data.dueDateText || '',
+            startDate: data.startDate || null,
+            progress: data.progress,
+            changeLog: data.changeLog || [],
+            createdAt: data.createdAt || null,
+            createdBy: data.createdBy || ''
+          });
+        });
         ctx.rows = rows;
         render();
       },
@@ -559,435 +555,7 @@ console.log('[activity] panel owner flag', {
         console.error(TAG, 'Activity snapshot failed', err);
       }
     );
-
-    if (ctx.isOwner && dom.form) {
-      wireForm(col);
-    } else if (dom.form) {
-      // Non‑owners: prevent any submission
-      dom.form.addEventListener('submit', function (e) {
-        e.preventDefault();
-      });
-      $all('input, select, button', dom.form).forEach(function (el) {
-        // Leave labels/type=date visually but block editing
-        if (el.tagName === 'BUTTON') {
-          el.disabled = true;
-        } else {
-          el.readOnly = true;
-          el.disabled = true;
-        }
-      });
-    }
-
-    // Import controls: owner‑only
-   // inside subscribe(biz, user) after ctx.isOwner is set and bindDOM() has run
-if (dom.importBtn) var email = (user && user.email ? user.email : '').toLowerCase();
-ctx.biz = biz;
-ctx.userEmail = email;
-ctx.isOwner = email === OWNER_EMAIL;
-
-console.log('[activity] context →', {
-  biz: biz,
-  email: email,
-  OWNER_EMAIL: OWNER_EMAIL,
-  isOwner: ctx.isOwner
-});{
-  if (!ctx.isOwner) {
-    dom.importBtn.disabled = true;
-    dom.importBtn.onclick = null;
-  } else {
-    dom.importBtn.disabled = false;
-    dom.importBtn.onclick = async function (e) {
-      e.preventDefault();
-
-      if (!dom.importInput || !dom.importInput.files || !dom.importInput.files[0]) {
-        alert('Choose an Excel (.xlsx) or CSV file first.');
-        return;
-      }
-
-      var file = dom.importInput.files[0];
-
-      try {
-        // Read file as ArrayBuffer
-        var data = await file.arrayBuffer();
-
-        // Parse workbook using SheetJS (already loaded on dashboard.html)
-        var wb = XLSX.read(data, { type: 'array' });
-
-        // Use the first worksheet
-        var sheetName = wb.SheetNames[0];
-        var ws = wb.Sheets[sheetName];
-
-        // Convert to JSON (each row becomes an object keyed by header row)
-        var rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-
-        // Assume first row is headers
-        if (!rows.length) {
-          alert('Excel file has no rows.');
-          return;
-        }
-
-        var header = rows[0].map(function (h) {
-          return String(h || '').trim().toLowerCase();
-        });
-
-        // Helper to get column index by header name (case‑insensitive)
-        function colIndex(nameOptions) {
-          nameOptions = nameOptions.map(function (n) { return n.toLowerCase(); });
-          for (var i = 0; i < header.length; i++) {
-            if (nameOptions.indexOf(header[i]) !== -1) return i;
-          }
-          return -1;
-        }
-
-        // 'name' matches a plain MS Project export's Name column, same as
-        // the Gantt importer already recognizes.
-        var idxTitle    = colIndex(['title', 'activity', 'name']);
-        var idxDesc     = colIndex(['desc', 'description', 'activity description', 'details']);
-        var idxStatus   = colIndex(['status']);
-        var idxStart    = colIndex(['start', 'startdate', 'start date', 'start_date']);
-        var idxDate     = colIndex(['duedate', 'due date', 'date', 'end', 'enddate', 'end date', 'finish', 'finish_date', 'finish date']);
-        var idxProgress = colIndex(['progress', '% complete', 'percent complete', 'percent_complete']);
-        var idxResource = colIndex(['resource_names', 'resource names', 'resources', 'responsible']);
-        var idxWbs      = colIndex(['wbs']);
-
-        if (idxTitle === -1) {
-          alert('Excel sheet must have a Title, Activity, or Name column.');
-          return;
-        }
-
-        var db = getDB();
-        if (!db) {
-          alert('Firestore not available.');
-          return;
-        }
-
-        var col = db.collection('businesses').doc(ctx.biz).collection('activities');
-
-        function parseCell(v) {
-          if (v == null || v === '') return null;
-          if (typeof v === 'number') {
-            var jsDate = XLSX.SSF.parse_date_code(v);
-            if (jsDate) return new Date(jsDate.y, jsDate.m - 1, jsDate.d);
-          }
-          var d = new Date(v);
-          return isNaN(d.getTime()) ? null : d;
-        }
-
-        function dfmt(v) {
-          return fmtDate(v) || 'not set';
-        }
-
-        function serverNow() {
-          return window.firebase &&
-            window.firebase.firestore &&
-            window.firebase.firestore.FieldValue &&
-            window.firebase.firestore.FieldValue.serverTimestamp
-              ? window.firebase.firestore.FieldValue.serverTimestamp()
-              : new Date();
-        }
-
-        // Existing activities are already loaded live via onSnapshot —
-        // match incoming rows against them by WBS (the stable id MS
-        // Project assigns each row) so re-importing an updated file
-        // UPDATES matching rows instead of creating duplicates every time.
-        var existingByWbs = {};
-        (ctx.rows || []).forEach(function (r) {
-          if (r.wbs) existingByWbs[String(r.wbs).trim()] = r;
-        });
-
-        // Process remaining rows
-        var ops = [];
-        var createdCount = 0, updatedCount = 0;
-        for (var r = 1; r < rows.length; r++) {
-          var row = rows[r] || [];
-          var title = (row[idxTitle] != null ? String(row[idxTitle]).trim() : '');
-          if (!title) continue; // skip empty rows
-
-          var desc = idxDesc >= 0 && row[idxDesc] != null ? String(row[idxDesc]).trim() : '';
-          var dueDate = idxDate >= 0 ? parseCell(row[idxDate]) : null;
-          var startDate = idxStart >= 0 ? parseCell(row[idxStart]) : null;
-          var responsible = idxResource >= 0 && row[idxResource] != null ? String(row[idxResource]).trim() : '';
-          var wbs = (idxWbs >= 0 && row[idxWbs] != null) ? String(row[idxWbs]).trim() : '';
-
-          // MS Project's own CSV export writes Percent_Complete as a 0-1
-          // fraction (0.33 = 33%) and Status as an internal numeric code
-          // (0/2/3), not a readable word — so when a progress column is
-          // present, derive a real Stage from it instead of using the raw
-          // Status column. Fall back to raw Status text for simpler sheets
-          // that only ever had a readable status column and no progress.
-          var status;
-          if (idxProgress >= 0 && row[idxProgress] != null) {
-            var rawProgress = Number(row[idxProgress]);
-            if (isNaN(rawProgress)) rawProgress = 0;
-            var progress = rawProgress > 0 && rawProgress <= 1 ? rawProgress * 100 : rawProgress;
-            progress = Math.max(0, Math.min(100, progress));
-            status = progress >= 100 ? 'Completed' : (progress > 0 ? 'In Progress' : 'Not Started');
-          } else {
-            status = idxStatus >= 0 && row[idxStatus] != null ? String(row[idxStatus]).trim() : '';
-          }
-
-          var payload = {
-            title: title,
-            desc: desc,
-            description: desc,
-            status: status,
-            wbs: wbs || null
-          };
-          if (dueDate) payload.dueDate = dueDate;
-          if (startDate) payload.startDate = startDate;
-          if (responsible) payload.responsible = responsible;
-
-          var existingMatch = wbs ? existingByWbs[wbs] : null;
-
-          if (existingMatch) {
-            var edits = [];
-            if ((existingMatch.title || '') !== title) edits.push({ field: 'Title', from: existingMatch.title || 'not set', to: title });
-            if ((existingMatch.status || '') !== status) edits.push({ field: 'Stage', from: existingMatch.status || 'not set', to: status });
-            if ((existingMatch.responsible || '') !== responsible) edits.push({ field: 'Responsible', from: existingMatch.responsible || 'unassigned', to: responsible || 'unassigned' });
-            if (dfmt(existingMatch.dueDate) !== dfmt(dueDate)) edits.push({ field: 'Due date', from: dfmt(existingMatch.dueDate), to: dfmt(dueDate) });
-
-            payload.updatedAt = serverNow();
-            payload.updatedBy = ctx.userEmail || '';
-            if (edits.length) {
-              payload.changeLog = (existingMatch.changeLog || []).slice(-4);
-              payload.changeLog.push({ changes: edits, changedAt: new Date(), changedBy: ctx.userEmail || 'Someone' });
-            }
-
-            ops.push(col.doc(existingMatch.id).update(payload));
-            updatedCount++;
-          } else {
-            payload.createdBy = ctx.userEmail || '';
-            payload.createdAt = serverNow();
-            payload.changeLog = [{
-              changes: [{ field: 'Activity created', from: '—', to: title }],
-              changedAt: new Date(),
-              changedBy: ctx.userEmail || 'Someone'
-            }];
-            ops.push(col.add(payload));
-            createdCount++;
-          }
-        }
-
-        if (!ops.length) {
-          alert('No valid activity rows found in Excel file.');
-          return;
-        }
-
-        await Promise.all(ops);
-        alert('Import complete: ' + createdCount + ' created, ' + updatedCount + ' updated.' +
-          (idxWbs === -1 ? ' Note: no WBS column was found, so every row was created as new rather than matched against existing entries.' : ''));
-        // Clear file input
-        dom.importInput.value = '';
-      } catch (err) {
-        console.error(TAG, 'Excel import failed', err);
-        alert('Excel import failed: ' + (err && err.message ? err.message : err));
-      }
-    };
   }
-}
-  }
-
-  // ---------- Form handling (owner only) ----------
-
-  function wireForm(col) {
-    if (!dom.form) return;
-
-    dom.form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!ctx.isOwner) return;
-
-      var id = dom.form.getAttribute('data-edit-id') || null;
-      var title =
-        (dom.titleInput && dom.titleInput.value && dom.titleInput.value.trim()) ||
-        '';
-      var desc =
-        (dom.descInput && dom.descInput.value && dom.descInput.value.trim()) ||
-        '';
-      var status =
-        (dom.statusInput && dom.statusInput.value && dom.statusInput.value.trim()) ||
-        '';
-      var responsible =
-        (dom.responsibleInput && dom.responsibleInput.value && dom.responsibleInput.value.trim()) ||
-        '';
-      var dateRaw =
-        (dom.dateInput && dom.dateInput.value && dom.dateInput.value.trim()) ||
-        '';
-
-      if (!title) {
-        try {
-          alert('Activity title is required.');
-        } catch (_) {}
-        return;
-      }
-
-      if (!status) {
-        try {
-          alert('Activity status is required.');
-        } catch (_) {}
-        return;
-      }
-
-      var payload = {
-        title: title,
-        description: desc,
-        status: status,
-        responsible: responsible,
-        updatedAt:
-          window.firebase &&
-          window.firebase.firestore &&
-          window.firebase.firestore.FieldValue &&
-          window.firebase.firestore.FieldValue.serverTimestamp
-            ? window.firebase.firestore.FieldValue.serverTimestamp()
-            : new Date()
-      };
-
-      if (dateRaw) {
-        try {
-          payload.dueDate = new Date(dateRaw + 'T00:00:00');
-        } catch (_) {
-          payload.dueDateText = dateRaw;
-        }
-      }
-
-      // Log what actually changed (same shape the Gantt change-log uses)
-      // so burndown/burnup — and the Gantt's "modified" indicator — have
-      // real data regardless of whether an edit came from here or a drag.
-      if (id) {
-        var before = ctx.rows.find(function (r) { return r.id === id; });
-        if (before) {
-          // This form has no Start Date field of its own — startDate only
-          // ever gets set by a Gantt drag or an import. But editing just
-          // Due Date here, with no check against an existing startDate, is
-          // exactly how an activity ends up with start after due (the
-          // Gantt silently papers over an inverted range for display — the
-          // underlying data is genuinely broken until this is caught).
-          if (payload.dueDate && before.startDate) {
-            var existingStartJs = window.drRag ? window.drRag.toJsDate(before.startDate) : new Date(before.startDate);
-            if (existingStartJs && payload.dueDate < existingStartJs) {
-              try {
-                alert(
-                  "Due date cannot be before this activity's start date (" +
-                    (window.drDateFmt ? window.drDateFmt.date(existingStartJs) : existingStartJs.toDateString()) +
-                    "). Reschedule the start date on the Engagement Timeline first, or choose a later due date."
-                );
-              } catch (_) {}
-              return;
-            }
-          }
-
-          var edits = [];
-          if ((before.status || '') !== status) {
-            edits.push({ field: 'Stage', from: before.status || 'not set', to: status });
-          }
-          if ((before.responsible || '') !== responsible) {
-            edits.push({ field: 'Responsible', from: before.responsible || 'unassigned', to: responsible || 'unassigned' });
-          }
-          var beforeDueStr = fmtDate(before.dueDate) || 'not set';
-          var afterDueStr = payload.dueDate ? fmtDate(payload.dueDate) : beforeDueStr;
-          if (beforeDueStr !== afterDueStr) {
-            edits.push({ field: 'Due date', from: beforeDueStr, to: afterDueStr });
-          }
-          if (edits.length) {
-            payload.changeLog = (before.changeLog || []).slice(-4);
-            payload.changeLog.push({ changes: edits, changedAt: new Date(), changedBy: ctx.userEmail || 'Someone' });
-          }
-        }
-      }
-
-      if (!id) {
-        payload.createdAt =
-          window.firebase &&
-          window.firebase.firestore &&
-          window.firebase.firestore.FieldValue &&
-          window.firebase.firestore.FieldValue.serverTimestamp
-            ? window.firebase.firestore.FieldValue.serverTimestamp()
-            : new Date();
-        payload.createdBy = ctx.userEmail || '';
-        // A creation is itself a change worth surfacing in the Change
-        // Report — without this, new activities show up on the Gantt but
-        // never appear in the exportable change history.
-        payload.changeLog = [{
-          changes: [{ field: 'Activity created', from: '—', to: title }],
-          changedAt: new Date(),
-          changedBy: ctx.userEmail || 'Someone'
-        }];
-
-        col
-          .add(payload)
-          .then(function () {
-            resetForm();
-          })
-          .catch(function (err) {
-            console.error(TAG, 'Add activity failed', err);
-            try {
-              alert(
-                'Could not add activity: ' +
-                  (err && err.message ? err.message : err)
-              );
-            } catch (_) {}
-          });
-      } else {
-        col
-          .doc(id)
-          .update(payload)
-          .then(function () {
-            resetForm();
-          })
-          .catch(function (err) {
-            console.error(TAG, 'Update activity failed', err);
-            try {
-              alert(
-                'Could not update activity: ' +
-                  (err && err.message ? err.message : err)
-              );
-            } catch (_) {}
-          });
-      }
-    });
-
-    function resetForm() {
-      if (!dom.form) return;
-      dom.form.removeAttribute('data-edit-id');
-      if (dom.titleInput) dom.titleInput.value = '';
-      if (dom.descInput) dom.descInput.value = '';
-      if (dom.statusInput) dom.statusInput.value = '';
-      if (dom.responsibleInput) dom.responsibleInput.value = '';
-      if (dom.dateInput) dom.dateInput.value = '';
-      if (dom.submitBtn) dom.submitBtn.textContent = 'Add Activity';
-    }
-  }
-
-  // ---------- public API ----------
-
-  window.activityAPI = {
-    async add(data) {
-      var biz = await resolveBizKey(true);
-      if (!biz) return;
-      var db = getDB();
-      if (!db) return;
-
-      var col = db
-        .collection('businesses')
-        .doc(biz)
-        .collection('activities');
-
-      var payload = Object.assign(
-        {
-          createdAt:
-            window.firebase &&
-            window.firebase.firestore &&
-            window.firebase.firestore.FieldValue &&
-            window.firebase.firestore.FieldValue.serverTimestamp
-              ? window.firebase.firestore.FieldValue.serverTimestamp()
-              : new Date(),
-          createdBy: (ctx.userEmail || '').toLowerCase()
-        },
-        data || {}
-      );
-
-      return col.add(payload);
-    }
-  };
 
   // ---------- boot ----------
 
@@ -999,7 +567,9 @@ console.log('[activity] context →', {
     }
 
     bindDOM();
-bindSortHeaders(); // NEW
+    bindSortHeaders();
+    bindActivityPagination();
+    wireActivityFilters();
 
     auth.onAuthStateChanged(function (user) {
       if (!user) {

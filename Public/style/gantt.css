@@ -2,51 +2,73 @@
 
 .gantt-section {
   margin-bottom: var(--space-md, 24px);
+  border-left: 6px solid var(--color-primary, #004e92);
+}
+.gantt-section .section-header {
+  background-color: transparent;
+}
+/* Every other chart card gets this tightening via .metrics-panel's own
+   header rules — the Gantt section isn't a .metrics-panel, so its title/
+   subtitle were falling back to generic looser defaults (including the
+   browser's own unreset h2 margin-top, since this app doesn't load a
+   universal margin reset), leaving a visibly bigger gap above the
+   legend/key than any other card has above its own content. */
+.gantt-section .section-header h2 {
+  margin: 0 0 4px;
+  text-align: center;
+}
+.gantt-section .section-subtext {
+  margin: 0 0 8px;
+  text-align: center;
 }
 
 /* Critical path — a dashed dark outline layered on top of the bar's own
    RAG fill color (Critical=Yes from the import), so a task can show BOTH
    "is it on schedule" (fill) and "is it on the critical path" (outline)
-   at once instead of one replacing the other. */
-.gantt-critical-task .bar {
+   at once instead of one replacing the other.
+   Selector needs 4 class-selectors (.gantt .bar-wrapper.gantt-critical-task
+   .bar), not 2 — frappe-gantt's own default rule is
+   ".gantt .bar-wrapper .bar { stroke-width: 0; stroke: var(--g-bar-border) }"
+   (3 classes), which otherwise wins on specificity and silently zeroes
+   out our stroke-width, killing the dash. Same CSS-specificity bug
+   pattern that broke sticky table headers twice elsewhere in this app. */
+.gantt .bar-wrapper.gantt-critical-task .bar {
   stroke: #222222;
   stroke-width: 2px;
   stroke-dasharray: 4, 2;
 }
 
-/* "Today" marker — a thin vertical line plus a yellow/black flag tab
-   pinned to the top of the grid, drawn directly into the Gantt's own SVG
-   (see drawTodayLine() in gantt.js) so both pan correctly with
-   horizontal scroll across every view mode. */
+/* frappe-gantt draws its OWN built-in "today" indicator automatically on
+   every render (highlight_current(), always on) — a solid, undashed,
+   near-black (#37352f) vertical bar completely separate from the
+   intentional yellow/black dashed "today" marker below. Left alone, the
+   two overlap and the library's default one is the unexplained solid
+   black line users see. Hidden here in favor of our own labeled one. */
+.gantt-container .current-highlight,
+.gantt-container .current-ball-highlight {
+  display: none;
+}
+
+/* "Today" marker — a plain dashed vertical line (no flag/box, matching
+   the critical-path dashed outline's visual language), drawn directly
+   into the Gantt's own SVG (see drawTodayLine() in gantt.js) so it pans
+   correctly with horizontal scroll across every view mode. Explained in
+   the legend note text, right next to the critical-path dash. */
 .gantt-today-line {
   stroke: #e0a800;
-  stroke-width: 1.5px;
+  stroke-width: 2px;
   stroke-dasharray: 3, 3;
   pointer-events: none;
-}
-.gantt-today-tab {
-  pointer-events: none;
-}
-.gantt-today-tab-bg {
-  fill: #ffcc00;
-  stroke: #b38f00;
-  stroke-width: 1px;
-}
-.gantt-today-tab-label {
-  fill: #000000;
-  font-size: 10px;
-  font-weight: 700;
 }
 
 /* Legend — below the title/subtext, above the controls/chart, explaining
    the bar colors (jeopardy status, same RAG scale as Milestones/Activity
    tables) and what happens on click. */
 .gantt-legend {
-  margin: 0 0 12px;
-  padding: 8px 12px;
-  background: var(--color-background, #f9f9f9);
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 6px;
+  margin: 0 0 8px;
+  padding: 4px 12px;
+  background: transparent;
+  border: none;
 }
 .gantt-legend-swatches {
   display: flex;
@@ -72,19 +94,73 @@
   color: var(--color-text-secondary, #666);
   text-align: center;
 }
+/* Now sits below the chart as a footer (moved out of the legend box
+   above it per explicit layout request) — a top border reads as a
+   footer divider instead of floating text right under the chart. */
 .gantt-bounds-note {
-  margin: 4px 0 0;
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border, #e0e0e0);
   font-size: 0.72rem;
   font-family: monospace;
   color: #898781;
   text-align: center;
 }
+/* Second footer line (the "grid: ... " diagnostic) — no border/top-padding
+   of its own so it doesn't read as a second divider stacked right under
+   the first one. */
+.gantt-bounds-note-line2 {
+  margin: 4px 0 0;
+  padding-top: 0;
+  border-top: none;
+}
 
 .gantt-controls {
+  position: relative; /* anchors the absolutely-centered page-scroll control below */
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
+}
+/* Centered regardless of where the view-mode button group ends up (it's
+   pushed to the far right via margin-left:auto), so it reads as sitting
+   in the middle of the row, to the left of Day/Week/Month/etc. Arranged
+   as a compact directional pad (3x3 grid, corners empty) rather than a
+   plain row of 4 buttons, so up/down and left/right read as two axes. */
+.gantt-page-scroll {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+/* Was a 2-row 3x3 grid (up on its own row, left/down/right on a second
+   row below it) — a single row instead, to reclaim that second row's
+   height for the chart below. */
+.gantt-page-scroll-dpad {
+  display: flex;
+  gap: 4px;
+}
+.gantt-page-btn {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border, #e2e5ea);
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.gantt-page-btn:hover {
+  background: #f0f6ff;
+}
+.gantt-page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .gantt-controls input[type="file"] {
   font-size: 0.85rem;
@@ -139,18 +215,137 @@
   color: #fff;
 }
 
-.gantt-chart-container {
-  width: 100%;
+/* WBS + Timeline combined view. Frappe's own date header is only sticky
+   because .gantt-container is ITSELF the scrolling element (position:
+   sticky needs a scrolling ancestor) — so that box keeps owning real
+   scroll, on BOTH axes, exactly as before. The WBS column is a plain flex
+   sibling (never inside that scroll box), fixed to the same viewport
+   height, with its rows in an absolutely-positioned inner wrapper whose
+   transform is synced to .gantt-container's scrollTop on every scroll
+   event (see wireWbsScrollSync in gantt.js) — the standard "frozen
+   column, native scrollbar on the other pane" technique, since sticky
+   positioning alone can't freeze a column that lives in a SEPARATE
+   scroll box from the one doing the scrolling. This wrapper owns the
+   outer border/rounding .gantt-chart-container used to have on its own. */
+.gantt-combined-wrap {
+  display: flex;
+  align-items: stretch;
   border: 1px solid var(--color-border, #e2e5ea);
   border-radius: var(--radius-md, 8px);
   background: var(--color-surface, #fff);
 }
 
-/* Frappe Gantt's own .gantt-container already implements a sticky date
-   header (position: sticky; top: 0) — but that only takes effect once
-   .gantt-container is itself the bounded, scrolling element. Without a
-   height limit here, it grows to fit every row and the page scrolls
-   instead, so the "sticky" header just scrolls away with everything else. */
+.gantt-wbs-column {
+  /* Was 480px — genuinely too wide, crowding out the actual timeline.
+     Word-wrapping long titles instead isn't safe here: each row's height
+     is set inline (see gantt.js) to match its corresponding Frappe bar
+     row exactly, pixel for pixel, which is what keeps the two scroll-
+     synced panes aligned — a row tall enough to wrap to 2 lines would
+     either clip or bleed into the next row. Narrower column + the
+     ellipsis this already had is the safe fix; every row already carries
+     a native title="..." tooltip with the full text on hover, so nothing
+     is actually lost, just no longer forced onto the screen at all times. */
+  flex: 0 0 300px;
+  width: 300px;
+  height: 420px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--color-border, #e2e5ea);
+  background: #fafbfc;
+  /* A genuine (native) scroll container — this is what makes
+     .gantt-wbs-header's position:sticky below actually work; it's
+     guaranteed by the browser, not something this file has to get right
+     by hand. Its OWN scrollbar is hidden (both axes stay in perfect sync
+     with .gantt-container via wireWbsScrollSync, so a second visible
+     scrollbar would just be redundant/confusing). */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.gantt-wbs-column::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* position:sticky inside wbsColumnEl's own real scroll (above) — the
+   browser keeps this pinned to the top of the visible area while the rows
+   scroll past underneath it, the same guarantee Frappe's own date header
+   relies on for its own sticky behavior on the right. */
+.gantt-wbs-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #eef1f4;
+  border-bottom: 1px solid var(--color-border, #e2e5ea);
+  overflow: hidden;
+}
+.gantt-wbs-header-title { font-weight: 700; font-size: 1.05rem; color: #1c2733; }
+.gantt-wbs-header-subtitle { font-size: 0.74rem; color: #666; line-height: 1.25; margin-top: 2px; }
+.gantt-wbs-header-legend { font-size: 0.66rem; color: #555; line-height: 1.2; margin-top: 3px; font-style: normal; }
+.gantt-wbs-row {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  box-sizing: border-box;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  background: #fafbfc;
+}
+/* Marks the top and bottom of the row list, so it reads as a bounded list
+   with a clear start/end rather than just fading off at the scroll clip. */
+.gantt-wbs-row:first-child { border-top: 1px solid var(--color-border, #e2e5ea); }
+.gantt-wbs-row:last-child { border-bottom: 1px solid var(--color-border, #e2e5ea); }
+/* Milestone rows read distinctly from activity/phase rows — blue, bold,
+   italic — same treatment used for the legend's own "Milestone" sample so
+   the header preview matches what the rows actually look like. */
+.gantt-wbs-row-milestone .gantt-wbs-title,
+em.gantt-wbs-row-milestone {
+  color: #1a56db;
+  font-weight: 700;
+  font-style: italic;
+}
+.gantt-wbs-row-summary .gantt-wbs-title { font-weight: 700; }
+button.gantt-wbs-toggle {
+  flex: 0 0 14px;
+  width: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0;
+  color: var(--color-primary, #004e92);
+}
+.gantt-wbs-toggle-spacer { flex: 0 0 14px; display: inline-block; }
+.gantt-wbs-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.gantt-wbs-code {
+  flex: 0 0 auto;
+  font-family: monospace;
+  color: #777;
+  font-size: 0.68rem;
+  margin-right: 4px;
+}
+.gantt-wbs-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gantt-chart-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .gantt-chart-container .gantt-container {
   /* Scrolling to the very edge and continuing to scroll/swipe was being
      interpreted by the browser itself as a "go back" gesture (standard
@@ -159,7 +354,11 @@
      tells the browser to swallow that overscroll instead of forwarding it
      to page navigation, without changing how the chart scrolls normally. */
   overscroll-behavior-x: contain;
-  max-height: 520px;
+  /* Both axes again, same as the original single-pane Gantt — this is what
+     keeps Frappe's own sticky date header working (see the comment above
+     .gantt-combined-wrap). The WBS column tracks this box's vertical
+     scroll via JS, not via sharing its scroll container. */
+  max-height: 420px;
   overflow: auto;
 }
 
@@ -169,12 +368,6 @@
   color: #6b7280;
   font-size: 0.9rem;
   text-align: center;
-}
-
-/* Frappe Gantt ships its own bar styling; these just make it sit flush
-   inside our card look instead of floating with its default margins. */
-.gantt-chart-container .gantt-container {
-  border-radius: var(--radius-md, 8px);
 }
 
 /* Custom popup content (see gantt.js renderChangePopup) */

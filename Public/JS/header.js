@@ -31,6 +31,14 @@
 
     const userEmailEl = document.getElementById('headerUserEmail');
     const logoutBtn = document.getElementById('headerLogoutBtn');
+    const projectNameEl = document.getElementById('headerProjectName');
+
+    // A second, more discoverable "Upload Logo" trigger inside the Data
+    // Imports modal — same underlying #logoFileInput/upload flow, not a
+    // separate upload path, so it can only ever show what the header
+    // shows (see wireExtraLogoPreviews/bindBusinessDoc below).
+    const extraLogoImgs = document.querySelectorAll('#dataImportsLogoPreview');
+    const extraUploadBtn = document.getElementById('dataImportsUploadLogoBtn');
 
     L('DOM elements:', {
       hasNameEl: !!nameEl,
@@ -41,7 +49,17 @@
       hasLogoutBtn: !!logoutBtn,
     });
 
-    return { nameEl, logoImg, uploadLabel, fileInput, userEmailEl, logoutBtn };
+    return { nameEl, logoImg, uploadLabel, fileInput, userEmailEl, logoutBtn, extraLogoImgs, extraUploadBtn, projectNameEl };
+  }
+
+  // The Data Imports modal's "Upload Logo" button has no upload logic of
+  // its own — it just clicks the SAME hidden #logoFileInput that
+  // wireUpload() below already handles, so there's exactly one upload
+  // code path regardless of how many places can trigger it.
+  function wireExtraUploadTrigger(fileInput, extraUploadBtn) {
+    if (!fileInput || !extraUploadBtn || extraUploadBtn.__wired) return;
+    extraUploadBtn.__wired = true;
+    extraUploadBtn.addEventListener('click', function () { fileInput.click(); });
   }
 
   // Show who's signed in, and wire the Log Out button.
@@ -67,10 +85,22 @@
       els.logoutBtn.addEventListener('click', function () {
         const auth = window.auth || (window.firebase && window.firebase.auth && window.firebase.auth());
         if (!auth) { W('logout: auth not available'); return; }
-        auth.signOut().then(function () {
+        // If a Permissions popup save is still in flight in THIS tab, wait
+        // for it — logging out navigates this tab away, which would abort
+        // the write mid-request even though the popup already reported
+        // "Saved ✓" (the popup's own close-guard only protects against
+        // closing itself mid-save, not a logout click over here).
+        const pendingSaves = window.drPermissions_waitForPendingSaves
+          ? window.drPermissions_waitForPendingSaves()
+          : Promise.resolve();
+        pendingSaves.then(function () {
+          return auth.signOut();
+        }).then(function () {
           try {
             sessionStorage.removeItem('businessKey');
             localStorage.removeItem('businessKey');
+            sessionStorage.removeItem('projectKey');
+            localStorage.removeItem('projectKey');
           } catch (e) {}
           window.location.href = 'index.html';
         }).catch(function (err) {
@@ -128,6 +158,10 @@
                 els.logoImg.src = url;
                 els.logoImg.style.display = 'inline-block';
               }
+              (els.extraLogoImgs || []).forEach(function (img) {
+                img.src = url;
+                img.style.display = 'inline-block';
+              });
             });
         })
         .catch((err) => {
@@ -185,11 +219,52 @@
             els.logoImg.alt = name + ' Logo';
             els.logoImg.style.display = 'inline-block';
           }
+          if (logoUrl) {
+            (els.extraLogoImgs || []).forEach(function (img) {
+              img.src = logoUrl;
+              img.alt = name + ' Logo';
+              img.style.display = 'inline-block';
+            });
+          }
         },
         (err) => {
           E('bindBusinessDoc: snapshot error', err);
         }
       );
+  }
+
+  // Shows which project is currently selected (Phase 1 of the
+  // multi-project feature) — purely a label for now, since every project
+  // still shares the same underlying company-level dashboard data until
+  // Phase 2 rewires each card module to read/write project-scoped paths.
+  // Reads window.PROJECT_KEY (set earlier by dashboard.html's dash-guard,
+  // before this script even runs) rather than waiting on an event, since
+  // it's already resolved with its 'default' fallback by then.
+  function bindProjectDoc(bizKey, els) {
+    if (!els.projectNameEl) return;
+    var projectId = window.PROJECT_KEY;
+    if (!projectId || projectId === 'default') {
+      // The legacy/shared 'default' project isn't a real named project a
+      // user picked — nothing useful to show.
+      els.projectNameEl.style.display = 'none';
+      return;
+    }
+    var db = window.db;
+    if (!db) { W('bindProjectDoc: db not ready'); return; }
+    db.collection('businesses').doc(bizKey).collection('projects').doc(projectId).get()
+      .then(function (snap) {
+        var name = snap.exists && (snap.data() || {}).name;
+        if (name) {
+          els.projectNameEl.textContent = name;
+          els.projectNameEl.style.display = 'block';
+        } else {
+          els.projectNameEl.style.display = 'none';
+        }
+      })
+      .catch(function (err) {
+        E('bindProjectDoc failed', err);
+        els.projectNameEl.style.display = 'none';
+      });
   }
 
   // Main entry point: called from dash-loader with bizKey + user
@@ -229,8 +304,14 @@
       L('no upload controls found (label/input)');
     }
 
+    if (els.extraUploadBtn) {
+      els.extraUploadBtn.style.display = isOwner ? '' : 'none';
+      if (isOwner) wireExtraUploadTrigger(els.fileInput, els.extraUploadBtn);
+    }
+
     // Bind Firestore business doc → header (with fallback to bizKey)
     bindBusinessDoc(bizKey, els);
+    bindProjectDoc(bizKey, els);
 
     wireUserInfo(user, els, isOwner);
   }

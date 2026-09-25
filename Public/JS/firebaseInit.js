@@ -27,12 +27,16 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const storage = firebase.storage();
+  // Guarded — not every page that loads this file also loads the
+  // firebase-functions-compat SDK, and this file must not throw either way.
+  const functionsInstance = typeof firebase.functions === 'function' ? firebase.functions() : null;
 
   // Expose globals (your other scripts rely on these names)
   window.firebaseApp = app;
   window.auth = auth;
   window.db = db;
   window.storage = storage;
+  window.functions = functionsInstance;
 
   // handy namespaces used in other files
   window.firebaseFirestore = firebase.firestore;

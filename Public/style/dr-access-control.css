@@ -1,0 +1,175 @@
+/* dr-access-control.css — applied by Public/JS/dr-access-control.js once a
+   role's access to each report is resolved. !important is intentional: it
+   needs to win over every card's own pre-existing, bespoke visibility CSS
+   (some use .owner-only-card.owner{display:block}, others a card-specific
+   :not(.owner) rule) without needing to replicate each one individually.
+   A denied card is always removed outright — nothing takes its place. The
+   only pictures (.dr-row-picture, built by dr-access-control.js) are the
+   ones that balance a chart-grid row that still has a visible card. */
+.report-hidden {
+  display: none !important;
+}
+
+/* Picture cards (the same elegant quote-card design as the Risk Heat Map
+   / Risk Reserve picture — dark navy gradient, serif italic quote,
+   oversized gold quote mark) that balance a chart-grid row — see
+   layoutRows() in dr-access-control.js. Every filler picture uses this
+   one consistent design now; only the quote text (and, for the two
+   named/forced ones, an attribution line) differs between them. */
+.report-filler {
+  display: block !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.dashboard-charts-row > .report-filler,
+.charts-row-two-col > .report-filler {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.report-filler > *:not(.dr-report-filler-box) {
+  display: none !important;
+}
+.dr-report-filler-box {
+  display: none;
+}
+.report-filler .dr-report-filler-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 220px;
+  width: 100%;
+  /* Organic blob shape (asymmetric radii per corner) — matches
+     .rr-quote-card exactly, no straight-edge corners. */
+  border-radius: 44% 56% 48% 52% / 56% 44% 56% 44%;
+  padding: var(--space-md, 24px);
+  box-sizing: border-box;
+  /* Radial, corner-to-center: near-black at the middle, lightening out to
+     the same navy tones toward the edges — the quote text (cream/gold)
+     still reads with plenty of contrast against the darker center. */
+  background: radial-gradient(circle at center, #05080c 0%, #1c2733 55%, #2a3b4d 100%);
+  /* A soft, wide, blurred halo feathers the shape into the row around it
+     instead of ending on a hard edge, on top of the normal drop shadow. */
+  box-shadow: 0 0 44px 10px rgba(28,39,51,0.38), 0 6px 18px rgba(0,0,0,0.22);
+  position: relative;
+}
+.dr-report-filler-mark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 3.6rem;
+  line-height: 1;
+  color: #c9a24b;
+  opacity: 0.85;
+  margin-bottom: -8px;
+}
+.dr-report-filler-quote {
+  margin: 0;
+  max-width: 88%;
+  color: #f4f1ea;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  text-align: center;
+}
+/* Only present on the forced/named pictures (see RISK_ANALYSIS_QUOTE /
+   MASLOW_HIERARCHY_PICTURE in dr-access-control.js) — the ordinary random
+   filler quotes have no attribution line. */
+.dr-report-filler-attribution {
+  margin: 10px 0 0;
+  max-width: 88%;
+  color: #c9a24b;
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* Two more picture shapes, used at the same two named positions as
+   RISK_ANALYSIS_QUOTE / MASLOW_HIERARCHY_PICTURE — fixed size instead of
+   filling the grid cell, since a circle/triangle needs to control its own
+   aspect ratio regardless of the row's height. */
+.dr-report-filler-box.dr-shape-circle,
+.dr-report-filler-box.dr-shape-triangle {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+/* Bigger than the other shapes — a circle wastes usable width toward its
+   curved top/bottom, so the same quote needs more room here to avoid
+   crowding/overflowing before it fits a rectangular or triangular box. */
+.dr-report-filler-box.dr-shape-circle {
+  width: 380px;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  padding: 56px 50px;
+}
+.dr-report-filler-box.dr-shape-circle .dr-report-filler-quote {
+  font-size: 0.92rem;
+  max-width: 78%;
+}
+/* Maslow's Hierarchy of Needs — the card itself is a triangle (clip-path,
+   point up), with a smaller banded pyramid drawn inside it and the quote
+   pushed to the bottom (justify-content:flex-end) so it sits in the
+   triangle's wide base rather than its narrow point. */
+.dr-report-filler-box.dr-shape-triangle {
+  width: 300px;
+  height: 300px;
+  clip-path: polygon(50% 3%, 4% 97%, 96% 97%);
+  border-radius: 0;
+  justify-content: flex-end;
+  padding: 16px 30px 26px;
+}
+.dr-maslow-pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+.dr-maslow-tier {
+  height: 13px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(201,162,75,0.9), rgba(244,241,234,0.5));
+}
+.dr-maslow-tier-5 { width: 28%; } /* Self-Actualization — narrowest, at the peak */
+.dr-maslow-tier-4 { width: 44%; } /* Esteem */
+.dr-maslow-tier-3 { width: 60%; } /* Love / Belonging */
+.dr-maslow-tier-2 { width: 76%; } /* Safety */
+.dr-maslow-tier-1 { width: 92%; } /* Physiological — widest, the base */
+.dr-maslow-mark {
+  font-size: 2.4rem;
+  margin-bottom: -4px;
+}
+.dr-maslow-quote {
+  font-size: 0.86rem;
+  margin-bottom: 6px !important;
+}
+
+/* Row placement computed by dr-access-control.js (explicit row/column so a
+   row with hidden cards can be re-balanced: 2 visible -> picture in the
+   middle; 1 visible -> centered between two pictures). Only in the layouts
+   that are 3 / 2 columns wide; narrower screens just flow naturally and
+   pictures are dropped. */
+@media (min-width: 1401px) {
+  .dashboard-charts-row > .card[data-dr-row] {
+    grid-row: var(--dr-row);
+    grid-column: var(--dr-col);
+  }
+  .dashboard-charts-row > .charts-row-two-col[data-dr-row] {
+    grid-row: var(--dr-row);
+  }
+}
+@media (min-width: 801px) {
+  .charts-row-two-col > .card[data-dr-row] {
+    grid-row: var(--dr-row);
+    grid-column: var(--dr-col);
+  }
+}
+@media (max-width: 1400px) {
+  .dashboard-charts-row > .report-filler.dr-row-picture { display: none !important; }
+}
+@media (max-width: 800px) {
+  .charts-row-two-col > .report-filler.dr-row-picture { display: none !important; }
+}

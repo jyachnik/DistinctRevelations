@@ -16,6 +16,7 @@
   var db = null;
   var auth = null;
   var bizKey = null;
+  var projKey = null;
   var isOwner = false;
   var lastRows = [];
 
@@ -72,8 +73,10 @@
   }
 
   function loadRows() {
-    var milestones = db.collection('businesses').doc(bizKey).collection('milestones').get();
-    var activities = db.collection('businesses').doc(bizKey).collection('activities').get();
+    var projDocRef = db.collection('businesses').doc(bizKey)
+      .collection('projects').doc(projKey || 'default');
+    var milestones = projDocRef.collection('milestones').get();
+    var activities = projDocRef.collection('activities').get();
 
     return Promise.all([milestones, activities]).then(function (results) {
       var rows = [];
@@ -197,15 +200,21 @@
 
     if (!openBtn) return;
 
-    if (!isOwner) {
+    var canView = isOwner || !!(window.drAccess && window.drAccess.canViewReport('changeReportBtn'));
+    if (!canView) {
       openBtn.style.display = 'none';
       return;
     }
 
+    // Downloading is a separate grant from just opening the report — a
+    // role can be allowed to review it without exporting a CSV.
+    var canDownload = isOwner || !!(window.drAccess && window.drAccess.canUseAction('changeReportBtn', 'Download CSV'));
+    if (dlBtn) dlBtn.style.display = canDownload ? '' : 'none';
+
     openBtn.addEventListener('click', openModal);
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (overlay) overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeModal(); });
-    if (dlBtn) dlBtn.addEventListener('click', function () { downloadCsv(applyCategoryFilter(lastRows)); });
+    if (dlBtn && canDownload) dlBtn.addEventListener('click', function () { downloadCsv(applyCategoryFilter(lastRows)); });
     if (categoryFilter) categoryFilter.addEventListener('change', function () { render(applyCategoryFilter(lastRows)); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
   }
@@ -218,11 +227,20 @@
     bizKey = resolveBizKey();
     if (!bizKey) { setTimeout(start, 300); return; }
 
+    // Multi-project cutover — every business always has at least the
+    // auto-created 'default' project (dashboard-business-loader.js
+    // guarantees window.PROJECT_KEY is set by the time this runs).
+    projKey = window.PROJECT_KEY || 'default';
+
     var user = auth.currentUser;
     var email = (user && user.email) || '';
     isOwner = !!email && !!OWNER_EMAIL && email.toLowerCase() === OWNER_EMAIL.toLowerCase();
 
-    wire();
+    // wire() reads window.drAccess.canViewReport/canUseAction, which
+    // resolve asynchronously — waiting avoids rendering off the stale
+    // "nothing granted yet" default.
+    if (window.drAccess) window.drAccess.whenReady().then(wire);
+    else wire();
   }
 
   function waitForFirebaseAndStart() {

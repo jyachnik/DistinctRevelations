@@ -1,0 +1,39 @@
+/* Public/style/responsive.css — Home page (index.html)
+   ============================================================================
+   Breakpoint scale used across this file (and its dashboard counterpart,
+   responsive-dashboard.css):
+     Mobile:      <= 640px   (phone)
+     Tablet:      641px – 1024px
+     Desktop:     1025px – 1919px  (the baseline home.css already targets —
+                  no extra rules needed here for this tier)
+     Big Screen:  >= 1920px  (conference-room TV / large monitor)
+
+   This file is loaded LAST, after home.css, specifically so it can
+   override home.css's existing rules by cascade order alone (same-
+   specificity class selectors) rather than needing !important or
+   rewriting home.css's already-hard-won mobile-nav/corner-logo rules in
+   place. It ADDS what's missing (a big-screen tier) rather than
+   re-deriving what home.css already does reasonably well (the phone-
+   width nav/drawer/corner-logo swap).
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   BIG SCREEN (>= 1920px) — a conference-room TV or large monitor. The
+   marketing site is rarely the thing projected in a conference room, but
+   it should still look intentional rather than just stretched: a wider
+   reading column, larger type, and a bit more breathing room, not simply
+   "the same 1120px column floating in a sea of empty space" nor content
+   stretched edge-to-edge and losing all sense of hierarchy.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1920px) {
+  .container { width: min(1400px, 78%); }
+
+  .hero-copy h1 { font-size: 3.4rem; }
+  .hero-copy p { font-size: 1.15rem; max-width: 640px; }
+  .hero-metrics div strong { font-size: 1.1rem; }
+
+  .section-head h2, .section h2 { font-size: 2.1rem; }
+  .section-head p { font-size: 1.05rem; max-width: 820px; }
+
+  .footer-grid { max-width: 1400px; }
+}

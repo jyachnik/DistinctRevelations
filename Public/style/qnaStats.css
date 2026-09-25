@@ -5,7 +5,10 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* flex-start, not center — the ai-insight-box below is pinned to the
+     bottom (margin-top:auto, so insight boxes align across the summary
+     row); centering this column would fight that instead. */
+  justify-content: flex-start;
   gap: 8px;
 
   background: var(--color-surface);
@@ -20,18 +23,26 @@
    summary row reads at one consistent scale. */
 .qna-stats-horizontal h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.3;
   text-align: center;
 }
 
-/* The 4 stat blocks, side by side */
+/* The 4 stat blocks — 2x2, each centered in its own quadrant, rather than
+   a single row of 4 (which left each block cramped in this narrow
+   summary-row card). */
 .qna-stats-row {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: space-between;
-  gap: 4px;
+  /* flex:1 so this fills whatever space is left between the title and the
+     bottom-pinned ai-insight-box, then align-items:center vertically
+     centers the 2x2 grid within that space (justify-items:center already
+     centers each block horizontally within its own quadrant). */
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 8px 16px;
+  justify-items: center;
+  align-items: center;
 }
 
 .qna-stat-block {

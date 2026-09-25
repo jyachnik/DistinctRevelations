@@ -76,6 +76,8 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
 .btn-primary:hover{ filter:brightness(1.05); }
 .btn-outline{ background:transparent; border-color:#365fb6; color:var(--text); }
 .btn-outline:hover{ background:rgba(76,139,245,.1); }
+.btn-soft{ background:rgba(76,139,245,.14); border-color:transparent; color:#a9c4ff; font-weight:700; }
+.btn-soft:hover{ background:rgba(76,139,245,.24); }
 
 /* Hamburger (hidden on desktop) */
 .hamburger{ display:none; flex-direction:column; gap:4px; background:transparent; border:0; cursor:pointer; }
@@ -231,15 +233,44 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
 
 /* ========== Forms ========== */
 .form label{ display:grid; gap:6px; margin-bottom:12px; }
-.form input, .form textarea{
+.form input, .form select, .form textarea{
   background:#0e1220; color:var(--text); border:1px solid #263051;
   border-radius:10px; padding:10px 12px; outline:none;
+  font-family:inherit; font-size:1rem; appearance:none; -webkit-appearance:none;
 }
-.form input:focus, .form textarea:focus{ border-color:#3c58a8; box-shadow:0 0 0 3px rgba(76,139,245,.15); }
+.form select{
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238893a8'%3e%3cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+}
+.form select:invalid{ color: var(--muted); }
+.form input:focus, .form select:focus, .form textarea:focus{ border-color:#3c58a8; box-shadow:0 0 0 3px rgba(76,139,245,.15); }
 .hint{ font-size:.85rem; color:var(--muted); margin-top:6px; }
 .form .error{ color:#ffb3b3; font-size:.9rem; margin:4px 0 0; min-height:1.1em; }
 .form .is-invalid{ border-color:#e57373 !important; box-shadow:0 0 0 3px rgba(229,115,115,.15); }
 .form .is-valid{ border-color:#7bd389; box-shadow:0 0 0 3px rgba(123,211,137,.15); }
+
+/* ========== Contact ("Let's Talk") ==========
+   The form used to sit inline next to a much shorter text column, reading
+   as an unbalanced list of fields. It now opens in its own modal (reusing
+   .modal__dialog's card styling); this section is just a centered intro
+   — heading, copy, actions, and a photo — that leads into it. */
+.contact-intro{ max-width:640px; margin:0 auto; text-align:center; }
+.contact-intro-actions{ justify-content:center; margin-top:8px; }
+.contact-photo{
+  display:block; width:100%; max-width:640px; margin:32px auto 0;
+  border-radius:var(--radius); box-shadow:var(--shadow);
+  aspect-ratio:16/9; object-fit:cover; object-position:center 30%;
+}
+
+/* The form's fields (unchanged), now rendered inside #contactModal
+   .modal__dialog instead of inline on the page. */
+#contactForm .grid-2{ gap:14px; }
+#contactForm label{ margin-bottom:14px; }
+#contactForm label:last-of-type{ margin-bottom:0; }
+#contactForm button[type="submit"]{ margin-top:16px; }
 
 /* ========== Modals ========== */
 .modal{ position:fixed; inset:0; display:none; z-index:100; }
@@ -254,8 +285,53 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
 .iframe-wrap{ position:relative; width:100%; padding-top:62%; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#0e1220; }
 .iframe-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
 
+/* ========== FAQ ========== */
+.faq-list{ max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:10px; }
+.faq-item{
+  background:var(--card); border:1px solid var(--border); border-radius:12px;
+  padding:4px 18px;
+}
+.faq-item summary{
+  cursor:pointer; padding:14px 0; font-weight:600; color:var(--text);
+  list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.faq-item summary::-webkit-details-marker{ display:none; }
+.faq-item summary::after{
+  content:"+"; color:var(--accent); font-size:1.3rem; font-weight:400; flex:0 0 auto;
+  transition:transform .15s ease;
+}
+.faq-item[open] summary::after{ content:"\2212"; }
+.faq-item p{ margin:0 0 16px; }
+
 /* ========== Footer ========== */
-.footer{ padding:20px 0; border-top:1px solid var(--border); background:rgba(11,12,16,.6); }
+.footer{ padding:48px 0 20px; border-top:1px solid var(--border); background:rgba(11,12,16,.6); }
+.footer-grid{
+  display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:32px;
+  padding-bottom:32px; border-bottom:1px solid var(--border);
+}
+.footer-brand .footer-logo{ height:34px; width:auto; margin-bottom:10px; }
+.footer-brand p{ max-width:280px; font-size:.92rem; }
+.footer-col h4{
+  margin:0 0 12px; color:var(--text); font-size:.82rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.04em;
+}
+.footer-col{ display:flex; flex-direction:column; }
+.footer-col a{
+  color:var(--muted); padding:5px 0; font-size:.92rem; transition:color .15s ease;
+}
+.footer-col a:hover{ color:var(--accent); }
+.footer-bottom{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+  gap:12px; padding-top:18px;
+}
+.footer-bottom p{ margin:0; font-size:.85rem; }
+@media (max-width:800px){
+  .footer-grid{ grid-template-columns:1fr 1fr; }
+  .footer-brand{ grid-column:1 / -1; }
+}
+@media (max-width:520px){
+  .footer-grid{ grid-template-columns:1fr; }
+}
 
 /* ===== Desktop modal fixes: make the modal sit above header + corner logo ===== */
 
@@ -455,6 +531,16 @@ h1,h2,h3{ margin:0 0 .5rem; line-height:1.2; }
   box-shadow:0 10px 24px rgba(0,0,0,.25); padding:18px;
 }
 .modal__close{ position:absolute; top:8px; right:12px; background:transparent; border:0; font-size:24px; color:var(--muted,#b6bdc9); cursor:pointer; }
+
+/* Client Login / Reset Password — narrower than the generic 760px modal
+   dialog (sized for wider content like the Calendly/PDF modals); a
+   two-field login form stretched to that width looks empty and
+   off-balance. margin-inline:auto (inherited from .modal__dialog) keeps
+   it horizontally centered. */
+#loginModal .modal__dialog,
+#forgotModal .modal__dialog{
+  width: min(420px, 92%);
+}
 
 /* Header stays below overlays */
 .topbar{ z-index:2000; }

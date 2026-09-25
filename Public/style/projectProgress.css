@@ -1,4 +1,6 @@
-/* projectProgress.css — horizontal progress bar */
+/* projectProgress.css — two horizontal progress bars: Time Elapsed and
+   Tasks Completed, both computed automatically (see burndown.js's
+   writeAutoProjectProgress) rather than owner-set. */
 
 /* Card container aligned with Project Status */
 .project-progress {
@@ -15,80 +17,87 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;
-  gap: 8px;
+  /* flex-start, not center — the ai-insight-box below is pinned to the
+     bottom (margin-top:auto, so insight boxes align across the summary
+     row); centering this column would fight that instead. */
+  justify-content: flex-start;
+  /* Tightened (8px -> 6px) — this card's own two progress-bar rows,
+     unlike Project Status's shorter traffic-light list, were pushing the
+     ai-insight-box below them just far enough to visibly sit lower than
+     the other summary-row cards' own insight text, per explicit request. */
+  gap: 6px;
 }
 
 /* Matches the tighter Schedule/Cost Performance card titles so the whole
    summary row reads at one consistent scale. */
 .project-progress h1,
 .project-progress h2 {
-  margin: 0;
-  font-size: 14px;
+  margin: 0 auto 6px auto;
+  font-size: 18px;
   font-weight: 700;
-  align-self: flex-start;
+  text-align: center;
+  white-space: normal;
   word-wrap: break-word;
+  width: 100%;
+  display: block;
+}
+
+/* One labeled bar row — Time Elapsed or Tasks Completed */
+.progress-bar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.progress-bar-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #5a6472;
+  text-align: left;
 }
 
 /* Bar container — wide and short, matching the other cards in this row */
-#progress-bar-container {
+.progress-bar-track {
   position: relative;
   width: 100%;
-  height: 28px;
+  height: 18px;
   background: #f3f3f3;
-  border-radius: 14px;
+  border-radius: 11px;
   border: 1px solid #d0d0d0;
-  margin: 4px 0;
   overflow: hidden;
 }
 
-/* Owner can click; non-owner cannot */
-.project-progress.owner #progress-bar-container {
-  cursor: pointer;
-}
-.project-progress:not(.owner) #progress-bar-container {
-  cursor: default;
-}
-
-/* Fill element: dark blue → light → white gradient, left to right */
-#progress-bar-fill {
+/* Fill element: dark blue → light → white gradient, left to right for
+   Time Elapsed; green variant for Tasks Completed so the two bars read
+   as distinct metrics at a glance, not two copies of the same thing. */
+.progress-bar-fill {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   width: 0%; /* JS sets 0–100 */
-  background: linear-gradient(to right, #003366, #0056b3, #4da3ff, #ffffff);
   box-shadow: inset 0 0 4px rgba(0,0,0,0.25);
-  border-radius: 14px;
+  border-radius: 11px;
   transition: width 0.3s ease;
+}
+.progress-bar-fill-time {
+  background: linear-gradient(to right, #003366, #0056b3, #4da3ff, #ffffff);
+}
+.progress-bar-fill-tasks {
+  background: linear-gradient(to right, #1b5e20, #2f9e44, #7bc97f, #ffffff);
 }
 
 /* Percentage label, centered on top of the bar */
-#progress-label {
+.progress-bar-label {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   padding: 0;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #000000;
   text-shadow: 0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9);
   white-space: nowrap;
   pointer-events: none;
-}
-
-/* Hide any legacy slider */
-.project-progress #progressSlider {
-  display: none !important;
-}
-/* Center & wrap H2 titles inside these cards */
-
-.project-progress h2 {
-    text-align: center;
-    white-space: normal;       /* Allow wrapping */
-    word-wrap: break-word;
-    width: 100%;               /* Ensures proper centering */
-    display: block;            /* Forces full-width behavior */
-    margin: 0 auto 10px auto;  /* Center with clean spacing */
 }

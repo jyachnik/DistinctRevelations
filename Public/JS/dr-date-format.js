@@ -1,7 +1,7 @@
 /* Public/JS/dr-date-format.js
-   Shared date/time formatting for the dashboard: MM/DD/YY (US format) for
-   dates, hh:mm AM/PM for times — used everywhere a Firestore Timestamp,
-   Date, or date-like value needs to be displayed.
+   Shared date/time formatting for the dashboard: MM/DD/YYYY (US format)
+   for dates, hh:mm AM/PM for times — used everywhere a Firestore
+   Timestamp, Date, or date-like value needs to be displayed.
 */
 (function () {
   function toJsDate(v) {
@@ -18,14 +18,13 @@
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
-  // MM/DD/YY
+  // MM/DD/YYYY
   function formatDate(v) {
     var d = toJsDate(v);
     if (!d) return '';
     var mm = pad2(d.getMonth() + 1);
     var dd = pad2(d.getDate());
-    var yy = pad2(d.getFullYear() % 100);
-    return mm + '/' + dd + '/' + yy;
+    return mm + '/' + dd + '/' + d.getFullYear();
   }
 
   // hh:mm AM/PM
@@ -40,7 +39,7 @@
     return h12 + ':' + m + ' ' + ampm;
   }
 
-  // MM/DD/YY hh:mm AM/PM
+  // MM/DD/YYYY hh:mm AM/PM
   function formatDateTime(v) {
     var d = toJsDate(v);
     if (!d) return '';

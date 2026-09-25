@@ -5,6 +5,15 @@
    Q&A/Project Status) — validated for categorical/status use with
    dataviz's validate_palette.js rather than introduced fresh. */
 
+/* Every card's own title/subtitle banner, 100% transparent — some cards
+   (milestone.css, qna.css, filemanager.css, activity.css) already set
+   this individually; this makes it universal and reliable regardless of
+   whichever card-specific CSS a given card otherwise falls back to. */
+.section-header,
+.qna-header {
+  background: transparent !important;
+}
+
 .metricsside {
   --metric-good: #2f9e44;      /* RAG green — also "Completed" in the CFD */
   --metric-warning: #e0a800;   /* RAG amber */
@@ -30,23 +39,47 @@
   text-align: center;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* flex-start, not center — the ai-insight-box below is pinned to the
+     bottom (margin-top:auto, so insight boxes align across the summary
+     row); centering this whole column would fight that, pushing the
+     title/value toward the top instead. The value itself still centers,
+     via its own flex:1 box below, in whatever space is actually left
+     between the title and the insight box. */
+  justify-content: flex-start;
   gap: 4px;
 }
 .schedule-performance h2 {
   margin: 0 0 4px;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.3;
   text-align: center;
 }
 .schedule-performance-value {
-  font-size: 1.7rem;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  font-size: 2.1rem;
   font-weight: 700;
   line-height: 1;
 }
 .schedule-performance-value.is-behind { color: #dd3333; }
 .schedule-performance-value.is-caution { color: #e0a800; }
 .schedule-performance-value.is-ahead { color: #2f9e44; }
+/* Matches .schedule-performance-value's own 2.1rem (Schedule Performance
+   Index) at full size per explicit request, but a full date string
+   ("12/22/2026") is far wider than SPI's "0.96" ever is at the same font
+   size — clamp() lets it reach that same 2.1rem on a wide enough card
+   while shrinking gracefully instead of overflowing on a narrower one,
+   rather than a fixed size that's only ever correct at one exact width. */
+.forecast-finish-value {
+  font-size: clamp(1.3rem, 2.4vw, 2.1rem);
+  white-space: nowrap;
+}
+.cost-performance-value.is-behind { color: #dd3333; }
+.cost-performance-value.is-caution { color: #e0a800; }
+.cost-performance-value.is-ahead { color: #2f9e44; }
 .schedule-performance-label {
   font-size: 0.75rem;
   color: #666666;
@@ -69,12 +102,28 @@
 .cost-performance.owner {
   display: flex;
   flex-direction: column;
+  /* flex-start, not center — same reasoning as .schedule-performance
+     above: the ai-insight-box is pinned to the bottom (margin-top:auto),
+     so centering this whole column would fight that instead of letting
+     the value center in whatever space is actually left above it. */
+  justify-content: flex-start;
+  gap: 4px;
+}
+/* Scoped to the top-row single-value card specifically (not Cash Flow's
+   mini stats, which share the bare .cost-performance-value class above) —
+   this is the one that should read as a big, vertically-centered headline
+   number filling the space between the title and the insight box. */
+.cost-performance > .cost-performance-value {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
+  min-height: 40px;
+  font-size: 2.1rem;
 }
 .cost-performance h2 {
-  margin: 0;
-  font-size: 14px;
+  margin: 0 0 4px;
+  font-size: 18px;
   line-height: 1.3;
   text-align: center;
 }
@@ -110,9 +159,16 @@
   white-space: nowrap;
 }
 .cost-performance-value {
-  /* Now the card's only metric (SV/CV/EAC/ETC moved to the Health
-     Scorecard) — sized and centered to read as the card's headline
-     number instead of one of five cramped-in blocks. */
+  /* This class is shared with Cash Flow's 4 small Actual/Baseline/
+     Remaining/Variance stat blocks (.cost-performance-row below) — keep
+     this rule itself small/compact/inline (correct for THAT usage) and
+     put the "big centered headline number" treatment on the more specific
+     .cost-performance > .cost-performance-value selector further down,
+     which only matches the single-value top-row Cost Performance Index
+     card. An earlier version put flex/min-height:40px here directly and
+     accidentally inflated all 4 of Cash Flow's mini stats too, pushing
+     its chart down and misaligning it against its EVM/Budget vs. Actual
+     row-mates, which don't have that extra stat row at all. */
   font-size: 1.6rem;
   font-weight: 700;
   color: #333333;
@@ -131,19 +187,34 @@
   box-sizing: border-box;
 }
 
-/* Owner-only chart cards (currently just EVM) — hidden by default; JS adds
-   "owner" only once Owner status is confirmed, same pattern as the top-row
-   Cost Performance tile. */
+/* Owner-only chart cards — hidden by default; JS adds "owner" only once
+   Owner status is confirmed, same pattern as the top-row Cost Performance
+   tile. Cards also governed by the Permissions matrix (Settings ▸
+   Permissions) separately toggle "report-access-granted" based on
+   window.drAccess.canViewReport() — a granted non-owner role never gets
+   the "owner" class (that stays literal-owner-only, since some of these
+   same cards have owner-only functionality gated on it too), so without
+   this second rule a role granted access here still had it hidden by the
+   rule above. */
 .owner-only-card { display: none; }
-.owner-only-card.owner { display: block; }
+.owner-only-card.owner,
+.owner-only-card.report-access-granted { display: block; }
 
 .metrics-panel .section-header h2 {
   margin: 0 0 4px;
   font-size: 18px;
+  text-align: center;
 }
 .metrics-panel .section-subtext {
   margin: 0 0 10px;
   font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: center;
+  /* Reserves space for 2 lines regardless of actual text length, so
+     cards with a short subtitle (e.g. Burnup) and a long one (e.g.
+     Burndown) still start their chart area at the same height instead
+     of the shorter one's chart sitting higher than its neighbor's. */
+  min-height: 2.7em;
   color: var(--metric-ink-secondary);
 }
 
@@ -186,91 +257,221 @@
   gap: 4px;
 }
 
-/* Charts layout: sticky period sidebar (left) + the 3-column charts grid.
-   The sidebar only affects the two time-phased cost charts (Cash Flow,
-   Budgeted vs. Actual) — everything else uses a fixed weekly
-   reconstruction with no selectable period. */
-.dashboard-charts-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md, 24px);
+/* .charts-and-gantt-column is now a plain block (no longer a flex sibling
+   of a sidebar column) — the Report Index card was moved to be a direct
+   child of <body> instead (see dashboard.html, right after <header>),
+   structurally independent of this column entirely. A left margin
+   reserves the fixed card's own 150px width so this column's content
+   doesn't render underneath it. Meetings/Events + Activity Log,
+   Assumptions/Risk/Constraints, and Q&A/File Manager all live AFTER this
+   column closes (still inside <main>, but as separate sibling rows, not
+   inside it) — they need the exact same reservation, or they'd render
+   flush at x:0 while everything above them starts at x:150px. */
+.charts-and-gantt-column {
+  margin-left: 150px;
 }
-.dashboard-charts-layout > .charts-and-gantt-column {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: 100%;
+/* #riskAssumptionsRow/#filesQnaRow (.dashboard-stack) carry an explicit
+   width:100% from their base class (dashboard1.css) — adding margin-left
+   on top of a FIXED 100% width (rather than the auto width a plain block
+   would have) pushed the whole row 150px past the viewport's right edge
+   instead of shrinking to fit, which is exactly what "goes off the
+   screen" was: width:100% is calculated independently of margins, so it
+   doesn't auto-shrink for one the way width:auto would. calc() explicitly
+   accounts for the reserved space instead.
+   #milestoneSection and #activityPanelCard need the exact same treatment
+   even though they're now plain standalone .card sections (unwrapped from
+   the #milestonesActivitiesRow two-col row they used to share) — a
+   .card's own width isn't 100% by default, but selecting them by id here
+   keeps this rule from silently doing nothing if a future layout change
+   wraps them in something else again. */
+#milestoneSection,
+#activityPanelCard,
+#riskAssumptionsRow,
+#filesQnaRow {
+  margin-left: 150px;
+  width: calc(100% - 150px);
 }
-.charts-global-timeframe {
-  flex: 0 0 150px;
-  position: sticky;
-  /* Sits just below the page's own sticky header (#dashboardHeader). */
-  top: 130px;
+
+/* Report Index — links to every report/chart card, hover = short
+   description (see report-index.js).
+   position: fixed, not sticky — sticky's scroll range is bounded by its
+   own containing block, and something upstream (a stacking context or
+   an ancestor's layout) was defeating it even after correcting that
+   range, so it kept scrolling away instead of floating with the page.
+   Fixed is anchored purely to the viewport and can't be defeated the
+   same way. left:0 lines up with its old sticky position because <body>/
+   <main> carry no horizontal padding of their own — the sidebar column
+   already rendered flush at x=0. */
+.report-index-card {
+  position: fixed;
+  /* Sits just below BOTH the page's own fixed header (#dashboardHeader)
+     AND the fixed summary row (Project Status/Progress/Q&A/SPI/CPI) —
+     both --dr-header-height and --dr-summary-row-height are measured
+     live in report-index.js since neither is a fixed, guessable size. */
+  top: calc(var(--dr-header-height, 130px) + var(--dr-summary-row-height, 140px) + 12px);
+  left: 0;
+  z-index: 5;
   background: #ffffff;
   border-left: 6px solid var(--color-primary, #004e92);
   border-radius: 0 8px 8px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 14px 12px;
+  margin-bottom: 12px;
+  max-width: 150px;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  /* Bounded to the viewport (minus the top offset + a bottom margin) so
+     the full ~30-entry list can never hang off the bottom of the screen
+     — it scrolls internally instead, with its own header pinned above
+     that scroll area. */
+  max-height: calc(100vh - var(--dr-header-height, 130px) - var(--dr-summary-row-height, 140px) - 12px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
-.charts-global-timeframe-label {
+.report-index-label {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
   font-weight: 700;
   font-size: 0.85rem;
   text-align: center;
-  margin-bottom: 2px;
+  padding-bottom: 8px;
+  flex: 0 0 auto;
 }
-.charts-global-timeframe-note {
-  font-size: 0.7rem;
-  color: var(--metric-ink-secondary, #666);
-  text-align: center;
-  margin: 0 0 6px;
-}
-.charts-global-timeframe-btn {
+.report-index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* The list itself is the scrolling region (not the whole card) so the
+     "Reports" header above stays visible/sticky while it scrolls — and
+     the card as a whole never grows taller than the viewport. On a tall
+     enough screen every entry fits and this scrollbar never appears. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden; /* long labels wrap instead of forcing a horizontal scrollbar */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--metric-ink, #333);
-  font-size: 0.82rem;
-  text-align: center;
+  box-sizing: border-box;
+}
+.data-imports-checkbox {
+  display: flex;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+/* Category heading — click to collapse/expand its entries (see
+   report-index.js). The same report id can appear under more than one
+   heading on purpose (see CATEGORIES) — e.g. the Health Scorecard shows
+   under both Executive and Risk. */
+.report-index-category {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+.report-index-category:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.report-index-category-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-primary, #004e92);
+  text-align: left;
   cursor: pointer;
 }
-.charts-global-timeframe-btn:hover { background: #f0f6ff; }
-.charts-global-timeframe-btn.is-active {
-  background: var(--color-primary, #004e92);
-  border-color: var(--color-primary, #004e92);
-  color: #fff;
+.report-index-category-toggle:hover {
+  color: var(--color-primary-dark, #000428);
 }
-/* Below ~1000px the sidebar drops above the grid instead of squeezing it —
-   sticky is dropped too, since a stacked layout has nothing meaningful
-   left to scroll past. */
+.report-index-category-caret {
+  font-size: 0.6rem;
+  width: 10px;
+  flex: 0 0 auto;
+}
+.report-index-list li a {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
+  color: var(--metric-ink, #333);
+  text-decoration: none;
+}
+/* Fixed-width column so a row's label always starts at the same x
+   position no matter which emoji glyph sits in front of it. */
+.report-index-icon {
+  flex: 0 0 auto;
+  width: 1.3em;
+  text-align: center;
+}
+.report-index-entry-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.report-index-list li a:hover {
+  background: #f0f6ff;
+  color: var(--color-primary, #004e92);
+}
+/* Grayed-out for a role the Permissions matrix hasn't granted this report
+   to — stays visible/clickable (shows an explanatory toast instead of
+   scrolling, see report-index.js) rather than disappearing, so it doesn't
+   look like the report doesn't exist. */
+.report-index-disabled a {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.report-index-disabled a:hover {
+  background: transparent;
+  color: var(--metric-ink, #333);
+}
 @media (max-width: 1000px) {
-  .dashboard-charts-layout {
-    flex-direction: column;
-  }
-  .charts-global-timeframe {
-    position: static;
-    flex: 1 1 auto;
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .charts-global-timeframe-label,
-  .charts-global-timeframe-note {
-    flex: 1 1 100%;
-  }
-  .charts-global-timeframe-btn {
-    width: auto;
-    flex: 1 1 auto;
-  }
   .data-imports-panel {
     flex: 1 1 100%;
   }
   .metrics-global-controls {
     flex: 1 1 100%;
+  }
+}
+
+/* True small-screen only (phones/narrow tablets) — the fixed Report
+   Index card and fixed summary row drop back into normal document flow
+   here, since there's no longer room to float a 150px sidebar or a
+   5-card row without covering the real content underneath. */
+@media (max-width: 640px) {
+  .report-index-card {
+    position: static;
+    max-height: none;
+  }
+  .charts-and-gantt-column,
+  #milestoneSection,
+  #activityPanelCard,
+  #riskAssumptionsRow,
+  #filesQnaRow {
+    margin-left: 0;
+    width: 100%;
+  }
+  .dashboard-summary-row {
+    position: static;
+    box-shadow: none;
+    padding: 0;
+  }
+  .dashboard-summary-row-spacer {
+    display: none;
   }
 }
 .metrics-checkbox-label {
@@ -287,16 +488,21 @@
   color: var(--metric-ink-secondary, #666);
 }
 
-/* Fixed-height wrapper so Chart.js (responsive: true, maintainAspectRatio:
-   false) has a real box to size the canvas against, at a height that
-   stays readable without any one chart dominating a 3-column layout. */
+/* Wrapper so Chart.js (responsive: true, maintainAspectRatio: false) has
+   a real box to size the canvas against. flex:1 (its parent, .dashboard-
+   charts-row > .card, is a flex column) lets it grow to fill whatever
+   height CSS Grid stretched the card to (matching its tallest row
+   sibling, e.g. Project Health Scorecard's stat list) instead of staying
+   a fixed 220px with dead space left below the chart+legend — min-height
+   keeps it from ever getting too small to read. */
 .metrics-chart-wrap {
   position: relative;
-  height: 220px;
+  flex: 1 1 auto;
+  min-height: 220px;
   width: 100%;
 }
 .metrics-chart-wrap-short {
-  height: 270px; /* taller than the generic wrap — room for the RAG
+  min-height: 270px; /* taller than the generic wrap — room for the RAG
                     doughnut's outside-the-ring % labels plus a
                     bottom-centered legend with some breathing room above it */
 }
@@ -307,6 +513,8 @@
    chart can still draw into it once real data arrives — see
    setChartEmpty()/clearChartEmpty() in burndown.js. */
 .metrics-chart-wrap.is-empty {
+  flex: 0 0 auto;
+  min-height: 0;
   height: auto;
 }
 
@@ -318,22 +526,179 @@
   margin: 0;
 }
 
-/* Data Imports — one control box for every import the dashboard accepts,
-   living inside the narrow sticky sidebar below the Time Frame buttons —
-   so everything here stacks in a single column rather than a wide grid. */
+/* Data Imports — now lives inside the Data Imports modal (opened from
+   Settings), not a standalone sidebar card, so no card chrome of its own
+   is needed here — the modal box already provides that. */
 .data-imports-panel {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-border, #e0e0e0);
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* RACI badges — same visual language as the severity-badge pills used
+   elsewhere, repurposed so Accountable reads like "high priority" and
+   Consulted/Informed read as lighter-weight involvement. */
+.raci-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.raci-r { background: #e0a800; }
+.raci-a { background: #dd3333; }
+.raci-c { background: #2a78d6; }
+.raci-i { background: #8a8a8a; }
+.raci-other { background: #666; }
+.raci-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
+  color: var(--metric-ink-secondary, #666);
+}
+.raci-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.raci-table-wrap table {
+  /* table-layout:auto let each resource column size itself off its own
+     header's content — which, for many resource columns at once, could
+     size wider than actually needed and push the table (and the page
+     alongside it) into a horizontal scrollbar that wasn't contained the
+     way it should be. Fixed layout with explicit widths below (on
+     .raci-activity-col / .raci-resource-col) gives predictable, narrow
+     resource columns and a wider Activity column instead. */
+  table-layout: fixed;
+  min-width: 0;
+  width: auto;
+}
+.raci-table-wrap th,
+.raci-table-wrap td {
+  white-space: nowrap;
+  /* Full grid lines (not just a bottom rule) so it's easy to trace any
+     activity row across to exactly which resource column a badge sits
+     under. */
+  border: 1px solid var(--metric-gridline, #e0e0e0);
+}
+/* Resource columns — header rotated vertical so a long name doesn't
+   force the whole column (and every badge cell in it) to be as wide as
+   the name itself; the column stays just wide enough for an R/A/C/I
+   badge. writing-mode + a 180deg flip makes it read bottom-to-top. */
+.raci-table-wrap th.raci-resource-col {
+  white-space: nowrap;
+  text-align: center;
+  vertical-align: bottom;
+  height: 140px;
+  /* Explicit + narrow — under table-layout:fixed, this (on the header
+     row) is what actually sets each resource column's width for the
+     whole table, just wide enough for an R/A/C/I badge. */
+  width: 48px;
+  padding: 8px 2px;
+  font-size: 0.76rem;
+}
+/* Rotation lives here, on an inner span — not on the sticky <th> itself.
+   Combining position:sticky and transform on the same element produced a
+   hairline gap at the sticky boundary while scrolling (a sliver of the
+   scrolled-past row visible above the header). display:block + margin
+   auto centers it within the <th> now that the <th> itself is centered
+   (inline-block wouldn't center under text-align on its own axis here
+   since writing-mode:vertical-rl makes the block's own axis vertical). */
+.raci-resource-col-label {
+  display: block;
+  margin: 0 auto;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+/* Activity — the one long free-text column, kept horizontal and wide
+   enough to actually read instead of truncating or squeezing under the
+   pressure of many narrow resource columns. A single fixed width (not a
+   min/max range) since table-layout:fixed needs one concrete value to
+   size the column from. */
+.raci-table-wrap th.raci-activity-col,
+.raci-table-wrap td.raci-activity-col {
+  white-space: normal;
+  /* Was 380px — too much of the table's total width, squeezing how many
+     resource columns actually show without scrolling and how much of
+     each rotated header label stayed visible. 220px still wraps a normal
+     activity name to 2-3 lines instead of truncating. */
+  width: 220px;
+  text-align: left;
+}
+.raci-table-wrap td.raci-activity-col {
+  vertical-align: top;
+}
+.raci-table-wrap th.raci-activity-col {
+  /* The resource headers' rotated labels sit at the bottom of the tall
+     (140px) header row (vertical-align:bottom, above) — "Activity" sat at
+     the top by contrast, floating well above where the first activity row
+     actually begins instead of reading as part of the same header line. */
+  vertical-align: bottom;
+}
+.raci-table-wrap thead th,
+#raciTable thead th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+/* Up/down page-scroll buttons for a tall table (RACI, Assumptions Log,
+   Risk Register, Constraints Log) — sits above the table, to the right,
+   matching the Gantt page-scroll button's look. Stacked, not the Gantt's
+   3x3 dpad, since only vertical paging is needed for a plain table. */
+.table-page-scroll {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.table-page-btn {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border, #e2e5ea);
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.table-page-btn:hover {
+  background: #f0f6ff;
 }
 .data-imports-label {
   font-weight: 700;
   font-size: 0.85rem;
   text-align: center;
   margin-bottom: 2px;
+}
+.data-imports-order-note {
+  margin: 0 0 4px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--metric-ink-secondary, #666);
+}
+/* Badge + label share a row; .data-import-controls (flex:1 1 100% below)
+   wraps onto its own line beneath them. */
+.data-import-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.data-import-step {
+  flex: 0 0 auto;
+  font-size: 0.85rem;
 }
 .data-import-item label {
   display: block;
@@ -350,11 +715,22 @@
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
+  flex: 1 1 100%;
 }
 .data-import-controls input[type="file"] {
   font-size: 0.72rem;
   max-width: 100%;
   width: 100%;
+}
+/* Each import's own "Last updated" — flex:1 1 100% wraps it onto its own
+   line below that row's controls (same trick .data-import-controls uses),
+   since these 8 files don't all get re-imported together and each row
+   needs to show ITS OWN last-import time, not a shared moment. Empty (no
+   text) until that specific file has been imported at least once. */
+.data-import-last-updated {
+  flex: 1 1 100%;
+  font-size: 0.68rem;
+  color: #898781;
 }
 .data-imports-tools {
   display: flex;
@@ -362,6 +738,20 @@
   gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--metric-gridline, #e0e0e0);
+}
+.data-imports-logo-controls {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.data-imports-logo-preview {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--metric-gridline, #e0e0e0);
+  background: #fff;
+  display: none; /* shown once a logoUrl exists — see header.js */
 }
 
 /* Table-view fallback (accessibility requirement — a non-chart way to read
@@ -400,6 +790,74 @@
 }
 .milestone-trend-table-wrap {
   max-height: 220px;
+}
+.top-slipped-table-wrap {
+  max-height: 220px;
+}
+/* Tall enough that a full page of 15 rows (CRITICAL_PATH_PAGE_SIZE,
+   burndown.js) fits without its own internal vertical scrollbar — the
+   Prev/Next pager below it is the only scrolling mechanism needed. */
+.critical-path-table-wrap {
+  max-height: 640px;
+}
+/* These now share a half-width column (see .charts-row-two-col) — too
+   narrow for every column to fit on one line, which was producing a
+   horizontal scrollbar (visually just a thin line at the bottom of the
+   card). Wrapping cell text instead removes the sideways scroll entirely. */
+.milestone-trend-table-wrap,
+.resource-hours-table-wrap,
+.critical-path-table-wrap,
+.top-slipped-table-wrap {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+/* table-layout:fixed so #milestoneTrendTable's own <colgroup> percentages
+   (widening Original Due/Current Due so a formatted date fits without
+   wrapping) are actually respected — under the default auto layout, a
+   long milestone title in the first column could still push the date
+   columns narrower than their colgroup share. */
+#milestoneTrendTable,
+#topSlippedTable {
+  table-layout: fixed;
+  width: 100%;
+}
+.milestone-trend-table-wrap th,
+.milestone-trend-table-wrap td,
+.resource-hours-table-wrap th,
+.resource-hours-table-wrap td,
+.critical-path-table-wrap th,
+.critical-path-table-wrap td,
+.top-slipped-table-wrap th,
+.top-slipped-table-wrap td {
+  white-space: normal;
+  word-break: break-word;
+  /* Overrides .metrics-table-wrap's own text-align:left base rule —
+     every field in these 4 cards reads better centered, matching the
+     Assumptions/Risk/Constraints/Quality/Issue logs' own convention. */
+  text-align: center;
+}
+/* Sticky header row — stays visible while scrolling a long resource or
+   milestone list instead of scrolling out of view with the data rows.
+   Needs its own opaque background so scrolled-under rows don't show
+   through underneath it.
+   Uses the table's own ID (not just the wrap class) for the same reason
+   documented below at #assumptionsLogTable etc: the global
+   ".card table thead th[data-sort]" rule sets position:relative at
+   higher specificity than a 1-class selector, which silently broke
+   sticky ONLY on sortable header cells (every column here has
+   data-sort). An ID selector outranks it regardless of source order. */
+.milestone-trend-table-wrap thead th,
+.resource-hours-table-wrap thead th,
+.critical-path-table-wrap thead th,
+.top-slipped-table-wrap thead th,
+#milestoneTrendTable thead th,
+#resourceHoursTable thead th,
+#criticalPathTable thead th,
+#topSlippedTable thead th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
 }
 /* Placeholder/sample-data banner (Quality/Defects Log) — visible only
    until a real file is imported. */
@@ -469,7 +927,7 @@
    pass/fail signals the way SPI/CPI/Risk/Quality are). */
 .health-cost-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
@@ -488,11 +946,27 @@
   border-top: 1px solid var(--metric-gridline, #e0e0e0);
 }
 .health-risk-list-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 0.72rem;
   color: var(--metric-ink-secondary, #666);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 6px;
+}
+.health-risk-open-window-link {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2a78d6;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.health-risk-open-window-link:hover {
+  text-decoration: underline;
 }
 .health-risk-table {
   width: 100%;
@@ -510,6 +984,33 @@
   padding: 4px 6px;
   border-bottom: 1px solid var(--metric-gridline, #f0f0f0);
   vertical-align: top;
+}
+
+/* Top 2-3 open high risks, shown directly in the card — see
+   renderHealthScorecard() in burndown.js. */
+.health-top-risks {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.health-top-risks li {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--metric-ink, #333);
+  background: #fbf5ee;
+  border-left: 3px solid #eb6834;
+  border-radius: 4px;
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.health-top-risk-score {
+  color: var(--metric-ink-secondary, #666);
+  font-weight: 400;
 }
 .health-risk-empty {
   font-size: 0.78rem;
@@ -554,6 +1055,282 @@
   text-overflow: clip;
   word-break: break-word;
 }
+/* Every short/fixed-vocab/badge column (ID, dates, Category, Impact/
+   Probability, Owner, Status, Severity, Response Strategy, etc.) reads
+   better centered under its header — .wrap-text marks the genuine long-
+   form free-text columns (Description, Statement, Notes, Rationale,
+   etc.), which stay left-aligned since centering a wrapped paragraph is
+   a readability anti-pattern. Covers Assumptions Log, Risk Register, and
+   Constraints Log at once (all three share this wrapper class). */
+.risk-assumptions-table-wrap th:not(.wrap-text),
+.risk-assumptions-table-wrap td:not(.wrap-text) {
+  text-align: center;
+}
+
+/* Impact/Probability header text only, Assumptions Log only — bold and
+   bigger than every other header in this table, per explicit request. */
+#assumptionsLogTable thead th[data-sort="impact"],
+#assumptionsLogTable thead th[data-sort="probability"] {
+  font-weight: 800;
+  font-size: 1.15em;
+}
+
+/* Sticky header — stays visible while scrolling a long Assumptions Log,
+   Risk Register, Constraints Log, Quality/Defects Log, or Issue Log
+   instead of scrolling out of view with the data rows. */
+#assumptionsLogTable thead th,
+#riskRegisterTable thead th,
+#constraintsLogTable thead th,
+#qualityDefectsTable thead th,
+#issueLogTable thead th,
+#stakeholderTable thead th,
+#changeControlTable thead th,
+#decisionLogTable thead th,
+#lessonsLearnedTable thead th,
+#dependenciesTable thead th,
+#signoffTable thead th,
+#purchasesTable thead th,
+#vendorsTable thead th,
+#documentsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Sortable column headers. Deliberately NOT setting position:relative
+   here — it has higher CSS specificity than the sticky rule above (an ID
+   + attribute selector beats an ID + 2 type selectors) and was
+   overriding position:sticky on exactly the sortable columns, so they
+   scrolled away with the table body while the rest of the header stayed
+   pinned — the "missing headers" bug. position:sticky already
+   establishes a positioning context for the ::after arrow below, so no
+   extra position is needed here. */
+#assumptionsLogTable th[data-sort],
+#riskRegisterTable th[data-sort],
+#constraintsLogTable th[data-sort],
+#qualityDefectsTable th[data-sort],
+#issueLogTable th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  padding-right: 16px;
+}
+
+/* ---------------------------------------------------------------------
+   Uniform table-header styling across EVERY card with a table (Risk/
+   Assumptions/Constraints/Quality/Issue logs above, plus Meetings/Events,
+   RACI, Q&A Tracker, File Manager, Activity Log, and the small trend
+   tables) — black bar, white centered text, regardless of whatever
+   bespoke header color each table used before (milestone.css's blue,
+   this file's own white sticky background, etc.). !important is
+   necessary to reliably beat all of those pre-existing, scattered rules
+   at once instead of hunting down and editing every single one. Arrows
+   are likewise sized/colored globally, but the arrow CONTENT itself only
+   ever appears on a th that actually carries data-sort in its own HTML —
+   this rule doesn't retroactively make an unsortable column look
+   sortable, it only re-themes the ones that already are. --------------- */
+.card table thead th,
+.qna-section table thead th {
+  background: #000 !important;
+  color: #fff !important;
+  text-align: center !important;
+  /* Several tables (.risk-assumptions-table-wrap th, shared by Risk
+     Register/Assumptions/Constraints/Quality/Issue Logs) explicitly set
+     vertical-align:top on their own th/td, pinning header text to the
+     top of the bar instead of the middle — !important here overrides
+     that for the header row specifically, data cells unaffected. */
+  vertical-align: middle !important;
+  /* Fixed height across every card's header bar, regardless of each
+     table's own bespoke padding — Milestone Trend's own values are the
+     reference size every other table now matches. Header text forced to
+     one line (white-space:nowrap) is what makes a truly fixed height
+     possible at all — some tables (Milestone Trend among them) otherwise
+     wrap a header across 2 lines in a narrow column, which would fight a
+     fixed height. Long text ellipsis-truncates rather than breaking that
+     guarantee; ONLY applies to the header row — data cells still wrap
+     normally, unaffected. */
+  height: 38px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* position:relative so th[data-sort]::after's position:absolute anchors
+   to the individual column cell — sticky-header tables (the 5 logs
+   below) already get a positioning context for free from
+   position:sticky, but a plain (non-sticky) table like Meetings/Events,
+   RACI, Activity Log, etc. needs this explicitly, or the arrow anchors
+   to some ancestor instead of its own header cell. */
+.card table thead th[data-sort],
+.qna-section table thead th[data-sort] {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  padding-right: 18px !important;
+}
+.card table thead th[data-sort]::after,
+.qna-section table thead th[data-sort]::after {
+  content: '↕';
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 1.15em;
+  opacity: 0.7;
+}
+.card table thead th[data-sort].asc::after,
+.qna-section table thead th[data-sort].asc::after { content: '▲'; opacity: 1; }
+.card table thead th[data-sort].desc::after,
+.qna-section table thead th[data-sort].desc::after { content: '▼'; opacity: 1; }
+
+/* Filter bar — one dropdown per filterable column, above the table. */
+.assumptions-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.assumptions-filters-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--metric-ink-secondary, #666);
+  margin-right: 2px;
+}
+.assumptions-filters select {
+  font-size: 0.78rem;
+  padding: 4px 6px;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+  background: #fff;
+}
+.assumptions-filter-reset {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+.assumptions-filter-reset:hover {
+  background: #ebebeb;
+}
+
+/* Merges a card's filter bar and its up/down(/left/right) table-page-scroll
+   buttons onto one left-aligned line, per explicit request (Assumptions
+   Log, Constraints Log) — instead of the filters and the arrows each
+   being their own stacked row. */
+.filters-scroll-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.filters-scroll-row .assumptions-filters {
+  margin-bottom: 0;
+}
+.filters-scroll-row .table-page-scroll {
+  justify-content: flex-start;
+  margin-bottom: 0;
+}
+/* Constraints Log's arrows specifically are centered (not left-aligned
+   like the other filters-scroll-row cards), per explicit request — the
+   arrow group grows to fill the row's remaining width so centering has
+   room to take effect. */
+#constraintsLogCard .filters-scroll-row .table-page-scroll {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* Multi-select filter dropdown (see Public/JS/dr-multiselect.js) — a
+   button that opens a checkbox list, replacing what was a plain
+   single-choice <select> (still present in the DOM, hidden, so each
+   card's own populate*Filters() keeps repopulating its options exactly
+   as before). */
+.dr-multiselect {
+  position: relative;
+  display: inline-block;
+}
+.dr-multiselect-btn {
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  min-width: 110px;
+  text-align: left;
+}
+.dr-multiselect-btn:hover {
+  border-color: #999;
+}
+.dr-multiselect-panel {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 20;
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+}
+.dr-multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.dr-multiselect-option:hover {
+  background: #f0f6ff;
+}
+
+/* Pagination — below the table, so a long log doesn't turn into endless
+   scrolling. */
+.assumptions-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+.assumptions-page-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.assumptions-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.assumptions-page-info {
+  color: var(--metric-ink-secondary, #666);
+}
+/* "Last updated" stamp — the 8 cards with their own dedicated Data
+   Imports file each show when THEIR OWN import last ran (not a shared
+   page-load moment), since they don't all get re-imported together.
+   Plain block text at the end of the card's own content already reads as
+   bottom-left without needing absolute positioning. Empty (no text) until
+   that card's own import has run at least once. */
+.card-last-updated {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: #898781;
+}
 .severity-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -567,6 +1344,23 @@
 .severity-medium { background: #e0a800; }
 .severity-low { background: #2f9e44; }
 .severity-unknown { background: #898781; }
+.severity-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
+  color: var(--metric-ink-secondary, #666);
+}
+.severity-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.severity-legend-group-label {
+  font-weight: 600;
+}
 .resource-hours-import {
   display: flex;
   align-items: center;
@@ -577,3 +1371,1309 @@
   font-size: 0.8rem;
   max-width: 55%;
 }
+
+/* Stakeholder Register's add/edit form — inline row, inputs wrap
+   naturally, same idea as #milestoneForm (milestone.css) but scoped to
+   this card via a class instead of an ID since there's only ever one
+   of these per page. */
+.stakeholder-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stakeholder-form input[type="text"],
+.stakeholder-form input[type="email"],
+.stakeholder-form select {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+.stakeholder-form textarea {
+  min-width: 180px;
+  height: 30px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+  resize: vertical;
+}
+/* Change Control Log reuses .stakeholder-form; these cover its extras. */
+.stakeholder-form input[type="number"] {
+  height: 30px;
+  width: 150px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+.cc-sponsor-label {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.cc-reason {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--metric-ink-secondary, #666);
+}
+button.cc-decide {
+  padding: 2px 8px;
+  margin: 0 2px;
+  font-size: 0.75rem;
+  border: 1px solid #2f9e44;
+  border-radius: 4px;
+  background: #fff;
+  color: #2f9e44;
+  cursor: pointer;
+}
+button.cc-decide.cc-reject {
+  border-color: #dd3333;
+  color: #dd3333;
+}
+button.cc-decide:hover { background: #f4f8f4; }
+button.cc-decide.cc-reject:hover { background: #fdf2f2; }
+/* Change Control Log form: Description and Reason/Justification sit on
+   their own second line, 40% wide each. */
+.cc-form .cc-line-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.cc-form textarea {
+  flex: 0 0 calc(40% - 4px);
+  min-width: 0;
+  height: 60px;
+}
+/* Change Control Log table: Title and Schedule Impact wider, Linked Item
+   narrower (ID selector so it beats the shared col-* widths). */
+#changeControlTable col.cc-col-title { width: 280px; }
+#changeControlTable col.cc-col-schedule { width: 160px; }
+#changeControlTable col.cc-col-linked { width: 280px; }
+/* Linked Item shows in full (wraps if it's still too long) instead of truncating. */
+#changeControlTable td:nth-child(6) {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+/* Change request title input in the form is wider. */
+.stakeholder-form.cc-form #cc-title {
+  width: 340px;
+}
+/* Decision Log form: the main fields on line one; Rationale, Alternatives
+   and Impact/Follow-up share the second line. */
+.dl-form .cc-line-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.dl-form textarea {
+  flex: 0 0 calc(33.333% - 6px);
+  min-width: 0;
+  height: 60px;
+}
+.stakeholder-form.dl-form #dl-title {
+  width: 320px;
+}
+.stakeholder-form.dl-form input[type="date"] {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+#decisionLogTable col.dl-col-title { width: 280px; }
+#decisionLogTable col.dl-col-actions { width: 110px; }
+#decisionLogTable td:last-child { overflow: visible; text-align: center; white-space: nowrap; }
+#decisionLogTable td:nth-child(1),
+#decisionLogTable td:nth-child(6),
+#decisionLogTable td:nth-child(7) {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+/* Lessons Learned form: main fields on line one, the three link dropdowns on
+   line two, What Happened / Root Cause / Recommendation on line three. */
+.ll-form .cc-line-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.ll-form textarea {
+  flex: 0 0 calc(33.333% - 6px);
+  min-width: 0;
+  height: 60px;
+}
+.stakeholder-form.ll-form #ll-title {
+  width: 300px;
+}
+#lessonsLearnedTable col.ll-col-title { width: 260px; }
+#lessonsLearnedTable col.ll-col-linked { width: 240px; }
+#lessonsLearnedTable col.ll-col-actions { width: 110px; }
+#lessonsLearnedTable td:nth-child(1),
+#lessonsLearnedTable td:nth-child(10) {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+#lessonsLearnedTable td:last-child { overflow: visible; text-align: center; white-space: nowrap; }
+/* Dependencies form: predecessor / relationship / successor on line one,
+   type / status / owner / need-by / risk on line two, impact on line three. */
+.dp-form .cc-line-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.dp-form textarea {
+  flex: 0 0 calc(50% - 4px);
+  min-width: 0;
+  height: 60px;
+}
+.stakeholder-form.dp-form #dp-pred,
+.stakeholder-form.dp-form #dp-succ { width: 250px; }
+.stakeholder-form.dp-form #dp-pred-text,
+.stakeholder-form.dp-form #dp-succ-text { width: 250px; }
+.stakeholder-form.dp-form input[type="date"] {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+#dependenciesTable col.dp-col-item { width: 240px; }
+#dependenciesTable col.dp-col-date { width: 190px; }
+#dependenciesTable col.dp-col-actions { width: 110px; }
+#dependenciesTable td:nth-child(1),
+#dependenciesTable td:nth-child(3),
+#dependenciesTable td:nth-child(7) {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+#dependenciesTable td:last-child { overflow: visible; text-align: center; white-space: nowrap; }
+.stakeholder-form button.primary {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--color-primary, #004e92);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Dependencies: marks rows created from the schedule import. */
+.dp-src {
+  display: inline-block;
+  padding: 0 6px;
+  font-size: 0.65rem;
+  color: var(--metric-ink-secondary, #666);
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* Deliverable Sign-off form + table. */
+.so-form .cc-line-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.so-form textarea {
+  flex: 0 0 calc(60% - 4px);
+  min-width: 0;
+  height: 60px;
+}
+.stakeholder-form.so-form #so-title { width: 300px; }
+.stakeholder-form.so-form #so-linked { width: 250px; }
+.stakeholder-form.so-form #so-url { width: 240px; }
+.stakeholder-form.so-form input[type="date"],
+.stakeholder-form.so-form input[type="url"] {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+button.so-bulk-btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-primary, #004e92);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--color-primary, #004e92);
+  cursor: pointer;
+}
+button.so-bulk-btn:hover { background: #f0f5fb; }
+#signoffTable col.so-col-item { width: 240px; }
+#signoffTable col.so-col-due { width: 190px; }
+#signoffTable col.so-col-status { width: 190px; }
+#signoffTable col.so-col-actions { width: 250px; }
+#signoffTable td:nth-child(1),
+#signoffTable td:nth-child(3),
+#signoffTable td:nth-child(4),
+#signoffTable td:nth-child(5),
+#signoffTable td:nth-child(7) {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+#signoffTable td.so-actions { overflow: visible; white-space: normal; text-align: center; }
+#signoffTable td.so-actions .so-icons { display: inline-block; white-space: nowrap; }
+
+/* Procurement / Vendor Log: tabs, forms, wide purchases table. */
+.pc-tabs { display: flex; gap: 6px; margin: 0 0 12px; }
+button.pc-tab {
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  border: 1px solid var(--color-primary, #004e92);
+  border-radius: 6px 6px 0 0;
+  background: #fff;
+  color: var(--color-primary, #004e92);
+  cursor: pointer;
+}
+button.pc-tab.active { background: var(--color-primary, #004e92); color: #fff; }
+.pc-form .cc-line-break { flex-basis: 100%; height: 0; }
+.td-form .cc-line-break { flex-basis: 100%; height: 0; }
+.pc-form textarea { flex: 0 0 calc(60% - 4px); min-width: 0; height: 60px; }
+.stakeholder-form.pc-form #pc-item { width: 280px; }
+.stakeholder-form.pc-form #pc-vendor { width: 230px; }
+.stakeholder-form.pc-form #pc-vendor-text { width: 210px; }
+.stakeholder-form.pc-form #pc-risk,
+.stakeholder-form.pc-form #pc-task { width: 250px; }
+.stakeholder-form.pc-form #pc-url { width: 240px; }
+.stakeholder-form.pc-form input[type="number"] { width: 150px; }
+.stakeholder-form.pc-form input[type="date"],
+.stakeholder-form.pc-form input[type="url"] {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+.stakeholder-form.pc-form input[type="email"] {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--metric-gridline, #ccc);
+  border-radius: 4px;
+}
+.pc-lbl { font-size: 0.75rem; color: var(--metric-ink-secondary, #666); display: inline-flex; align-items: center; gap: 4px; }
+#purchasesTable { min-width: 2520px; }
+#vendorsTable { min-width: 1400px; }
+#purchasesTable col.pc-col-item { width: 220px; }
+#purchasesTable col.pc-col-flags { width: 200px; }
+#purchasesTable col.pc-col-actions,
+#vendorsTable col.pc-col-actions { width: 110px; }
+#purchasesTable td:nth-child(1),
+#purchasesTable td:nth-child(13),
+#purchasesTable td:nth-child(14) {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+#purchasesTable td.pc-actions,
+#vendorsTable td.pc-actions { overflow: visible; text-align: center; white-space: nowrap; }
+
+/* Project Documents import (Data Imports panel) */
+.pmdi-item { flex-wrap: wrap; }
+.pmdi-results { flex: 1 1 100%; margin-top: 8px; font-size: 0.85rem; }
+.pmdi-job { border: 1px solid var(--metric-gridline, #ddd); border-radius: 6px; padding: 8px 10px; margin: 6px 0; background: #fafafa; }
+.pmdi-head { display: block; font-size: 0.9rem; }
+.pmdi-files { color: var(--metric-ink-secondary, #666); font-size: 0.75rem; margin: 2px 0 4px 22px; word-break: break-word; }
+.pmdi-sum { margin-left: 22px; }
+.pmdi-counts { color: var(--metric-ink-secondary, #666); }
+.pmdi-warn { margin: 4px 0 0 22px; color: #8a6d00; font-size: 0.78rem; }
+.pmdi-opt { display: block; margin: 4px 0 0 22px; font-size: 0.8rem; }
+.pmdi-skip { color: var(--metric-ink-secondary, #666); font-size: 0.78rem; margin: 6px 0; }
+.pmdi-done { color: #2f9e44; font-weight: 600; margin: 6px 0; }
+.pmdi-or { flex: 1 1 100%; font-size: 0.75rem; color: var(--metric-ink-secondary, #666); margin: 6px 0 2px; }
+.pmdi-opts { flex: 1 1 100%; margin-top: 8px; font-size: 0.82rem; }
+.pmdi-optline { display: block; margin: 5px 0; }
+.pmdi-optline select, .pmdi-optline input[type="text"] { margin-left: 6px; padding: 3px 6px; font-size: 0.82rem; max-width: 100%; }
+.pmdi-details { margin: 4px 0 0 22px; font-size: 0.78rem; }
+.pmdi-filelist { max-height: 180px; overflow-y: auto; border: 1px solid var(--metric-gridline, #ddd); border-radius: 4px; padding: 4px 8px; background: #fff; }
+.pmdi-fileopt { display: block; margin: 2px 0; word-break: break-word; }
+
+/* Ask the Project chat window */
+.ask-wrap { display: flex; flex-direction: column; gap: 8px; }
+.ask-intro { margin: 0; font-size: 0.85rem; color: var(--metric-ink-secondary, #555); }
+.ask-log { max-height: 340px; min-height: 60px; overflow-y: auto; padding: 4px 2px; }
+.ask-msg { margin: 8px 0; padding: 8px 12px; border-radius: 8px; font-size: 0.88rem; line-height: 1.45; }
+.ask-msg p { margin: 0 0 6px; } .ask-msg p:last-child { margin-bottom: 0; }
+.ask-msg ul { margin: 4px 0 4px 18px; padding: 0; }
+.ask-user { background: #e8f0fb; margin-left: 40px; }
+.ask-bot { background: #f6f6f6; margin-right: 24px; border-left: 3px solid var(--color-primary, #004e92); }
+.ask-thinking { color: var(--metric-ink-secondary, #666); font-style: italic; }
+.ask-err { background: #fdf2f2; color: #a12a2a; }
+.ask-cite { color: var(--color-primary, #004e92); font-weight: 600; font-size: 0.75rem; }
+.ask-sources { margin-top: 8px; font-size: 0.8rem; }
+.ask-sources summary { cursor: pointer; color: var(--color-primary, #004e92); }
+.ask-sources li { margin: 6px 0; list-style: none; }
+.ask-excerpt { color: var(--metric-ink-secondary, #666); font-size: 0.75rem; margin-left: 22px; }
+.ask-meta { margin-top: 6px; font-size: 0.72rem; color: var(--metric-ink-secondary, #777); }
+.ask-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ask-chip { padding: 5px 10px; font-size: 0.78rem; border: 1px solid var(--metric-gridline, #ccc); border-radius: 999px; background: #fff; cursor: pointer; }
+.ask-chip:hover { background: #f0f5fb; }
+.ask-form { display: flex; gap: 8px; align-items: flex-end; }
+.ask-form textarea { flex: 1; resize: vertical; padding: 6px 8px; font-size: 0.88rem; border: 1px solid var(--metric-gridline, #ccc); border-radius: 6px; }
+.ask-form button.primary { height: 34px; padding: 0 18px; }
+.ask-foot { text-align: right; }
+.ask-link { background: none; border: none; color: var(--metric-ink-secondary, #666); font-size: 0.75rem; cursor: pointer; text-decoration: underline; }
+
+/* Project Documents (formerly Document Register — now also lists File Manager files and private shares) */
+.doc-source { font-size: 0.82rem; margin: 0 0 10px; }
+.doc-source input { width: 300px; max-width: 100%; margin: 0 6px; padding: 3px 6px; font-size: 0.82rem; }
+.doc-share-panel { font-size: 0.82rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.doc-share-panel select { padding: 3px 6px; font-size: 0.82rem; }
+.doc-share-status { font-size: 0.78rem; color: var(--metric-ink-secondary, #666); }
+#documentsSearch { height: 30px; padding: 0 8px; font-size: 0.82rem; border: 1px solid var(--metric-gridline, #ccc); border-radius: 4px; }
+#documentsTable { min-width: 1100px; }
+#documentsTable col.doc-col-title { width: 340px; }
+#documentsTable col.doc-col-vis { width: 240px; }
+#documentsTable td:nth-child(2) { white-space: normal; word-break: break-word; overflow: visible; text-overflow: clip; }
+#documentsTable td.doc-actions { overflow: visible; text-align: center; white-space: nowrap; }
+#documentsTable select.doc-vis { max-width: 230px; font-size: 0.78rem; }
+button.doc-dl, button.doc-view { border: none; background: transparent; font-size: 1.1rem; cursor: pointer; }
+
+/* Team Directory */
+#teamDirectoryTable col:first-child { width: 34px; }
+#teamDirectoryTable td:first-child { text-align: center; }
+button.td-history { border: none; background: transparent; font-size: 1rem; cursor: pointer; }
+.td-compose-to-label { font-size: 0.82rem; color: var(--metric-ink-secondary, #666); margin: 0 0 10px; word-break: break-word; }
+.td-compose-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 600; color: var(--metric-ink-secondary, #444); margin-bottom: 10px; }
+.td-compose-field input[type="text"], .td-compose-field textarea {
+  font-weight: normal; font-size: 0.85rem; padding: 6px 8px; border: 1px solid var(--metric-gridline, #ccc); border-radius: 4px; resize: vertical; font-family: inherit;
+}
+.td-compose-actions { display: flex; align-items: center; gap: 10px; }
+.td-form textarea#td-notes.td-notes-wide { flex: 1 1 500px; min-width: 300px; max-width: 100%; height: 90px; }
+
+/* Communications Plan */
+.cp-form .cc-line-break { flex-basis: 100%; height: 0; }
+.cp-form textarea { flex: 0 0 calc(50% - 4px); min-width: 0; height: 60px; }
+.cp-filters { flex-wrap: nowrap; justify-content: flex-start; margin-left: 0; }
+button.cp-history { border: none; background: transparent; font-size: 1rem; cursor: pointer; }
+
+/* Executive Roadmap — a horizontal phase-bar + milestone-dot timeline */
+.roadmap-wrap { position: relative; padding: 18px 4px 8px; }
+.roadmap-track { position: relative; height: 40px; margin-bottom: 6px; }
+.roadmap-track[hidden] { display: none; }
+.roadmap-bar {
+  position: absolute; top: 8px; height: 24px; border-radius: 4px; display: flex; align-items: center;
+  padding: 0 8px; overflow: hidden; white-space: nowrap; box-sizing: border-box;
+}
+.roadmap-bar-label { color: #fff; font-size: 0.74rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; }
+.roadmap-milestones { height: 54px; margin-top: 8px; }
+.roadmap-dot {
+  position: absolute; top: 21px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%);
+  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+}
+/* Vertical tier (above/below, and how far) is computed and set as an inline style per label by
+   executiveRoadmap.js's collision-avoidance layout — top/bottom here are just a same-line default
+   before JS positions them. */
+.roadmap-dot-date {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-size: 0.66rem;
+  color: var(--metric-ink-secondary, #666); white-space: nowrap; text-align: center;
+}
+/* The milestone's own FULL title, above its date within the same
+   alternating label — never clipped with "…"; wraps onto its own lines
+   within a fixed-width block instead (collision-avoidance in
+   executiveRoadmap.js sizes the gap between labels for this wider,
+   multi-line block, not just a single line of text). */
+.roadmap-dot-desc {
+  display: block; font-weight: 600; color: #2b2b2b; font-size: 0.68rem; margin-bottom: 1px;
+  width: 170px; white-space: normal; word-wrap: break-word; line-height: 1.2;
+}
+.roadmap-dot-date-value { display: block; color: #1a56db; font-weight: 700; }
+/* Leader line connecting the dot to its (possibly tiered-away) label —
+   alternates up/down with the label itself so it's always clear which
+   dot a given label belongs to, even once several cluster together. */
+.roadmap-dot-line {
+  position: absolute; left: 50%; width: 1px; background: var(--metric-gridline, #bbb); transform: translateX(-50%);
+}
+.roadmap-red { background: #dd3333; }
+.roadmap-amber { background: #e0a800; }
+.roadmap-green { background: #2f9e44; }
+.roadmap-done { background: #898781; }
+.roadmap-none { background: #c4c4c4; }
+/* Yellow dotted, matching the Gantt Timeline's own Today line convention
+   (see the gantt-today-line legend) — a border, not a background fill, so
+   it can actually be dotted rather than a solid bar. */
+.roadmap-today { position: absolute; top: -14px; bottom: 8px; width: 0; border-left: 2px dotted #e0a800; background: none; }
+.roadmap-today-label {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-size: 0.68rem; font-weight: 700;
+  color: #8a6d00; white-space: nowrap;
+}
+.roadmap-axis { position: relative; height: 18px; font-size: 0.72rem; color: var(--metric-ink-secondary, #666); }
+.roadmap-axis-label { position: absolute; top: 0; }
+.roadmap-axis-start { left: 0; }
+.roadmap-axis-end { right: 0; }
+
+/* Benefits Realization / KPI Tracker */
+.br-form .cc-line-break { flex-basis: 100%; height: 0; }
+.br-form input.br-unit { width: 140px; }
+.br-form input.br-num { width: 110px; margin-right: 6px; }
+.br-lbl { font-size: 0.78rem; font-weight: 600; color: var(--metric-ink-secondary, #555); display: inline-flex; align-items: center; gap: 6px; }
+.br-form textarea#br-notes.br-notes-wide { flex: 1 1 500px; min-width: 300px; max-width: 100%; height: 70px; }
+.br-spark { display: block; }
+.br-latest-date { font-size: 0.72rem; color: var(--metric-ink-secondary, #777); }
+button.br-log, button.br-hist { border: none; background: transparent; font-size: 1rem; cursor: pointer; }
+
+/* Project Closure Report */
+.pcr-rollup { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.pcr-group { background: #fafafa; border: 1px solid var(--metric-gridline, #ddd); border-radius: 6px; padding: 10px 12px; }
+.pcr-group h4 { margin: 0 0 6px; font-size: 0.85rem; color: var(--color-primary, #004e92); }
+.pcr-group-list { margin: 0; padding-left: 18px; font-size: 0.82rem; line-height: 1.5; }
+.pcr-group-empty { margin: 0; font-size: 0.8rem; color: var(--metric-ink-secondary, #777); font-style: italic; }
+.pcr-section-h { font-size: 1rem; margin: 4px 0 8px; }
+.pcr-checklist { list-style: none; margin: 0 0 10px; padding: 0; }
+.pcr-item { padding: 6px 4px; border-bottom: 1px solid var(--metric-gridline, #eee); font-size: 0.85rem; }
+.pcr-item-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.pcr-item label { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
+.pcr-item-checked label { color: var(--metric-ink-secondary, #777); text-decoration: line-through; }
+.pcr-item-stamp { font-size: 0.72rem; color: var(--metric-ink-secondary, #777); white-space: nowrap; }
+.pcr-item-del { border: none; background: transparent; font-size: 0.9rem; cursor: pointer; }
+.pcr-item-concern { margin: 4px 0 0 28px; font-size: 0.78rem; color: #8a6d00; background: #fdf8e9; border-left: 3px solid #e0a800; padding: 4px 8px; border-radius: 0 4px 4px 0; }
+.pcr-add-item-form { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+.pcr-add-item-form input { flex: 1 1 320px; max-width: 420px; height: 32px; padding: 0 8px; font-size: 0.85rem; border: 1px solid var(--metric-gridline, #ccc); border-radius: 4px; }
+.pcr-save-row { display: flex; align-items: center; gap: 12px; }
+.pcr-saved-list { list-style: none; margin: 0; padding: 0; }
+.pcr-saved-list li { margin: 4px 0; }
+button.pcr-saved-open { border: none; background: transparent; color: var(--color-primary, #004e92); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 2px 0; }
+
+/* Glossary / Acronyms / Data Dictionary */
+.gl-form select#gl-type { width: 130px; }
+.gl-form input.gl-definition-wide { flex: 1 1 400px; min-width: 260px; }
+/* Letter-header row grouping the table alphabetically — scroll-margin-top
+   goes on the row itself (the actual scroll/anchor target), not a child
+   cell, so it clears the fixed dashboardHeader + dashboard-summary-row
+   even if a browser ever lands on it via native #hash navigation instead
+   of the JS click handler. */
+#glossaryTable .gl-letter-row {
+  scroll-margin-top: 160px;
+}
+#glossaryTable .gl-letter-row td {
+  background: #eef1f4;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--color-primary, #004e92);
+  padding: 4px 10px;
+}
+.gl-alpha-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+button.gl-alpha-link {
+  display: inline-block;
+  min-width: 22px;
+  text-align: center;
+  padding: 2px 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  text-decoration: none;
+  color: var(--color-primary, #004e92);
+  cursor: pointer;
+}
+button.gl-alpha-link:hover:not(:disabled) { background: #eef1f4; }
+button.gl-alpha-link.gl-alpha-disabled,
+button.gl-alpha-link:disabled { color: #ccc; cursor: default; }
+button.gl-alpha-link.gl-alpha-top {
+  min-width: auto;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-left: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Needs Attention */
+/* Two-column layout — magazine-style (column-count), not a grid, so a
+   group's variable-height entry list flows down one column at a time
+   instead of being interleaved row-by-row across both columns (which is
+   what was crowding/overlapping entries together). break-inside:avoid on
+   each group stops a single group being split across the column break. */
+#naBody { column-count: 2; column-gap: 28px; }
+@media (max-width: 700px) { #naBody { column-count: 1; } }
+.na-group { margin-bottom: 14px; break-inside: avoid; -webkit-column-break-inside: avoid; page-break-inside: avoid; }
+.na-group h4 { margin: 0 0 4px; font-size: 0.88rem; color: var(--color-primary, #004e92); }
+.na-group-count { font-weight: normal; color: var(--metric-ink-secondary, #777); }
+.na-item-list { list-style: none; margin: 0; padding: 0; }
+.na-item-list li.na-entry { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; font-size: 0.82rem; border-bottom: 1px solid var(--metric-gridline, #eee); }
+.na-item-list li.na-more { padding: 3px 0; font-size: 0.82rem; border-bottom: 1px solid var(--metric-gridline, #eee); }
+.na-check { flex: 0 0 auto; padding-top: 2px; }
+.na-check input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; }
+.na-check input[type="checkbox"]:disabled { cursor: not-allowed; }
+.na-entry-body { flex: 1 1 auto; min-width: 0; }
+button.na-item-link { border: none; background: transparent; color: var(--color-primary, #004e92); text-decoration: underline; cursor: pointer; font-size: 0.82rem; padding: 0; text-align: left; }
+.na-item-detail { color: var(--metric-ink-secondary, #777); font-size: 0.76rem; margin-left: 6px; }
+.na-item-doc { font-size: 0.74rem; color: var(--metric-ink-secondary, #777); margin-top: 2px; }
+button.na-doc-link { border: none; background: transparent; color: var(--color-primary, #004e92); text-decoration: underline; cursor: pointer; font-size: 0.74rem; padding: 0; }
+.na-item-reviewed { font-size: 0.74rem; color: #2f9e44; margin-top: 2px; font-weight: 600; }
+.na-entry-reviewed .na-item-link,
+.na-entry-reviewed .na-item-detail { opacity: 0.6; }
+.na-more { color: var(--metric-ink-secondary, #777); }
+button.na-more-btn { border: none; background: transparent; color: var(--color-primary, #004e92); text-decoration: underline; cursor: pointer; font-size: 0.82rem; font-style: italic; padding: 0; }
+.na-item-resolution, .na-item-lesson { font-size: 0.74rem; color: var(--color-text-primary, #333); margin-top: 2px; line-height: 1.4; }
+.na-item-resolution strong, .na-item-lesson strong { color: var(--metric-ink-secondary, #555); }
+
+/* Save Report + Saved Reports list */
+.na-report-actions { margin-bottom: 10px; }
+/* margin-bottom clears the card's own quick-links-corner (Q&A/Files, see
+   quick-links.css/.js) — same reasoning as .ai-insight-box's own bottom
+   margin elsewhere: that corner is position:absolute and floats over
+   whatever's there rather than pushing it up, so the card's own last
+   piece of content needs to leave room for it on purpose. */
+.na-saved-reports { margin-top: 16px; margin-bottom: 22px; padding-top: 10px; border-top: 1px solid var(--metric-gridline, #e0e0e0); }
+.na-saved-reports-label { font-size: 0.78rem; font-weight: 700; color: var(--metric-ink-secondary, #666); margin-bottom: 4px; }
+.na-saved-list { list-style: none; margin: 0; padding: 0; }
+.na-saved-list li { padding: 2px 0; }
+button.na-saved-report-btn { border: none; background: transparent; color: var(--color-primary, #004e92); text-decoration: underline; cursor: pointer; font-size: 0.78rem; padding: 0; text-align: left; }
+.na-report-table-wrap { max-height: 420px; }
+.na-report-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.na-report-table th, .na-report-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--metric-gridline, #e0e0e0); vertical-align: top; }
+
+/* Risk Heat Map */
+/* Sized to its actual content (a 348px grid) instead of stretching full
+   width like every other card in this stack — that left a lot of empty
+   space beside a small grid. */
+.rhm-card-small { max-width: 440px; width: auto; }
+.rhm-wrap { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.rhm-axis-label { font-size: 0.78rem; font-weight: 600; color: var(--metric-ink-secondary, #555); }
+.rhm-axis-y { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }
+.rhm-axis-x { text-align: center; margin: 4px 0 10px 24px; }
+.rhm-grid-inner { display: grid; grid-template-columns: 28px repeat(5, 64px); gap: 3px; }
+.rhm-row-label, .rhm-col-label { display: flex; align-items: center; justify-content: center; font-size: 0.78rem; color: var(--metric-ink-secondary, #555); font-weight: 600; }
+.rhm-cell { height: 56px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; cursor: pointer; font-size: 0.95rem; }
+.rhm-cell:hover { outline: 2px solid #1c2733; outline-offset: -2px; }
+.rhm-empty-cell { background: #eee; color: transparent; cursor: default; }
+.rhm-empty-cell:hover { outline: none; }
+.rhm-high { background: #dd3333; }
+.rhm-medium { background: #e0a800; }
+.rhm-low { background: #2f9e44; }
+
+/* Org Chart */
+/* Horizontal (left-to-right) tree — each generation is a new column to
+   the right of its parent, instead of indented rows growing downward.
+   Every <ul> (root list included) stacks its <li> children VERTICALLY
+   and centers them, so a node with 3 children ends up vertically
+   centered against that stack of 3; a node's own oc-children sit to its
+   right via margin-left, with a vertical "spine" joining all its
+   children and a short horizontal stub from that spine into each box. */
+.oc-tree { overflow-x: auto; padding: 10px 4px; }
+.oc-tree ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; }
+.oc-tree ul.oc-root { gap: 20px; }
+.oc-tree li { position: relative; display: flex; align-items: center; padding: 4px 0; }
+.oc-tree ul.oc-children { margin-left: 32px; padding-left: 24px; position: relative; gap: 10px; }
+.oc-tree ul.oc-children::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  border-left: 2px solid var(--metric-gridline, #ccc);
+}
+.oc-tree ul.oc-children > li::before {
+  content: ''; position: absolute; left: -24px; top: 50%;
+  width: 24px; height: 2px; background: var(--metric-gridline, #ccc);
+}
+.oc-box { flex: 0 0 auto; background: #fff; border: 1px solid var(--metric-gridline, #ccc); border-radius: 6px; padding: 6px 10px; min-width: 150px; }
+.oc-name { font-weight: 700; font-size: 0.85rem; }
+.oc-role { font-size: 0.76rem; color: var(--color-primary, #004e92); }
+.oc-dept { font-size: 0.72rem; color: var(--metric-ink-secondary, #777); }
+/* Shrinks as the roster grows (see orgChart.js render()) so a bigger team
+   stays visible without just getting wider and wider. */
+.oc-tree.oc-compact .oc-box { min-width: 110px; padding: 4px 6px; }
+.oc-tree.oc-compact .oc-name { font-size: 0.74rem; }
+.oc-tree.oc-compact .oc-role { font-size: 0.66rem; }
+.oc-tree.oc-compact .oc-dept { font-size: 0.62rem; }
+.oc-tree.oc-compact ul.oc-children { margin-left: 20px; padding-left: 16px; }
+.oc-tree.oc-compact-2 .oc-box { min-width: 88px; padding: 3px 5px; }
+.oc-tree.oc-compact-2 .oc-name { font-size: 0.66rem; }
+.oc-tree.oc-compact-2 .oc-role, .oc-tree.oc-compact-2 .oc-dept { font-size: 0.56rem; }
+.oc-tree.oc-compact-2 ul.oc-children { margin-left: 14px; padding-left: 12px; }
+.oc-add-form { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--color-border, #e0e0e0); display: flex; justify-content: center; }
+.oc-add-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.oc-add-row input, .oc-add-row select {
+  padding: 6px 8px; border: 1px solid var(--color-border, #e0e0e0); border-radius: 6px; font-size: 0.82rem;
+}
+.oc-add-row input[type="text"] { width: 120px; }
+.oc-add-save-btn {
+  padding: 6px 14px; border: none; border-radius: 6px; background: var(--color-primary, #004e92);
+  color: #fff; font-weight: 700; font-size: 0.82rem; cursor: pointer;
+}
+.oc-add-save-btn:hover { opacity: 0.9; }
+
+/* Resource Overallocation / Capacity */
+.rc-group { margin-bottom: 16px; }
+.rc-group:last-child { margin-bottom: 0; }
+button.rc-group-toggle {
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  border: none; background: #eef1f4; padding: 8px 10px; border-radius: 6px;
+  font-weight: 700; font-size: 0.86rem; color: var(--color-primary, #004e92);
+  cursor: pointer; margin-bottom: 6px;
+}
+button.rc-group-toggle:hover { background: #e3e8ee; }
+.rc-group-arrow { display: inline-block; width: 12px; }
+.rc-group-count { font-weight: normal; color: var(--metric-ink-secondary, #777); }
+
+/* Real (both-axis) scroll container per group, so the header row (period/
+   date labels) and the resource-name column can each use plain CSS
+   position:sticky against it — same "make it the real scrolling element"
+   technique as the combined WBS/Gantt view, just without the two-pane
+   scroll-sync since here it's a single box. */
+.rc-grid { overflow: auto; max-height: 340px; padding: 0 4px 8px; }
+/* width:100% (not just the default content-sized auto) so the minmax(...,1fr)
+   period columns below actually have real extra space to stretch INTO —
+   the grid fills the card's full width first, and only once each column's
+   minimum width no longer fits does .rc-grid's own overflow:auto kick in
+   and start a horizontal scrollbar. */
+.rc-grid-inner { display: grid; gap: 2px; align-items: stretch; width: 100%; }
+.rc-corner {
+  height: 62px;
+  position: sticky; top: 0; left: 0; z-index: 3;
+  background: var(--color-surface, #fff);
+}
+.rc-col-label {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--color-surface, #fff);
+  height: 62px;
+  /* Dates read top-to-bottom (rotated) instead of left-to-right, so a
+     narrow column still fits a full "MM/DD/YYYY" label without truncating
+     or forcing every column wider than it needs to be. */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.rc-col-label, .rc-row-label { display: flex; align-items: center; justify-content: center; font-size: 0.62rem; color: var(--metric-ink-secondary, #555); font-weight: 600; text-align: center; padding: 1px; line-height: 1.1; }
+.rc-row-label {
+  justify-content: flex-start; padding-left: 4px; text-align: left;
+  position: sticky; left: 0; z-index: 1;
+  background: var(--color-surface, #fff);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc-cell { height: 20px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; cursor: pointer; font-size: 0.62rem; }
+.rc-cell:hover { outline: 2px solid #1c2733; outline-offset: -2px; }
+.rc-empty-cell { background: #eee; color: transparent; cursor: default; }
+.rc-empty-cell:hover { outline: none; }
+.rc-high { background: #dd3333; }
+.rc-medium { background: #e0a800; }
+.rc-low { background: #2f9e44; }
+
+/* Stakeholder Engagement Assessment Matrix */
+/* Sized to its actual content (170px label column + a 5-column matrix)
+   instead of stretching full width like every other card in this stack —
+   the smallest width that still keeps the 5 engagement-level columns and
+   their labels readable. */
+.sem-card-small { max-width: 560px; width: auto; }
+.sem-header-row { display: grid; grid-template-columns: 170px 1fr; align-items: center; margin-bottom: 6px; }
+.sem-col-label { font-size: 0.74rem; font-weight: 700; text-align: center; color: var(--metric-ink-secondary, #555); }
+.sem-body { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 10px 8px; }
+.sem-label { font-size: 0.84rem; font-weight: 600; }
+.sem-role { font-weight: normal; color: var(--metric-ink-secondary, #777); font-size: 0.76rem; }
+.sem-row { display: grid; grid-template-columns: repeat(5, 1fr); position: relative; height: 30px; }
+.sem-header-row .sem-row { height: auto; }
+.sem-bar { grid-row: 1; align-self: center; height: 6px; background: var(--metric-gridline, #ccc); border-radius: 3px; }
+.sem-dot { grid-row: 1; justify-self: center; align-self: center; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: #fff; z-index: 1; }
+.sem-dot-current { background: #004e92; }
+.sem-dot-desired { background: #2f9e44; }
+.sem-dot-both { background: #6c4fa1; width: 34px; }
+.sem-skipped { font-size: 0.76rem; color: var(--metric-ink-secondary, #777); margin-top: 10px; }
+.sem-add-form { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-border, #e0e0e0); display: flex; justify-content: center; }
+.sem-add-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.sem-add-row input, .sem-add-row select {
+  padding: 6px 8px; border: 1px solid var(--color-border, #e0e0e0); border-radius: 6px; font-size: 0.82rem;
+}
+.sem-add-row input[type="text"] { width: 130px; }
+.sem-add-save-btn {
+  padding: 6px 14px; border: none; border-radius: 6px; background: var(--color-primary, #004e92);
+  color: #fff; font-weight: 700; font-size: 0.82rem; cursor: pointer;
+}
+.sem-add-save-btn:hover { opacity: 0.9; }
+
+/* Risk Reserve / Contingency Burn-down */
+/* Shared row for Risk Heat Map + Risk Reserve — 3-column grid (auto /
+   1fr / auto): Heat Map left, the quote picture centered in the middle
+   1fr column, Risk Reserve at the far right. All three stretched to
+   match height top-to-bottom (align-items:stretch). */
+.rr-heatmap-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: var(--space-lg, 32px);
+}
+.rr-heatmap-row > .card {
+  width: auto;
+  margin-bottom: 0;
+}
+#riskHeatMapCard { display: flex; flex-direction: column; }
+/* The grid+axis content centers in whatever extra height stretching to
+   match Risk Reserve leaves below the header/legend, instead of sitting
+   pinned to the top with empty space under it. */
+.rhm-center {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Plain, normal-flow picture between the two cards — no absolute
+   positioning this time (that's what broke last time), just a centered
+   grid item. Serif type + dark gradient + oversized quotation mark make
+   it read as deliberately different from the two data cards either side.
+   Padding matches an ordinary .card's own var(--space-md) on all four
+   sides; width is ~75% of a normal small card (Risk Heat Map's 440px)
+   rather than a full card's width. */
+.rr-quote-card {
+  justify-self: center;
+  align-self: center;
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-md, 24px);
+  /* Organic blob shape (asymmetric radii per corner) instead of a plain
+     rounded rectangle — no straight-edge corners. */
+  border-radius: 44% 56% 48% 52% / 56% 44% 56% 44%;
+  /* Radial, corner-to-center: near-black at the middle, lightening out to
+     the same navy tones toward the edges — the quote text (cream/gold)
+     still reads with plenty of contrast against the darker center. */
+  background: radial-gradient(circle at center, #05080c 0%, #1c2733 55%, #2a3b4d 100%);
+  color: #f4f1ea;
+  /* A soft, wide, blurred halo feathers the shape into the page instead
+     of ending on a hard edge, on top of the normal drop shadow. */
+  box-shadow: 0 0 44px 10px rgba(28,39,51,0.38), 0 6px 18px rgba(0,0,0,0.22);
+}
+/* This one picture is squared off (still with feathering/rounding, just
+   symmetric) rather than the organic blob — see .dr-shape-circle /
+   .dr-shape-triangle in dr-access-control.css for the other two shapes
+   used elsewhere on the dashboard. */
+.rr-quote-card.rr-shape-square {
+  border-radius: 26px;
+  width: 300px;
+  aspect-ratio: 1 / 1;
+}
+.rr-quote-mark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 3.6rem;
+  line-height: 1;
+  color: #c9a24b;
+  opacity: 0.85;
+  margin-bottom: -8px;
+}
+.rr-quote-text {
+  margin: 0 0 14px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  font-style: italic;
+  color: #f4f1ea;
+}
+.rr-quote-attribution {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #c9a24b;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 900px) {
+  .rr-heatmap-row { grid-template-columns: 1fr; }
+}
+/* The compact table wrap below only fixed the TABLE's own width — the
+   card itself (#riskReserveCard) still inherited .dashboard-stack > *'s
+   width:100% and kept stretching the whole card full-width regardless.
+   An ID selector here outranks that class rule and actually caps the
+   card itself down to roughly one normal card's footprint. Grid handles
+   pushing it to the row's right column. */
+#riskReserveCard { width: auto; max-width: 760px; }
+.rr-summary { display: flex; justify-content: center; gap: 20px; margin-bottom: 6px; }
+
+/* Team Charter — centered and wider than a normal .dashboard-stack card
+   (which would otherwise stretch to the full row width), per explicit
+   layout request. */
+/* padding-bottom clears the card's own quick-links-corner (Q&A/Files) —
+   same reasoning as .na-saved-reports's own bottom margin above. */
+.tc-card-centered { max-width: 900px; width: 100%; margin-left: auto; margin-right: auto; padding-bottom: 26px; }
+.tc-form { display: flex; flex-direction: column; gap: 12px; }
+.tc-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 600; color: var(--metric-ink-secondary, #555); }
+.tc-form textarea { font-family: inherit; font-size: 0.86rem; padding: 8px 10px; border: 1px solid var(--metric-gridline, #ccc); border-radius: 6px; resize: vertical; color: var(--color-text-primary, #333); }
+.tc-save-row { display: flex; align-items: center; gap: 12px; }
+.tc-field-view { margin-bottom: 16px; }
+.tc-field-view h4 { margin: 0 0 4px; font-size: 0.86rem; color: var(--color-primary, #004e92); }
+.tc-field-view p { margin: 0; font-size: 0.86rem; line-height: 1.5; white-space: normal; }
+.tc-empty { color: var(--metric-ink-secondary, #999); font-style: italic; }
+.rr-stat { font-size: 0.9rem; color: var(--metric-ink-secondary, #555); }
+.rr-stat strong { color: #1c2733; font-size: 1.05rem; }
+.rr-chart { margin-bottom: 8px; }
+.rr-chart-svg { display: block; }
+.rr-form input.br-num { width: 110px; }
+/* This card's own table has only 5 simple columns — the shared
+   .risk-assumptions-table-wrap sizing (min-width:1300px, max-height:420px)
+   is tuned for much wider multi-column logs (Risk Register etc.) and was
+   stretching this whole card far past every other card's footprint for no
+   reason. A dedicated, compact wrap keeps the card to roughly one card's
+   size while still showing every feature (summary, chart, add-draw form,
+   table) in the same section. */
+.rr-table-wrap {
+  max-height: 160px;
+}
+.rr-table-wrap table {
+  table-layout: fixed;
+  width: 100%;
+}
+.rr-table-wrap col.col-date { width: 90px; }
+.rr-table-wrap col.col-short { width: 80px; }
+.rr-table-wrap col.col-medium { width: 130px; }
+.rr-table-wrap col.col-narrow { width: 64px; }
+/* col-wide (Note) is left unset — under table-layout:fixed it absorbs
+   whatever width the other four columns don't use. */
+.rr-table-wrap th,
+.rr-table-wrap td {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Baseline Change / Rebaseline Log */
+.bc-form .cc-line-break { flex-basis: 100%; height: 0; }
+.bc-form input.br-num { width: 110px; }
+
+/* Earned Schedule */
+.es-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.es-tile { background: #fafafa; border: 1px solid var(--metric-gridline, #ddd); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+.es-label { font-size: 0.72rem; color: var(--metric-ink-secondary, #666); text-transform: uppercase; letter-spacing: .03em; }
+.es-value { font-size: 1rem; font-weight: 700; color: #1c2733; }
+.es-note { font-size: 0.76rem; color: var(--metric-ink-secondary, #777); margin: 4px 0 0; }
+
+/* Requirements Traceability Matrix */
+.rtm-form select { min-width: 130px; }
+
+/* Communications Log */
+.cl-compliance { margin-bottom: 14px; overflow-x: auto; }
+table.cl-compliance-table { border-collapse: collapse; width: 100%; font-size: 0.84rem; }
+table.cl-compliance-table th, table.cl-compliance-table td { border: 1px solid var(--metric-gridline, #ddd); padding: 6px 8px; text-align: left; }
+table.cl-compliance-table th { background: #f3f3f3; }
+.cl-form select#cl-plan-item { min-width: 220px; }
+
+/* Cost of Quality */
+.coq-chart { margin: 6px 0 14px; }
+.coq-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.coq-bar-label { width: 120px; font-size: 0.8rem; color: var(--metric-ink-secondary, #555); flex-shrink: 0; }
+.coq-bar-track { flex: 1; background: #eee; border-radius: 4px; height: 18px; overflow: hidden; }
+.coq-bar { height: 100%; border-radius: 4px; }
+.coq-bar-good { background: #2f9e44; }
+.coq-bar-bad { background: #dd3333; }
+.coq-bar-value { width: 90px; text-align: right; font-size: 0.82rem; font-weight: 600; flex-shrink: 0; }
+.coq-form select#coq-category { min-width: 140px; }
+.coq-form input.coq-desc-wide { flex: 1 1 240px; min-width: 180px; }
+
+/* Discrepancy Report */
+.dr-intro { margin: 0 0 12px; font-size: 0.88rem; color: var(--metric-ink-secondary, #555); }
+.dr-run-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.dr-section-h { font-size: 1rem; margin: 16px 0 8px; }
+.dr-finding-list { list-style: none; margin: 0; padding: 0; }
+.dr-finding { border: 1px solid var(--metric-gridline, #ddd); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; background: #fff; }
+.dr-finding-fixed { background: #f7faf7; opacity: 0.8; }
+.dr-finding-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.dr-finding-row label { font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+.dr-fixed-stamp { font-size: 0.74rem; color: var(--metric-ink-secondary, #777); }
+.dr-finding-summary { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; }
+.dr-finding-detail { font-size: 0.84rem; color: #333; margin-bottom: 8px; line-height: 1.5; }
+.dr-finding-locs { display: flex; gap: 8px; flex-wrap: wrap; }
+button.dr-loc-btn { font-size: 0.78rem; padding: 4px 10px; border: 1px solid var(--color-primary, #004e92); border-radius: 999px; background: #fff; color: var(--color-primary, #004e92); cursor: pointer; }
+button.dr-loc-btn:hover { background: #f0f5fb; }
+.dr-saved-list { list-style: none; margin: 0; padding: 0; }
+.dr-saved-list li { margin: 4px 0; }
+button.dr-saved-open { border: none; background: transparent; color: var(--color-primary, #004e92); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 2px 0; text-align: left; }
+
+/* ---- Ask the Project: clickable citations + Evidence panel ---- */
+button.ask-cite { background: none; border: none; padding: 0 1px; margin: 0; color: var(--color-primary, #004e92); font-weight: 700; font-size: 0.78rem; cursor: pointer; vertical-align: super; line-height: 1; }
+button.ask-cite:hover { text-decoration: underline; }
+.ask-log { max-height: 56vh; }
+.ask-evidence { margin-top: 10px; border-top: 1px solid var(--metric-gridline, #d8d8d8); padding-top: 8px; }
+.ask-ev-h { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--metric-ink-secondary, #555); margin-bottom: 6px; }
+.ask-ev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.ask-ev { background: #fff; border: 1px solid var(--metric-gridline, #d8d8d8); border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 4px; }
+.ask-ev-n { color: var(--color-primary, #004e92); font-weight: 700; }
+.ask-ev-phase { font-size: 0.68rem; color: var(--metric-ink-secondary, #777); }
+.ask-ev-x { color: #333; line-height: 1.4; max-height: 9.5em; overflow: auto; white-space: pre-wrap; background: #fbfaf2; border-left: 3px solid #f2c94c; padding: 4px 6px; }
+.ask-ev-open { align-self: flex-start; margin-top: 2px; padding: 3px 10px; font-size: 0.75rem; border: 1px solid var(--color-primary, #004e92); border-radius: 999px; background: #fff; color: var(--color-primary, #004e92); cursor: pointer; }
+.ask-ev-open:hover { background: #eaf2fb; }
+
+/* ---- Document viewer side panel ---- */
+.dv { position: fixed; top: 0; right: 0; bottom: 0; width: min(680px, 58vw); z-index: 10002; display: flex; flex-direction: column; background: #fff; box-shadow: -8px 0 30px rgba(0,4,40,.3); transform: translateX(105%); transition: transform .2s ease; visibility: hidden; }
+.dv.is-open { transform: none; visibility: visible; }
+.dv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: linear-gradient(180deg, #004e92, #000428); color: #fff; }
+.dv-title { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-close { border: none; background: none; color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; }
+.dv-srcs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 12px; background: #f3f6fa; border-bottom: 1px solid #e2e5ea; font-size: 0.75rem; }
+.dv-chip { border: 1px solid #b9c7d8; background: #fff; border-radius: 999px; padding: 1px 9px; font-size: 0.75rem; cursor: pointer; color: #004e92; }
+.dv-chip.is-on { background: #004e92; color: #fff; border-color: #004e92; }
+.dv-tabs { display: flex; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid #e2e5ea; }
+.dv-tabs button { border: 1px solid transparent; border-bottom: none; background: none; padding: 5px 14px; font-size: 0.8rem; cursor: pointer; border-radius: 6px 6px 0 0; color: #555; }
+.dv-tabs button.is-on { background: #fff; border-color: #e2e5ea; color: #004e92; font-weight: 600; margin-bottom: -1px; }
+.dv-note { padding: 6px 14px; font-size: 0.78rem; background: #fff8dd; color: #4d4210; border-bottom: 1px solid #f0e3a0; }
+.dv-note.is-warn { background: #fdf2f2; color: #a12a2a; border-color: #f0c8c8; }
+.dv-body { flex: 1; overflow: auto; background: #e9ebee; position: relative; }
+.dv-fmt[hidden], .dv-txt[hidden] { display: none; }
+.dv-fmt .docx-wrapper { background: transparent; padding: 8px; }
+.dv-fmt .docx-wrapper > section.docx { box-shadow: 0 1px 6px rgba(0,0,0,.25); margin-bottom: 10px; }
+.dv-fmt .dv-hl { scroll-margin-top: 70px; background: #fff2a8 !important; outline: 2px solid #f2c94c; outline-offset: 1px; }
+.dv-fmt tr.dv-hl > td { background: #fff2a8 !important; }
+.dv-txt { padding: 10px 14px; background: #fff; min-height: 100%; }
+.dv-sec { padding: 8px 10px; border-bottom: 1px solid #eee; }
+.dv-sec-t { font-weight: 700; font-size: 0.82rem; color: #1c2733; }
+.dv-sec-b { white-space: pre-wrap; font-size: 0.8rem; line-height: 1.45; color: #333; margin-top: 3px; }
+.dv-sec.dv-hit { background: #fff2a8; outline: 2px solid #f2c94c; }
+/* while the panel is open, slide the Ask window to the left so both are visible */
+body.dr-viewer-open #drGenericModalOverlay { justify-content: flex-start; }
+body.dr-viewer-open #drGenericModalOverlay .dr-modal-box { max-width: calc(100vw - min(680px, 58vw) - 40px); }
+@media (max-width: 760px) { .dv { width: 100vw; } body.dr-viewer-open #drGenericModalOverlay { visibility: hidden; } }
+
+/* ---- Ask the Project: conversations sidebar, End chat, Return pill ---- */
+.dr-modal-box.ask-modal-box { max-width: 1180px; }
+.ask-shell { display: flex; gap: 14px; position: relative; min-height: 60vh; }
+.ask-side { width: 232px; flex: none; border-right: 1px solid var(--metric-gridline, #e0e0e0); padding-right: 12px; overflow-y: auto; max-height: 68vh; display: flex; flex-direction: column; gap: 8px; }
+.ask-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ask-new { width: 100%; height: 34px; }
+.ask-filter { display: flex; flex-direction: column; gap: 3px; font-size: 0.72rem; color: var(--metric-ink-secondary, #666); }
+.ask-filter select { padding: 4px 6px; font-size: 0.8rem; border: 1px solid var(--metric-gridline, #ccc); border-radius: 6px; }
+.ask-side-h { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--metric-ink-secondary, #666); margin-top: 4px; }
+.ask-chats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.ask-side-group { font-size: 0.72rem; font-weight: 700; color: #004e92; margin: 8px 0 2px; padding: 2px 4px; background: #eef4fb; border-radius: 4px; }
+.ask-side-empty { font-size: 0.78rem; color: #777; padding: 6px 2px; }
+.ask-chat-item { width: 100%; text-align: left; border: 1px solid transparent; background: none; border-radius: 6px; padding: 6px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.ask-chat-item:hover { background: #f3f6fa; }
+.ask-chat-item.is-on { background: #e6f0fb; border-color: #b9d0ea; }
+.ask-chat-t { font-size: 0.8rem; font-weight: 600; color: #1c2733; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-chat-s { font-size: 0.68rem; color: #777; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-chat-end { background: #eee; color: #555; border-radius: 3px; padding: 0 4px; }
+.ask-top { display: flex; align-items: center; gap: 10px; }
+.ask-top-t { font-size: 0.85rem; font-weight: 700; color: #1c2733; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-side-toggle { display: none; }
+.ask-banner { padding: 7px 10px; font-size: 0.8rem; background: #fff8dd; border: 1px solid #f0e3a0; border-radius: 6px; color: #4d4210; }
+.ask-banner .ask-link { color: #004e92; margin-left: 8px; }
+.ask-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ask-foot-note { font-size: 0.72rem; color: #777; }
+.ask-end { padding: 4px 14px; font-size: 0.78rem; border: 1px solid #a12a2a; color: #a12a2a; background: #fff; border-radius: 999px; cursor: pointer; }
+.ask-end:hover { background: #fdf2f2; }
+.ask-pill { position: fixed; right: 22px; bottom: 22px; z-index: 9990; padding: 10px 18px; border: none; border-radius: 999px; background: linear-gradient(180deg, #004e92, #000428); color: #fff; font-size: 0.85rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,4,40,.35); cursor: pointer; }
+.ask-pill:hover { filter: brightness(1.15); }
+@media (max-width: 900px) {
+  .ask-side { display: none; }
+  .ask-side-toggle { display: inline-block; }
+  .ask-shell.show-side .ask-side { display: flex; position: absolute; left: 0; top: 0; bottom: 0; z-index: 5; background: #fff; box-shadow: 4px 0 16px rgba(0,0,0,.18); padding: 8px 12px 8px 8px; max-height: none; }
+}
+/* with the document panel open there is little room: the conversations list becomes a pull-out */
+body.dr-viewer-open .ask-side { display: none; }
+body.dr-viewer-open .ask-side-toggle { display: inline-block; }
+body.dr-viewer-open .ask-shell.show-side .ask-side { display: flex; position: absolute; left: 0; top: 0; bottom: 0; z-index: 5; background: #fff; box-shadow: 4px 0 16px rgba(0,0,0,.18); padding: 8px 12px 8px 8px; max-height: none; }
+
+/* ---- Ask the Project card in the floating sidebar, above Reports ---- */
+/* The wrapper is what floats now (it took over the Reports card's fixed positioning); the two cards
+   stack inside it, so Ask the Project always sits above Reports and scrolls/floats with it. */
+.report-sidebar {
+  position: fixed;
+  top: calc(var(--dr-header-height, 130px) + var(--dr-summary-row-height, 140px) + 12px);
+  left: 0;
+  z-index: 5;
+  width: 150px;
+  /* min() against a real floor (120px — enough for a couple of rows to
+     read as present rather than looking broken) guards against the
+     summary row's live-measured height ever pushing this calc negative
+     — it now has its own 45vh cap (dashboard1.css) so this shouldn't
+     happen anymore, but this keeps the sidebar visible even if some
+     future change reopens that door, instead of silently collapsing to
+     nothing the way it did before that cap existed. */
+  max-height: max(120px, calc(100vh - var(--dr-header-height, 130px) - var(--dr-summary-row-height, 140px) - 12px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+/* two classes: beats the base .report-index-card { position: fixed } and its viewport-based max-height */
+.report-sidebar .report-index-card { position: static; top: auto; left: auto; margin-bottom: 0; max-height: none; flex: 1 1 auto; min-height: 0; width: 100%; }
+.ask-side-card { flex: 0 0 auto; background: #fff; border-left: 6px solid var(--color-primary, #004e92); border-radius: 0 8px 8px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); padding: 8px 10px; box-sizing: border-box; }
+.ask-side-btn { width: 100%; display: flex; align-items: center; gap: 7px; background: linear-gradient(180deg, #004e92, #000428); color: #fff; border: none; border-radius: 6px; padding: 8px 8px; cursor: pointer; font-size: 0.82rem; font-weight: 700; text-align: left; line-height: 1.15; }
+.ask-side-btn:hover { filter: brightness(1.18); }
+.ask-side-icon { font-size: 1.05rem; }
+.ask-side-note { font-size: 0.66rem; color: var(--metric-ink-secondary, #666); margin-top: 4px; line-height: 1.25; }
+.ask-side-note:empty { display: none; }
+@media (max-width: 640px) {
+  .report-sidebar { position: static; width: auto; max-height: none; }
+}
+
+/* Collapsible "View & Time Frame" — collapsed by default so the Reports
+   list below gets most of the sidebar's limited 150px-wide vertical
+   budget (explicit request: these two controls, used far less often
+   than Reports itself, were eating real estate that mattered more for
+   navigation). The toggle is a plain button (not <details>/<summary> —
+   this app already has its own consistent disclosure-arrow pattern via
+   .report-index-category-toggle; matching that instead of introducing a
+   second visual language for "collapsible" in the same sidebar). */
+.dr-sidebar-settings { flex: 0 0 auto; }
+.dr-sidebar-settings-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: #fff;
+  border: none;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  padding: 8px 10px;
+  box-sizing: border-box;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--metric-ink-secondary, #555);
+  cursor: pointer;
+  text-align: center;
+  justify-content: center;
+}
+.dr-sidebar-settings-toggle:hover { color: var(--color-primary, #004e92); }
+.dr-sidebar-settings-arrow { transition: transform 0.15s ease; flex: 0 0 auto; }
+.dr-sidebar-settings-toggle[aria-expanded="true"] .dr-sidebar-settings-arrow { transform: rotate(90deg); }
+/* :not([hidden]), not a plain .dr-sidebar-settings-body selector — a
+   flat class selector here has the EXACT same specificity as the
+   browser's own built-in "[hidden] { display: none; }" rule, and author
+   CSS wins ties over the UA stylesheet regardless of source order, which
+   silently made this always render expanded no matter what the [hidden]
+   attribute (or the toggle's own aria-expanded state) said. Same
+   equal-specificity trap as the th[data-sort] sticky-header bug
+   elsewhere in this app — scoping the display rule to :not([hidden])
+   avoids it entirely instead of needing an !important to fight it. */
+.dr-sidebar-settings-body:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* View Selection — switches between the Dashboard page and the "Titles &
+   Subtitles" grid view (titles-view.js). Sits above Ask the Project. */
+.dr-view-select-wrap {
+  flex: 0 0 auto;
+  background: #fff;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+.dr-view-select-label { display: block; font-size: 0.66rem; font-weight: 700; color: var(--metric-ink-secondary, #666); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; text-align: center; }
+.dr-view-select { width: 100%; font-size: 0.78rem; padding: 5px 4px; border: 1px solid var(--metric-gridline, #ccc); border-radius: 5px; box-sizing: border-box; text-align: center; text-align-last: center; }
+
+/* Time Frame — a dropdown in the sidebar, below Ask the Project and above
+   Reports (moved out of the charts area so it's always reachable, in
+   both Dashboard and Tiled view — see burndown.js). Same look as the
+   View Selection box just above it. */
+.dr-timeframe-select-wrap {
+  flex: 0 0 auto;
+  background: #fff;
+  border-left: 6px solid var(--color-primary, #004e92);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+.dr-timeframe-select-label { display: block; font-size: 0.66rem; font-weight: 700; color: var(--metric-ink-secondary, #666); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; text-align: center; }
+.dr-timeframe-select { width: 100%; font-size: 0.78rem; padding: 5px 4px; border: 1px solid var(--metric-gridline, #ccc); border-radius: 5px; box-sizing: border-box; text-align: center; text-align-last: center; }
+
+/* "Time Frame: X" — top-left of every timeframe-aware card, so it's clear
+   at a glance which period a card's numbers reflect (see
+   applyTimeframeBadge in burndown.js). Inserted as the card's first
+   child, in NORMAL flow (not absolutely positioned) — deliberately, so it
+   can never get clipped by the tile-modal's overflow-hidden scroll area
+   the way the top-right info icon originally was, and never overlaps the
+   card's own title. */
+.tf-badge {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-primary, #004e92);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin: -2px 0 8px;
+}
+
+/* "Titles & Subtitles" view — category-grouped 4-column tile grid. Same
+   150px left reservation as every other <main> content section, so it
+   doesn't render underneath the fixed sidebar. */
+#titlesSubtitlesView {
+  margin-left: 150px;
+  width: calc(100% - 150px);
+  box-sizing: border-box;
+  /* .dashboard-summary-row is now ALWAYS position:fixed and visible (see
+     dashboard.html — it was moved out of <main> so it stays up in Tiled
+     view too), so this needs its own top clearance for it, same
+     --dr-summary-row-height live measurement <main>'s own spacer uses —
+     without this the first row of tiles rendered right underneath it,
+     hidden behind its opaque background ("tiles get stuck" when
+     scrolling up toward it). */
+  padding: calc(var(--dr-summary-row-height, 140px) + 20px) 24px 60px 0;
+}
+.tv-category { margin-bottom: 28px; }
+.tv-category-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary, #004e92);
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--metric-gridline, #e0e0e0);
+}
+.tv-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 1400px) { .tv-tile-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1000px) { .tv-tile-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .tv-tile-grid { grid-template-columns: 1fr; } #titlesSubtitlesView { margin-left: 0; width: 100%; padding: 8px 16px 60px; } }
+/* A div with role="button", not a real <button> — the info icon inside
+   is its own real <button>, and button-in-button isn't valid HTML. */
+.tv-tile {
+  /* z-index:0 (not just position:relative) forces this to establish its
+     OWN stacking context — without it, the info icon inside (z-index:6)
+     was comparing against the page's ROOT stacking context instead of
+     being contained within its own tile, so it rendered ABOVE the modal
+     overlay (z-index:9000) instead of being dimmed underneath it like
+     the rest of the tile. */
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+  padding: 14px 16px;
+  cursor: pointer;
+  min-height: 118px;
+}
+.tv-tile:hover { border-color: var(--color-primary, #004e92); box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
+.tv-tile:focus-visible { outline: 2px solid var(--color-primary, #004e92); outline-offset: 2px; }
+.tv-tile.tv-tile-disabled { opacity: 0.5; cursor: not-allowed; }
+.tv-tile-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.tv-tile-title { font-weight: 700; font-size: 0.86rem; color: #1c2733; margin-bottom: 4px; padding-right: 20px; }
+.tv-tile-subtitle { font-size: 0.74rem; color: var(--metric-ink-secondary, #666); line-height: 1.35; }
+.tv-empty { color: var(--metric-ink-secondary, #777); padding: 20px 0; }
+
+/* Live-card popup — the real card DOM node is moved in here (see
+   titles-view.js's openCardModal), so its own .card styling still
+   applies; this box is just the overlay/frame around it.
+   Structure: overlay (fixed, centers the box, does NOT itself scroll) >
+   box (bounded height, flex column) > close-bar (sticky-in-place, always
+   reachable) + scroll (the actual scrolling element — the card's own
+   .section-header sticks to ITS top, below the close bar, as you scroll
+   through a tall card).
+   z-index BELOW window.drModal's (change-report.css, 10000) on purpose —
+   a card opened from a tile very often opens its OWN drModal dialog from
+   inside it (Log a reading, History, Save Report, "About this chart",
+   etc.); that needs to land on TOP of this overlay, not underneath it
+   where a higher z-index here would have silently hidden it. */
+.tv-card-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 10, 25, 0.55);
+  z-index: 9000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 20px;
+  box-sizing: border-box;
+}
+.tv-card-modal-box {
+  background: transparent;
+  width: 100%;
+  max-width: 1000px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+/* Wide-format cards (Executive Roadmap, Gantt Timeline, Q&A, File
+   Manager — see WIDE_CARD_IDS in titles-view.js) get near-full-viewport
+   width instead of the normal 1000px cap. */
+.tv-card-modal-box-wide {
+  max-width: 96vw;
+}
+/* Small cards (Risk Heat Map) keep their own natural width but center
+   within the box instead of sitting flush-left — flex-column's default
+   align-items:stretch only centers a child that's actually as wide as
+   the box; a narrower card with its own max-width needs this explicitly. */
+.tv-card-modal-box-centered .tv-card-modal-scroll {
+  align-items: center;
+}
+.tv-card-modal-close-bar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 10px;
+}
+.tv-card-modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 14px;
+  /* The "About this chart" info badge (.chart-info-wrap) sits half OUTSIDE
+     its card's own top-right corner (top:-10px; right:-10px — see
+     quick-links.css), which this overflow-clipping scroll box was cutting
+     off. This padding gives that 10px its room on both edges. */
+  padding: 14px 14px 4px 0;
+}
+button.tv-card-modal-close {
+  background: #1c2733;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+button.tv-card-modal-close:hover { filter: brightness(1.2); }
+/* The moved card's own header+subtitle stay visible while scrolling
+   through its content, instead of scrolling away with the rest of the
+   card. A hardcoded solid color (not just the --color-surface variable,
+   in case that isn't resolvable in every context this gets moved into)
+   guarantees it stays fully opaque — content scrolling underneath must
+   never show through. No shadow/border on it — flush with the card's own
+   background, no dividing line. */
+.tv-card-modal-scroll .card .section-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 4 !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+/* The subtitle text itself, explicitly — belt-and-suspenders on top of
+   the opaque header box above it, so neither ever reads as see-through
+   against whatever's scrolled underneath. Descendant selectors (not a
+   direct-child >), deliberately — every card's .section-header is a
+   direct child today, but this way a future card with one extra
+   wrapping div around it stays covered without needing this rule
+   revisited every time a new card is added. */
+.tv-card-modal-scroll .card .section-header .section-subtext,
+.tv-card-modal-scroll .card .section-header h2 {
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* ---- Ask the Project: Executive / Detailed answer style ---- */
+.ask-style { display: flex; align-items: center; gap: 14px; font-size: 0.8rem; color: var(--metric-ink-secondary, #555); }
+.ask-style label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: #1c2733; font-weight: 600; }

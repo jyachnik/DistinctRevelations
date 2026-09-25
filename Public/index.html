@@ -5,15 +5,59 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Distinct Revelations — Executive Consulting</title>
-  <meta name="description" content="Executive consulting focused on growth, operations, and financial clarity." />
+  <title>Distinct Revelations — Fractional Executive Consulting</title>
+  <meta name="description" content="We help CPG and SaaS executives fix GTM strategy, operating cadence, and financial clarity — fast, with the dashboards to prove it's working." />
+  <link rel="canonical" href="https://distinctrevelations.com/" />
+
+  <!-- Open Graph / social preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Distinct Revelations" />
+  <meta property="og:title" content="Distinct Revelations — Fractional Executive Consulting" />
+  <meta property="og:description" content="We help CPG and SaaS executives fix GTM strategy, operating cadence, and financial clarity — fast, with the dashboards to prove it's working." />
+  <meta property="og:url" content="https://distinctrevelations.com/" />
+  <meta property="og:image" content="https://distinctrevelations.com/images/wallpaper_consulting4.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Distinct Revelations — Fractional Executive Consulting" />
+  <meta name="twitter:description" content="We help CPG and SaaS executives fix GTM strategy, operating cadence, and financial clarity — fast, with the dashboards to prove it's working." />
+  <meta name="twitter:image" content="https://distinctrevelations.com/images/wallpaper_consulting4.jpg" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Distinct Revelations",
+    "url": "https://distinctrevelations.com/",
+    "logo": "https://distinctrevelations.com/images/Distinct_Revelations_Logo_website.png",
+    "image": "https://distinctrevelations.com/images/wallpaper_consulting4.jpg",
+    "description": "We help CPG and SaaS executives fix GTM strategy, operating cadence, and financial clarity — fast, with the dashboards to prove it's working.",
+    "email": "john@distinctrevelations.com"
+  }
+  </script>
+
+  <!-- This site is also reachable at www.distinctrevelations.com, the
+       Firebase-provisioned *.web.app / *.firebaseapp.com domains, and no
+       host-based redirect is available at the Firebase Hosting config
+       level (rewrites/redirects there are path-based, not host-based) —
+       so the canonical tag above is the primary signal, and this tiny
+       inline script (runs before anything else paints) redirects visitors
+       on any non-canonical host straight to distinctrevelations.com,
+       preventing search engines from indexing duplicate copies. -->
+  <script>
+    (function(){
+      var CANON = 'distinctrevelations.com';
+      if (location.hostname !== CANON && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        location.replace('https://' + CANON + location.pathname + location.search + location.hash);
+      }
+    })();
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
   <!-- ✅ home.css lives in /Public/style/ -->
-  <link rel="stylesheet" href="style/home.css?v=1" />
+  <link rel="stylesheet" href="style/home.css?v=6" />
+  <link rel="stylesheet" href="style/responsive.css?v=2" />
 
 
 <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
@@ -70,6 +114,8 @@
   <a href="#services">Services</a>
   <a href="#about">About</a>
   <a href="#case-studies">Case Studies</a>
+  <a href="track-record.html">Track Record</a>
+  <a href="#faq">FAQ</a>
   <a href="#contact">Contact</a>
   <button class="btn btn-outline" data-open="loginModal">Client Login</button>
   <button class="btn btn-primary" data-open="calendlyModal">Schedule a Call</button>
@@ -89,6 +135,8 @@
   <a href="#services" data-close="mobileNav">Services</a>
   <a href="#about" data-close="mobileNav">About</a>
   <a href="#case-studies" data-close="mobileNav">Case Studies</a>
+  <a href="track-record.html" data-close="mobileNav">Track Record</a>
+  <a href="#faq" data-close="mobileNav">FAQ</a>
   <a href="#contact" data-close="mobileNav">Contact</a>
   <hr />
   <button class="btn btn-outline w-100" data-open="loginModal" data-close="mobileNav">Client Login</button>
@@ -283,101 +331,74 @@
 
   <!-- Contact -->
   <section id="contact" class="section">
-    <div class="container grid-2">
-      <div>
-        <h2>Let’s Talk</h2>
-        <p>Prefer email? Use the form. Want to move faster? Book time directly.</p>
-        <div class="row gap-12 wrap">
-          <button class="btn btn-primary" data-open="calendlyModal">Schedule via Calendly</button>
-          <a class="btn btn-ghost" href="mailto:john@distinctrevelations.com">Email Us</a>
-        </div>
+    <div class="container contact-intro">
+      <h2>Let’s Talk</h2>
+      <p>Prefer email? Use the form. Want to move faster? Book time directly.</p>
+      <div class="row gap-12 wrap contact-intro-actions">
+        <button class="btn btn-primary" data-open="calendlyModal">Schedule via Calendly</button>
+        <button class="btn btn-soft" type="button" data-open="contactModal">Send a Message</button>
       </div>
+      <img class="contact-photo" src="images/wallpaper_consulting3.jpeg" alt="A team in conversation around a conference table, opening the discussion that starts a new engagement">
+    </div>
+  </section>
 
-      <form id="contactForm" class="form" novalidate>
-  <div class="grid-2">
-    <label>
-      <span>First name</span>
-      <input type="text" id="cf-first" required />
-      <p class="error" id="err-first"></p>
-    </label>
-
-    <label>
-      <span>Last name</span>
-      <input type="text" id="cf-last" required />
-      <p class="error" id="err-last"></p>
-    </label>
-  </div>
-
-  <label>
-    <span>Business name</span>
-    <input type="text" id="cf-business" required />
-    <p class="error" id="err-business"></p>
-  </label>
-
-<label>
-  <span>Business category</span>
-  <select id="cf-category" name="category" required>
-    <option value="" disabled selected>Select a category</option>
-    <option>Agriculture, Forestry, Fishing & Hunting</option>
-    <option>Mining, Quarrying, & Oil and Gas Extraction</option>
-    <option>Utilities</option>
-    <option>Construction</option>
-    <option>Manufacturing</option>
-    <option>Wholesale Trade</option>
-    <option>Retail Trade</option>
-    <option>Transportation & Warehousing</option>
-    <option>Information</option>
-    <option>Finance & Insurance</option>
-    <option>Real Estate & Rental & Leasing</option>
-    <option>Professional, Scientific & Technical Services</option>
-    <option>Management of Companies & Enterprises</option>
-    <option>Administrative & Support & Waste Management & Remediation Services</option>
-    <option>Educational Services</option>
-    <option>Health Care & Social Assistance</option>
-    <option>Arts, Entertainment & Recreation</option>
-    <option>Accommodation & Food Services</option>
-    <option>Other Services (except Public Administration)</option>
-    <option>Public Administration</option>
-  </select>
-  <p class="error" id="err-category"></p>
-</label>
-
-  <label>
-    <span>Email</span>
-    <input type="email" id="cf-email" required />
-    <p class="error" id="err-email"></p>
-  </label>
-
-  <label>
-    <span>Phone</span>
-    <input type="tel" id="cf-phone" inputmode="tel" placeholder="(555) 123-4567" required />
-    <p class="error" id="err-phone"></p>
-  </label>
-
-  <label>
-    <span>What’s on your mind?</span>
-    <textarea id="cf-message" rows="5" required></textarea>
-    <p class="error" id="err-message"></p>
-  </label>
-
-  <!-- Honeypot to deter bots -->
-  <input type="text" name="website" tabindex="-1" autocomplete="off"
-         style="position:absolute; left:-9999px; height:0; width:0; opacity:0;" />
-
-  <button class="btn btn-primary w-100" type="submit">Send</button>
-  <p class="hint" id="cf-status" aria-live="polite" style="margin-top:8px;"></p>
-</form>
+  <!-- FAQ -->
+  <section id="faq" class="section section-alt">
+    <div class="container">
+      <div class="section-head">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>How do I schedule a consultation?</summary>
+          <p>Use the "Schedule a Call" button anywhere on this page to book time directly on our calendar — no back-and-forth emails required.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How do I access my project dashboard?</summary>
+          <p>Existing clients can sign in any time via the "Client Login" button at the top of this page.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How do I get in touch?</summary>
+          <p>Email us at <a href="mailto:john@distinctrevelations.com">john@distinctrevelations.com</a>, or send a message through the contact form above.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What happens after I submit the contact form?</summary>
+          <p>We'll review what you shared and follow up to talk through your project and next steps.</p>
+        </details>
+      </div>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="footer">
-    <div class="container row space-between wrap gap-12">
+  <footer class="footer" id="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img class="footer-logo" src="images/Distinct_Revelations_Logo_website.png" alt="Distinct Revelations">
+        <p>Project management consulting and a client portal built around your project's real data.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#services">Services</a>
+        <a href="#about">About Us</a>
+        <a href="#case-studies">Case Studies</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get Started</h4>
+        <a href="#contact">Contact Us</a>
+        <a href="#" data-open="calendlyModal">Schedule Appointment</a>
+        <a href="#" data-open="loginModal">Client Login</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="mailto:john@distinctrevelations.com">john@distinctrevelations.com</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
       <p>© <span id="year"></span> Distinct Revelations. All rights reserved.</p>
       <div class="row gap-12">
         <a href="#" aria-disabled="true">Privacy</a>
         <a href="#" aria-disabled="true">Terms</a>
-        <a href="#" data-open="loginModal">Client Login</a>
       </div>
     </div>
   </footer>
@@ -392,6 +413,91 @@
       <div class="iframe-wrap">
         <iframe src="https://calendly.com/john-distinctrevelations/30min" title="Calendly Scheduler" loading="lazy"></iframe>
       </div>
+    </div>
+  </div>
+
+  <!-- Contact Form Modal -->
+  <div class="modal" id="contactModal" aria-hidden="true" role="dialog" aria-labelledby="contactModalTitle">
+    <div class="modal__backdrop" data-close="contactModal"></div>
+    <div class="modal__dialog">
+      <button class="modal__close" aria-label="Close" data-close="contactModal">×</button>
+      <h3 id="contactModalTitle">Send a Message</h3>
+      <form id="contactForm" class="form" novalidate action="https://formspree.io/f/mgvkqkjr" method="POST">
+        <div class="grid-2">
+          <label>
+            <span>First name</span>
+            <input type="text" id="cf-first" name="first_name" required />
+            <p class="error" id="err-first"></p>
+          </label>
+
+          <label>
+            <span>Last name</span>
+            <input type="text" id="cf-last" name="last_name" required />
+            <p class="error" id="err-last"></p>
+          </label>
+        </div>
+
+        <label>
+          <span>Business name</span>
+          <input type="text" id="cf-business" name="business_name" required />
+          <p class="error" id="err-business"></p>
+        </label>
+
+        <label>
+          <span>Business category</span>
+          <select id="cf-category" name="category" required>
+            <option value="" disabled selected>Select a category</option>
+            <option>Agriculture, Forestry, Fishing & Hunting</option>
+            <option>Mining, Quarrying, & Oil and Gas Extraction</option>
+            <option>Utilities</option>
+            <option>Construction</option>
+            <option>Manufacturing</option>
+            <option>Wholesale Trade</option>
+            <option>Retail Trade</option>
+            <option>Transportation & Warehousing</option>
+            <option>Information</option>
+            <option>Finance & Insurance</option>
+            <option>Real Estate & Rental & Leasing</option>
+            <option>Professional, Scientific & Technical Services</option>
+            <option>Management of Companies & Enterprises</option>
+            <option>Administrative & Support & Waste Management & Remediation Services</option>
+            <option>Educational Services</option>
+            <option>Health Care & Social Assistance</option>
+            <option>Arts, Entertainment & Recreation</option>
+            <option>Accommodation & Food Services</option>
+            <option>Other Services (except Public Administration)</option>
+            <option>Public Administration</option>
+          </select>
+          <p class="error" id="err-category"></p>
+        </label>
+
+        <label>
+          <span>Email</span>
+          <input type="email" id="cf-email" name="email" required />
+          <p class="error" id="err-email"></p>
+        </label>
+
+        <label>
+          <span>Phone</span>
+          <input type="tel" id="cf-phone" name="phone" inputmode="tel" placeholder="(555) 123-4567" required />
+          <p class="error" id="err-phone"></p>
+        </label>
+
+        <label>
+          <span>What’s on your mind?</span>
+          <textarea id="cf-message" name="message" rows="5" required></textarea>
+          <p class="error" id="err-message"></p>
+        </label>
+
+        <input type="hidden" name="_subject" value="New message from distinctrevelations.com" />
+
+        <!-- Honeypot to deter bots -->
+        <input type="text" name="website" tabindex="-1" autocomplete="off"
+               style="position:absolute; left:-9999px; height:0; width:0; opacity:0;" />
+
+        <button class="btn btn-primary w-100" type="submit">Send</button>
+        <p class="hint" id="cf-status" aria-live="polite" style="margin-top:8px;"></p>
+      </form>
     </div>
   </div>
 
@@ -411,9 +517,6 @@
           <input type="password" id="loginPassword" autocomplete="current-password" required />
         </label>
         <button class="btn btn-primary w-100" type="submit">Login</button>
-      <button type="button" class="btn btn-primary w-100" data-open="signupModal">
-  Create Account
-</button>
         <button class="btn btn-ghost w-100" type="button" data-open="forgotModal" data-close="loginModal">Forgot password</button>
       </form>
     </div>
@@ -487,47 +590,27 @@
   </div>
 </div>
 
-<!-- Create Account modal -->
-<div id="signupModal" class="modal hidden" aria-hidden="true">
-  <div class="register-modal">
-    <header class="modal-header">
-      <h2>Create Account</h2>
-      <button type="button" class="close-button" data-close="signupModal">&times;</button>
-    </header>
-
-    <div class="modal-body">
-      <form id="signupForm" class="form-single">
-        <label for="su-first">First name</label>
-        <input id="su-first" type="text" required>
-
-        <label for="su-last">Last name</label>
-        <input id="su-last" type="text" required>
-
-        <label for="su-business">Business name</label>
-        <input id="su-business" type="text" required>
-
-        <label for="su-email">Email</label>
-        <input id="su-email" type="email" required>
-
-        <label for="su-phone">Phone number</label>
-        <input id="su-phone" type="tel" required>
-
-        <label for="su-pass">Password</label>
-        <input id="su-pass" type="password" required>
-
-        <label for="su-pass2">Confirm password</label>
-        <input id="su-pass2" type="password" required>
-
-        <div id="su-status" class="status"></div>
-
-        <button type="submit" class="btn-primary">Create Account</button>
-      <button type="button" class="modal-close" data-close="signupModal">Cancel</button>
-    </form>
-  </div>
+<!-- Select Project Modal (shown after a business is resolved, for owner
+     and non-owner alike, when more than one project is visible to them —
+     see select-project.js) -->
+<div id="projectSelectModal" aria-hidden="true" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);z-index:9999;color:#222;">
+  <div style="background:#fff;min-width:320px;max-width:520px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;color:#222;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;">
+      <h3 style="margin:0;font-size:1.1rem;color:#222;">Select a Project</h3>
+      <button type="button" data-close="projectSelectModal" style="border:none;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:#222;">×</button>
+    </div>
+    <div style="padding:16px;">
+      <label for="projectDropdown" style="display:block;margin:0 0 6px;font-weight:600;color:#222;">Project</label>
+      <select id="projectDropdown" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;color:#222;background:#fff;">
+        <option disabled selected>Loading…</option>
+      </select>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" data-close="projectSelectModal" style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#222;cursor:pointer;">Cancel</button>
+      <button id="selectProjectBtn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:#0b5cff;color:#fff;cursor:pointer;">Continue</button>
+    </div>
   </div>
 </div>
-
-
 
 
 <script>
@@ -538,6 +621,15 @@
     m.show = function(){ m.style.display='flex'; m.setAttribute('aria-hidden','false'); };
     m.hide = function(){ m.style.display='none'; m.setAttribute('aria-hidden','true'); };
     (m.querySelectorAll('[data-close="businessSelectModal"]')||[]).forEach(function(el){
+      el.addEventListener('click', function(){ m.hide(); });
+    });
+  })();
+  (function(){
+    var m=document.getElementById('projectSelectModal');
+    if(!m) return;
+    m.show = function(){ m.style.display='flex'; m.setAttribute('aria-hidden','false'); };
+    m.hide = function(){ m.style.display='none'; m.setAttribute('aria-hidden','true'); };
+    (m.querySelectorAll('[data-close="projectSelectModal"]')||[]).forEach(function(el){
       el.addEventListener('click', function(){ m.hide(); });
     });
   })();
@@ -569,19 +661,16 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
 <!-- optional legacy shim if old code expects it -->
 <script>window.waitForBusinessKey = () => DRSession.getSession().then(s => s.businessKey);</script>
 <script defer src="./JS/select-business.js"></script>
+<script defer src="./JS/select-project.js"></script>
 <script defer src="./JS/login-simple.js"></script>
-
-<script defer src="./JS/lets-talk.js"></script>
 
 <script defer src="./JS/modal-lite.js"></script>
 
 <script defer src="./JS/forgot.js"></script>
 
-<script defer src="./JS/contact-validate.js"></script>
+<script defer src="./JS/contact-validate.js?v=2"></script>
 <script defer src="./JS/register.js"></script>
 <script defer src="./JS/app.js" ></script>
-<script src="JS/signup.js"></script>
-
 
  
 

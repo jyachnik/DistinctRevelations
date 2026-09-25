@@ -26,8 +26,11 @@
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
-  background-color: #fbfafd;
-  margin-left: -12px;
+  background-color: transparent;
+  /* Same fix as qna.css/filemanager.css — a leftover negative margin
+     that reduces (or, on a 0-padding card, eliminates) this section's
+     buffer before the fixed Report Index card's own column. */
+  margin-left: 0;
   width: 100%;
   line-height: 20px;
   margin-top: -20px;
@@ -40,53 +43,15 @@
   color: #002b45;
   margin: 0;
   white-space: nowrap;
+  align-self: center;
 }
 
 .card.activity-panel .section-header .section-subtext {
   margin-top: 4px;
   font-size: 14px;
   color: #666666;
-}
-
-/* Hide Activity form + import bar for non-owners */
-.card.activity-panel:not(.owner) #activityForm,
-.card.activity-panel:not(.owner) .activity-import {
-  display: none;
-}
-
-/* --- Activity form layout --- */
-
-.activity-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.activity-form > input,
-.activity-form > select {
-  flex: 1 1 180px;
-}
-
-/* Status + Date inline on same row */
-.activity-date-inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.activity-date-inline input[type="date"] {
-  min-width: 140px;
-}
-
-/* Import bar */
-.activity-import {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  align-self: center;
+  text-align: center;
 }
 
 /* --- Activity table and sticky header --- */
@@ -101,7 +66,7 @@
 /* Table base */
 #activityTable {
   width: 100%;
-  min-width: 640px; /* floor so 6 columns never get squeezed into unreadable text */
+  min-width: 560px; /* floor so 5 columns never get squeezed into unreadable text */
   table-layout: fixed;
   border-collapse: collapse;
   font-family: 'Inter', sans-serif;
@@ -115,6 +80,7 @@
   border-bottom: 1px solid #e0e0e0;
   word-wrap: break-word;
   background-color: #ffffff;
+  text-align: center;
 }
 
 /* Make ALL header cells sticky together */
@@ -128,6 +94,15 @@
   font-weight: 600;
   cursor: pointer;
   user-select: none;
+  /* The generic word-wrap:break-word above (th, td) let a single long
+     header word (Responsible) break mid-word when the column's too
+     narrow — the data cells below already got the nowrap/ellipsis
+     treatment (see td:nth-child(3) below), but the header itself never
+     did. Ellipsis here is a last-resort safety net; widening the
+     Responsible column below is the actual fix for the common case. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Truncate long emails in Responsible instead of wrapping mid-word */
@@ -138,25 +113,15 @@
   max-width: 0; /* forces the col width (not content) to govern truncation */
 }
 
-/* Hide Actions column for non-owner */
-#activityTable:not(.owner) th.actions,
-#activityTable:not(.owner) td.actions {
-  display: none;
-}
-
-/* Column widths for owner vs non-owner */
-#activityTable.owner col.col-title       { width: 26%; }
-#activityTable.owner col.col-status      { width: 16%; }
-#activityTable.owner col.col-responsible { width: 16%; }
-#activityTable.owner col.col-date        { width: 14%; }
-#activityTable.owner col.col-rag         { width: 14%; }
-#activityTable.owner col.col-actions     { width: 14%; }
-
-#activityTable:not(.owner) col.col-title       { width: 30%; }
-#activityTable:not(.owner) col.col-status      { width: 18%; }
-#activityTable:not(.owner) col.col-responsible { width: 18%; }
-#activityTable:not(.owner) col.col-date        { width: 16%; }
-#activityTable:not(.owner) col.col-rag         { width: 18%; }
+/* Read-only report now (no add/edit/delete UI, no Actions column) — same
+   5-column widths for every role. Due Date widened (was 16%) — a full
+   date like "12/19/26" plus the header's own sort arrow padding was
+   tight at the old width. */
+#activityTable col.col-title       { width: 24%; }
+#activityTable col.col-status      { width: 15%; }
+#activityTable col.col-responsible { width: 21%; }
+#activityTable col.col-date        { width: 20%; }
+#activityTable col.col-rag         { width: 20%; }
 
 /* Empty state */
 #activityTable td.empty {

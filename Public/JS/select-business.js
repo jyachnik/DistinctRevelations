@@ -106,7 +106,9 @@
       el.addEventListener('click', ()=>{ L('close clicked'); hideModal(); }, { once:true });
     });
 
-    // Continue: persist and navigate
+    // Continue: persist business, hand off to the project picker (which
+    // does its own redirect to the dashboard once a project is resolved —
+    // see select-project.js's showProjectModalForUser).
     btn.onclick = function(){
       const biz = (dropdown && dropdown.value || '').trim();
       L('Continue clicked →', { biz });
@@ -114,9 +116,18 @@
 
       persistKey(biz);
       hideModal();
-      const url = 'dashboard.html?business=' + encodeURIComponent(biz) + '&admin=1';
-      L('redirect:', url);
-      window.location.href = url;
+      var hasPicker = typeof window.showProjectModalForUser === 'function';
+      try {
+        var trail = JSON.parse(sessionStorage.getItem('dr-select-project-debug') || '[]');
+        trail.push({ step: 'select-business-continue', data: { biz, hasPicker }, at: Date.now() });
+        sessionStorage.setItem('dr-select-project-debug', JSON.stringify(trail));
+      } catch {}
+      if (hasPicker) {
+        window.showProjectModalForUser(biz, { email: user.email, isOwner: true }, { admin: true });
+      } else {
+        E('showProjectModalForUser missing — ensure select-project.js is loaded; falling back to legacy redirect.');
+        window.location.replace('dashboard.html?business=' + encodeURIComponent(biz) + '&admin=1');
+      }
     };
   };
 

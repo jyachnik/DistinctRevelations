@@ -23,7 +23,7 @@
   function getStoredKey(){ try{ return (sessionStorage.getItem('businessKey')||localStorage.getItem('businessKey')||'').trim(); }catch{return '';} }
   function persistKey(k){ try{ localStorage.setItem('businessKey',k); }catch{} try{ sessionStorage.setItem('businessKey',k); }catch{} }
   function clearKeys(){ try{ localStorage.removeItem('businessKey'); }catch{} try{ sessionStorage.removeItem('businessKey'); }catch{} }
-  function redirectToDashboard(biz, opts={}){ const qp=new URLSearchParams({business:biz}); if(opts.admin) qp.set('admin','1'); const url='dashboard.html?'+qp.toString(); L('redirect →', url); window.location.href=url; }
+  function redirectToDashboard(biz, opts={}){ const qp=new URLSearchParams({business:biz}); if(opts.admin) qp.set('admin','1'); const url='dashboard.html?'+qp.toString(); L('redirect →', url); window.location.replace(url); }
   function modalShow(){ const m=$('businessSelectModal'); L('modal DOM?',{hasModal:!!m}); if(!m) return; if(typeof m.show==='function') m.show(); else { m.style.display='flex'; m.setAttribute('aria-hidden','false'); } }
 
   // ---------------- robust bootstrap ----------------
@@ -63,6 +63,7 @@
       if(!email||!pass){ W('missing email or password'); return; }
       try{
         clearKeys();                 // ensure fresh selection
+        try{ sessionStorage.removeItem('dr-select-project-debug'); }catch{} // fresh diagnostic trail per attempt
         window.__explicitLogin = true;
         L('signInWithEmailAndPassword() starting…');
         await auth.signInWithEmailAndPassword(email, pass);
@@ -132,7 +133,15 @@ const isOwner = OWNERS.some(
         }
       }catch(e){ W('resolve failed:', e?.message||e); }
     }
-    if(key){ persistKey(key); L('non-owner resolved →', key); return redirectToDashboard(key); }
+    if(key){
+      persistKey(key);
+      L('non-owner resolved →', key);
+      if(typeof window.showProjectModalForUser==='function'){
+        return window.showProjectModalForUser(key, { email, uid: user?.uid, isOwner: false }, {});
+      }
+      W('showProjectModalForUser missing — ensure select-project.js is loaded; falling back to legacy redirect.');
+      return redirectToDashboard(key);
+    }
     E('non-owner not mapped; stopping.'); alert('Your account is not linked to a business. Please contact the administrator.');
   }
 
