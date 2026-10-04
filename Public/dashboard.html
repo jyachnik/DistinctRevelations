@@ -2240,6 +2240,20 @@ html.gated main { visibility:hidden; }
         <div class="jira-kanban-board" id="jiraKanbanBoard"></div>
       </section>
 
+      <!-- Jira Sprint Burndown — remaining story points over the active
+           sprint, Ideal vs. Actual, same Chart.js convention as the
+           project-level Burndown card above. See jiraSprintBurndown.js. -->
+      <section class="card metrics-panel owner-only-card" id="jiraSprintBurndownCard">
+        <div class="section-header">
+          <h2>📉 Jira Sprint Burndown</h2>
+          <p class="section-subtext">Remaining story points over the active sprint — ideal vs. actual.</p>
+        </div>
+        <p id="jiraSprintBurndownSampleBanner" class="metrics-sample-banner" hidden>
+          Illustrative sample sprint — Jira's Sprint Report data isn't connected yet.
+        </p>
+        <div class="metrics-chart-wrap"><canvas id="jiraSprintBurndownChart"></canvas></div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -3290,6 +3304,7 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
       loadScript('./JS/jiraData.js', function () {
         loadScript('./JS/jiraBacklog.js');
         loadScript('./JS/jiraKanban.js');
+        loadScript('./JS/jiraSprintBurndown.js');
       });
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');
