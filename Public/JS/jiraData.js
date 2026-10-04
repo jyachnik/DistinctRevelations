@@ -33,7 +33,7 @@
     { id: 'sample-3', key: 'PWR-103', summary: 'Set up email notification service', type: 'Story', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 10), epicLink: 'PWR-101' },
     { id: 'sample-4', key: 'PWR-104', summary: 'Fix null pointer on empty asset list', type: 'Bug', status: 'To Do', priority: 'Highest', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 22), epicLink: 'PWR-101' },
     { id: 'sample-5', key: 'PWR-105', summary: 'Design security dashboard wireframes', type: 'Task', status: 'Done', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 8), epicLink: 'PWR-109' },
-    { id: 'sample-6', key: 'PWR-106', summary: 'Underestimated integration time with third-party GPS vendor', type: 'Bug', status: 'In Review', priority: 'Highest', assignee: 'J. Alvarez', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 25), epicLink: 'PWR-101' },
+    { id: 'sample-6', key: 'PWR-106', summary: 'Underestimated integration time with third-party GPS vendor', type: 'Bug', status: 'In Review', priority: 'Highest', assignee: 'J. Alvarez', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 25), epicLink: 'PWR-101', flagged: true },
     { id: 'sample-7', key: 'PWR-107', summary: 'Build resource-capacity API endpoint', type: 'Story', status: 'In Progress', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 27), epicLink: 'PWR-109' },
     { id: 'sample-8', key: 'PWR-108', summary: 'Write UAT test cases for asset tracking', type: 'Task', status: 'To Do', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 3), epicLink: 'PWR-109' },
     { id: 'sample-9', key: 'PWR-109', summary: 'Specialized AI/security resource availability', type: 'Epic', status: 'To Do', priority: 'High', assignee: 'J. Alvarez', storyPoints: null, sprint: '—', dueDate: new Date(2026, 11, 1) },
@@ -92,6 +92,16 @@
     },
     getState: function () { return state; }
   };
+
+  // A card that loads before this file (e.g. needsAttention.js, which
+  // wants blocked/flagged Jira issues in its feed) can't just check
+  // window.drJiraData once at its own init — loadScript() doesn't
+  // guarantee load order between separately-queued dynamic scripts, so
+  // this file might not have executed yet at that point. Dispatched
+  // unconditionally, right as soon as window.drJiraData itself exists
+  // (not gated on Firestore data being ready) — same convention as the
+  // existing dr-access:ready event elsewhere in this app.
+  window.dispatchEvent(new CustomEvent('dr-jira:ready'));
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();

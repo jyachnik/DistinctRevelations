@@ -71,13 +71,14 @@
     changeRequests: 'Change Control Log',
     decisions: 'Decision Log',
     qna: 'Q&A Tracker',
-    actionItems: 'Milestone Minutes / Action Items'
+    actionItems: 'Milestone Minutes / Action Items',
+    jira: 'Jira Backlog Tracker'
   };
 
   var ctx = {
     biz: null, proj: null, isOwner: false, userEmail: '', userUid: '',
     risks: [], issues: [], defects: [],
-    dependencies: [], signoffs: [], changeRequests: [], decisions: [], qna: [], milestones: [],
+    dependencies: [], signoffs: [], changeRequests: [], decisions: [], qna: [], milestones: [], jiraIssues: [],
     ack: {}, // key ("<group>__<itemId>") -> { reviewedAt, reviewedBy }
     expanded: {} // group key -> true once "Show N more" has been clicked
   };
@@ -180,6 +181,13 @@
       });
     });
     groups.push({ key: 'actionItems', label: 'Overdue Meeting Action Items', cardId: 'milestoneSection', items: actionItems });
+
+    var jiraItems = (ctx.jiraIssues || []).filter(function (r) {
+      return r.status !== 'Done' && (r.flagged || r.priority === 'Highest');
+    }).map(function (r) {
+      return { id: r.id || r.key, title: r.key + ' — ' + (r.summary || 'Untitled issue'), detail: (r.flagged ? 'Flagged' : r.priority) + (r.assignee ? ' — ' + r.assignee : ''), sortKey: r.flagged ? -1000 : -500 };
+    });
+    groups.push({ key: 'jira', label: 'Blocked / Flagged Jira Issues', cardId: 'jiraBacklogCard', items: jiraItems });
 
     groups.forEach(function (g) {
       g.doc = DOC_LABELS[g.key] || g.label;
@@ -460,6 +468,18 @@
     }, function (err) { console.warn(ns, 'needsAttentionAck listen error (expected if not granted view access)', err && err.code); });
   }
 
+  // window.drJiraData may not exist yet when this runs — needsAttention.js
+  // loads before jiraData.js and loadScript() doesn't guarantee order
+  // between separately-queued dynamic scripts. See dr-jira:ready in
+  // jiraData.js.
+  function withJiraData(cb) {
+    if (window.drJiraData) { cb(); return; }
+    window.addEventListener('dr-jira:ready', function onReady() {
+      window.removeEventListener('dr-jira:ready', onReady);
+      if (window.drJiraData) cb();
+    });
+  }
+
   function init() {
     card = document.getElementById('needsAttentionCard');
     bodyEl = document.getElementById('naBody');
@@ -475,6 +495,12 @@
     bindEvents();
     bindReportEvents();
     listenAll();
+    withJiraData(function () {
+      window.drJiraData.subscribe(function (state) {
+        ctx.jiraIssues = state.issues;
+        render();
+      });
+    });
     if (window.drAccess) window.drAccess.whenReady().then(render);
     else render();
   }
