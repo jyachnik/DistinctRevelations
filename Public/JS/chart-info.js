@@ -17,8 +17,8 @@
   // paragraphs and a <dl> of term/definition pairs where a card has real
   // jargon worth spelling out.
   var CHART_INFO = {
-    projectCharterAction: {
-      body: '<p>Opens whichever uploaded document has "charter" in its title (Settings ▸ Data Imports ▸ Project Documents), in the same document reader Ask the Project\'s citations use — not a card of its own, so it always reflects whatever charter document is currently on file, re-import a new version any time to update it.</p>'
+    projectCharterCard: {
+      body: '<p>What this project IS — purpose, sponsor, business case, success criteria, and scope. Owner-editable and versioned ("View History" shows every past save). Milestones/Budget/Assumptions below are live rollups of the same data Gantt, Status Report, and Constraints Log already read — not retyped here, so they can\'t go stale. "View Uploaded Charter Document" still opens whichever imported file has "charter" in its title, if you\'d rather keep the source document as the record of truth.</p>'
     },
     projectStatusCard: {
       body: '<p>A single traffic-light read of the whole project, computed automatically from Schedule Performance (SPI) and Cost Performance (CPI) — not set manually. Takes the WORSE of the two.</p>' +

@@ -56,7 +56,7 @@
   // narrower than the box).
   var CENTERED_CARD_IDS = ['riskHeatMapCard'];
   // Team Charter's modal specifically: 8.5in ≈ 816px at 96dpi.
-  var CARD_MODAL_WIDTH_PX = { teamCharterCard: 816 };
+  var CARD_MODAL_WIDTH_PX = { teamCharterCard: 816, projectCharterCard: 816 };
 
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 

@@ -50,7 +50,7 @@
   // .report-index-icon in metrics.css) so a row's label text always
   // starts at the same x position regardless of which glyph it has.
   var REPORTS = {
-    projectCharterAction: { icon: '📜', label: 'Project Charter', desc: 'Opens the project\'s charter document — purpose, sponsor, business case, and scope, as uploaded.', action: 'projectCharter' },
+    projectCharterCard: { icon: '📜', label: 'Project Charter', desc: 'Purpose, sponsor, business case, success criteria, and scope — owner-editable, versioned, plus live milestone/budget/assumptions rollups.' },
     aiAnalysisCard: { icon: '🧭', label: 'Executive Overview', desc: 'The AI-generated executive read across every card and import in this project.' },
     projectStatusCard: { icon: '🚦', label: 'Project Status', desc: 'Traffic-light status, computed automatically from SPI/CPI.' },
     projectProgressCard: { icon: '🏁', label: 'Project Progress', desc: 'Overall completion percentage across all tasks.' },
@@ -161,7 +161,7 @@
     // order — Project Status/Progress/Q&A/SPI/Forecast Finish/CPI — so
     // the Tiled view's first row+ mirrors what's pinned at the top of
     // the Dashboard page itself, before the rest of Executive follows.
-    { name: 'Executive', ids: ['projectStatusCard', 'projectProgressCard', 'qnaSummaryCard', 'schedulePerformanceCard', 'forecastFinishCard', 'costPerformanceCard', 'projectCharterAction', 'healthScorecardCard', 'ragDistCard', 'needsAttentionCard', 'aiAnalysisCard', 'benefitsRealizationCard', 'glossaryCard'] },
+    { name: 'Executive', ids: ['projectStatusCard', 'projectProgressCard', 'qnaSummaryCard', 'schedulePerformanceCard', 'forecastFinishCard', 'costPerformanceCard', 'projectCharterCard', 'healthScorecardCard', 'ragDistCard', 'needsAttentionCard', 'aiAnalysisCard', 'benefitsRealizationCard', 'glossaryCard'] },
     { name: 'Schedule', ids: ['executiveRoadmapCard', 'ganttSection', 'schedulePerformanceCard', 'forecastFinishCard', 'burndownCard', 'burnupCard', 'velocityCard', 'cfdCard', 'criticalPathCard', 'dependenciesCard', 'milestoneTrendCard', 'topSlippedCard', 'milestoneSection', 'jiraBacklogCard', 'jiraKanbanCard', 'jiraSprintBurndownCard', 'jiraVelocityCard', 'jiraEpicProgressCard', 'jiraTeamWorkloadCard'] },
     { name: 'Financial', ids: ['costPerformanceCard', 'evmCard', 'budgetVsActualCard', 'etcVsEacCard', 'cashFlowCard', 'earnedScheduleCard', 'procurementCard'] },
     { name: 'Quality Control', ids: ['requirementsTraceabilityCard', 'qualityDefectsCard', 'defectTrendCard', 'costOfQualityCard', 'deliverableSignoffCard'] },
@@ -414,11 +414,6 @@
       if (action === 'projectDocuments') {
         if (window.drOpenProjectDocuments) window.drOpenProjectDocuments();
         else warn('document-register.js not loaded yet');
-        return;
-      }
-      if (action === 'projectCharter') {
-        if (window.drOpenProjectCharter) window.drOpenProjectCharter();
-        else warn('project-charter-link.js not loaded yet');
         return;
       }
       if (action === 'permissions') {

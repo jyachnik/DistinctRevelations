@@ -1,10 +1,11 @@
 /* ============================================================================
    Team Charter — how THIS project's team agrees to work together: mission,
    values, working agreements, communication norms, decision-making, and
-   conflict resolution. Distinct from Project Charter (a real uploaded
-   document defining the PROJECT's purpose/sponsor/scope) and Team
-   Directory (the contact roster) — this is the team's own working
-   agreement, owner-editable, single document (not a list/log).
+   conflict resolution. Distinct from Project Charter (see
+   project-charter.js — what the PROJECT itself is: purpose, sponsor,
+   business case, scope) and Team Directory (the contact roster) — this
+   is the team's own working agreement, owner-editable, single document
+   (not a list/log).
 
    Sample content shown (with a banner) until the owner saves real
    content — same "sample until replaced" convention as every other new

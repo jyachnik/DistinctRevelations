@@ -416,6 +416,53 @@ html.gated main { visibility:hidden; }
            triggered from the Report Index list instead. -->
       <button id="changeReportBtn" type="button" hidden></button>
 
+    <!-- Project Charter — what this project IS: purpose, sponsor, business
+         case, success criteria, scope in/out, key assumptions (owner-
+         editable, versioned), plus live read-only rollups of Milestones/
+         Budget/Assumptions & Constraints pulled from the same data every
+         other card already reads. Distinct from Team Charter below (how
+         the team works together) and Team Directory (the contact roster).
+         See project-charter.js. -->
+    <section class="card metrics-panel owner-only-card tc-card-centered" id="projectCharterCard">
+      <div class="section-header">
+        <h2>📜 Project Charter</h2>
+        <p class="section-subtext">What this project is, why it exists, and how success is defined.</p>
+      </div>
+      <div class="pc-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <button type="button" id="pc-view-doc-btn" class="btn-outline">View Uploaded Charter Document</button>
+        <button type="button" id="pc-history-btn" class="btn-outline" style="display:none">View History</button>
+      </div>
+      <form class="tc-form pc-add-only" id="pc-form" onsubmit="return false;">
+        <label>Purpose / Objective<textarea id="pc-purpose" rows="3"></textarea></label>
+        <label>Sponsor<textarea id="pc-sponsor" rows="1"></textarea></label>
+        <label>Business Case<textarea id="pc-businessCase" rows="3"></textarea></label>
+        <label>Success Criteria<textarea id="pc-successCriteria" rows="3"></textarea></label>
+        <label>Scope — In<textarea id="pc-scopeIn" rows="3"></textarea></label>
+        <label>Scope — Out<textarea id="pc-scopeOut" rows="3"></textarea></label>
+        <label>Key Assumptions<textarea id="pc-keyAssumptions" rows="3"></textarea></label>
+        <div class="tc-save-row">
+          <button type="button" id="pc-save" class="primary pc-add-only">Save</button>
+          <span id="pc-status" class="doc-share-status"></span>
+        </div>
+      </form>
+      <div class="tc-read-only" id="pcReadOnlyView" style="display:none"></div>
+
+      <div class="pc-rollups" style="margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;">
+        <div class="pc-rollup">
+          <h3 style="font-size:0.9rem;margin:0 0 6px;">Milestones</h3>
+          <div id="pcMilestonesRollup"></div>
+        </div>
+        <div class="pc-rollup">
+          <h3 style="font-size:0.9rem;margin:0 0 6px;">Budget Summary</h3>
+          <div id="pcBudgetRollup"></div>
+        </div>
+        <div class="pc-rollup">
+          <h3 style="font-size:0.9rem;margin:0 0 6px;">Assumptions &amp; Constraints</h3>
+          <div id="pcConstraintsRollup"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- AI Project Analysis — owner-only executive summary + flagged
          questions, generated on demand ("Run Analysis") across every card
          and import in the project. Sits above the Gantt Timeline per
@@ -3330,7 +3377,7 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
       loadScript('./JS/constraints.js');
       loadScript('./JS/stakeholders.js');
       loadScript('./JS/team-directory.js');
-      loadScript('./JS/project-charter-link.js');
+      loadScript('./JS/project-charter.js');
       loadScript('./JS/changeControl.js');
       loadScript('./JS/decisionLog.js');
       loadScript('./JS/communicationsPlan.js');

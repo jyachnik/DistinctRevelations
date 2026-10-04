@@ -427,6 +427,16 @@ service cloud.firestore {
           allow create, update, delete: if false;
         }
 
+        // Project Charter (Public/JS/project-charter.js) — one fixed doc
+        // id ("main"), owner-only writes, any project member can read.
+        // Same owner-only-end-to-end shape as Stakeholder Register — no
+        // canCardAction grants, since there's nothing for the Permissions
+        // matrix to gate per-role (the owner either shares it or doesn't).
+        match /charter/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
         // Deliverable / Milestone Sign-off (Public/JS/signoff.js). Items are
         // created and edited per the Permissions matrix (like the Decision
         // Log) but ALWAYS start pending — nobody can create an item that's
