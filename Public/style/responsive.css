@@ -1,31 +1,69 @@
 /* Public/style/responsive.css — Home page (index.html)
    ============================================================================
    Breakpoint scale used across this file (and its dashboard counterpart,
-   responsive-dashboard.css):
-     Mobile:      <= 640px   (phone)
-     Tablet:      641px – 1024px
-     Desktop:     1025px – 1919px  (the baseline home.css already targets —
-                  no extra rules needed here for this tier)
-     Big Screen:  >= 1920px  (conference-room TV / large monitor)
+   responsive-dashboard.css uses its own, coarser version of the same
+   idea — see that file's own header):
+
+     Phone / folded phone:  <= 640px   (Galaxy Fold's cover screen is
+                             ~280-320px — already covered by the existing
+                             <=380px sub-tier inside home.css's own mobile
+                             block, not duplicated here)
+     Tablet / unfolded fold: 641px – 1024px  (a Fold/Flip opened up lands
+                             around 700-900px, same tier as a real tablet)
+     Laptop (baseline):     1025px – 1439px  — home.css's un-tiered base
+                             rules are tuned for this range; nothing new
+                             needed here
+     Desktop / 24" monitor: 1440px – 1919px  — THE GAP that used to exist:
+                             a 24" monitor is 1920x1080 natively, but the
+                             browser's actual viewport is almost always a
+                             bit under 1920 once you subtract the OS
+                             scrollbar/chrome (commonly 1903-1919px), so
+                             real 24" monitors were silently landing in
+                             the laptop tier above and getting a fixed
+                             1120px content column adrift in ~800px of
+                             empty space either side
+     Large desktop /        1920px – 2559px  — a clean 1920 hit (no
+     conference monitor:    scrollbar, or a genuinely 1920-native display)
+                             and mid-size 27" monitors
+     Ultra-wide / 4K /      >= 2560px — CSS can only see viewport width,
+     smart TV:               not physical screen size or viewing distance,
+                             so a "conference room TV" and a "27" 4K
+                             monitor" that both report >=2560px get the
+                             same treatment here; that's a real limitation
+                             of media queries, not an oversight
 
    This file is loaded LAST, after home.css, specifically so it can
    override home.css's existing rules by cascade order alone (same-
    specificity class selectors) rather than needing !important or
    rewriting home.css's already-hard-won mobile-nav/corner-logo rules in
-   place. It ADDS what's missing (a big-screen tier) rather than
-   re-deriving what home.css already does reasonably well (the phone-
-   width nav/drawer/corner-logo swap).
+   place. It ADDS what's missing (progressive desktop/large-screen
+   scaling) rather than re-deriving what home.css already does reasonably
+   well (the phone-width nav/drawer/corner-logo swap).
    ============================================================================ */
 
 /* ---------------------------------------------------------------------------
-   BIG SCREEN (>= 1920px) — a conference-room TV or large monitor. The
-   marketing site is rarely the thing projected in a conference room, but
-   it should still look intentional rather than just stretched: a wider
-   reading column, larger type, and a bit more breathing room, not simply
-   "the same 1120px column floating in a sea of empty space" nor content
-   stretched edge-to-edge and losing all sense of hierarchy.
+   DESKTOP / 24" MONITOR (1440px – 1919px)
    --------------------------------------------------------------------------- */
-@media (min-width: 1920px) {
+@media (min-width: 1440px) and (max-width: 1919px) {
+  .container { width: min(1280px, 88%); }
+
+  .hero-copy h1 { font-size: 3.2rem; }
+  .hero-copy p { font-size: 1.1rem; max-width: 600px; }
+  .hero-metrics div { padding: 12px 14px; }
+  .hero-metrics div strong { font-size: 1.05rem; }
+
+  .section-head h2, .section h2 { font-size: 1.9rem; }
+  .section-head p { max-width: 760px; }
+
+  .footer-grid { max-width: 1280px; }
+}
+
+/* ---------------------------------------------------------------------------
+   LARGE DESKTOP / CONFERENCE MONITOR (1920px – 2559px) — was previously
+   ">= 1920px" with no upper bound; now capped so the ultra-wide/TV tier
+   below gets its own, more generous values instead of inheriting these.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1920px) and (max-width: 2559px) {
   .container { width: min(1400px, 78%); }
 
   .hero-copy h1 { font-size: 3.4rem; }
@@ -36,4 +74,24 @@
   .section-head p { font-size: 1.05rem; max-width: 820px; }
 
   .footer-grid { max-width: 1400px; }
+}
+
+/* ---------------------------------------------------------------------------
+   ULTRA-WIDE / 4K / SMART TV (>= 2560px) — the same "wider reading column,
+   larger type, more breathing room" goal as the tier above, just taken
+   further: at this width the previous tier's 1400px column would still
+   read as a narrow island on a 4K or TV-class display.
+   --------------------------------------------------------------------------- */
+@media (min-width: 2560px) {
+  .container { width: min(1700px, 65%); }
+
+  .hero-copy h1 { font-size: 4.2rem; }
+  .hero-copy p { font-size: 1.3rem; max-width: 760px; }
+  .hero-metrics div { padding: 16px 18px; }
+  .hero-metrics div strong { font-size: 1.25rem; }
+
+  .section-head h2, .section h2 { font-size: 2.6rem; }
+  .section-head p { font-size: 1.2rem; max-width: 960px; }
+
+  .footer-grid { max-width: 1700px; }
 }

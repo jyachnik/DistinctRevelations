@@ -2970,33 +2970,33 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
        against app-config.js, OWNER_EMAIL came back empty and isOwner was
        permanently false for the rest of the page's life, even for the
        real Owner. -->
-  <script src="./JS/app-config.js"></script>
-  <script src="./JS/dr-date-format.js"></script>
-  <script src="./JS/dr-last-updated.js"></script>
-  <script src="./JS/dr-rag.js"></script>
-  <script src="./JS/confirm-dialog.js"></script>
+  <script src="./JS/app-config.js?v=1"></script>
+  <script src="./JS/dr-date-format.js?v=1"></script>
+  <script src="./JS/dr-last-updated.js?v=1"></script>
+  <script src="./JS/dr-rag.js?v=1"></script>
+  <script src="./JS/confirm-dialog.js?v=1"></script>
   <!-- Loaded here, before firebaseInit.js and the deferred module cascade
        below, so its MutationObserver starts watching for new content the
        moment the page begins rendering — every card module's own render
        happens well after this file has already started observing. -->
-  <script src="./JS/language.js"></script>
-  <script src="./JS/firebaseInit.js"></script>
+  <script src="./JS/language.js?v=1"></script>
+  <script src="./JS/firebaseInit.js?v=1"></script>
   <!-- Pure DOM decoration, no Firebase/auth needed — placed here (after
        every .card/.qna-section already exists earlier in this file's
        static markup) so it can add the corner links in one pass without
        waiting on anything async. -->
-  <script src="./JS/quick-links.js"></script>
+  <script src="./JS/quick-links.js?v=1"></script>
   <!-- Same "pure DOM decoration" placement as quick-links.js above — adds
        the ℹ️ "About this chart" button to every card's header. Needs
        window.drModal (loaded further below) only at CLICK time, not at
        load time, so load order relative to it doesn't matter. -->
-  <script src="./JS/chart-info.js"></script>
-  <script src="./JS/report-index.js"></script>
+  <script src="./JS/chart-info.js?v=2"></script>
+  <script src="./JS/report-index.js?v=1"></script>
   <!-- Reads window.drAllReportEntries/window.drReportCategories, both set
        synchronously by report-index.js above at parse time — load order
        just needs to come after it, same reasoning as dr-access-control.js
        below. -->
-  <script src="./JS/titles-view.js"></script>
+  <script src="./JS/titles-view.js?v=1"></script>
   <!-- Resolves role + the per-project Permissions matrix, then hides any
        card the current role hasn't been granted (window.drAccess). Loaded
        after report-index.js since it reads window.drReportList; after
@@ -3004,18 +3004,18 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
        it synchronously at parse time, so — unlike ai-insights.js/
        dr-modal.js above — it doesn't need earlier placement. -->
   <script src="./JS/dr-access-control.js?v=20260924b"></script>
-  <script src="./JS/settings.js"></script>
+  <script src="./JS/settings.js?v=1"></script>
   <!-- Shared generic modal helper (window.drModal.open) — ai-insights.js's
        "View more" popup and chart-info.js's "About this chart" popup both
        need it, so it loads first. -->
-  <script src="./JS/dr-modal.js"></script>
+  <script src="./JS/dr-modal.js?v=1"></script>
   <!-- Multi-select filter-dropdown widget (window.drCreateMultiSelectFilter)
        — every card with a filter bar (Risk/Assumptions/Constraints/Quality/
        Issue logs) calls this when it wires its own filters. -->
-  <script src="./JS/dr-multiselect.js"></script>
+  <script src="./JS/dr-multiselect.js?v=1"></script>
   <!-- Shared indeterminate progress overlay (window.drProgress.show/hide)
        — Run Analysis and every import handler use it. -->
-  <script src="./JS/dr-progress.js"></script>
+  <script src="./JS/dr-progress.js?v=1"></script>
   <!-- Collapse/expand the Project Status/Progress/Q&A/SPI/CPI summary row
        — plain DOM only, no Firebase dependency, so it loads early too. -->
   <script src="./JS/summary-row-toggle.js?v=20260924a"></script>
@@ -3024,17 +3024,17 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
        Insight text, see dr-cross-refs.js) — ai-insights.js's rendering
        pipeline calls window.drRefs.protect/restore, so it loads first,
        same reasoning as dr-modal.js above. -->
-  <script src="./JS/dr-cross-refs.js"></script>
+  <script src="./JS/dr-cross-refs.js?v=1"></script>
   <!-- Loaded early (not through the auth-gated loadScript() cascade
        below) so window.drInsight.set(...) is guaranteed to exist before
        burndown.js/qualityDefects.js/etc. try to call it. -->
-  <script src="./JS/ai-version.js"></script>
-  <script src="./JS/ai-insights.js"></script>
+  <script src="./JS/ai-version.js?v=1"></script>
+  <script src="./JS/ai-insights.js?v=1"></script>
  <!-- <script  src="./JS/app.js"></script> -->
  
    <script  src="./JS/session-classic.js"></script>
   <script  src="./JS/requireAuth.js"></script>
-  <script src="./JS/waitforbusinesskey-shim.js"></script>
+  <script src="./JS/waitforbusinesskey-shim.js?v=1"></script>
   <script  src="./JS/auth-helpers-email.js"></script>
    <!-- <script  src="./JS/dashboard-guard.js"></script> -->
   <script  src="./JS/dashboard-business-loader.js?v=20260918a"></script>

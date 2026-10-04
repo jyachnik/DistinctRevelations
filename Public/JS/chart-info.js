@@ -283,6 +283,15 @@
   function injectButton(cardId) {
     var card = document.getElementById(cardId);
     if (!card || card.querySelector(':scope > .chart-info-wrap')) return;
+    // A handful of CHART_INFO keys (dataImportsOverlay, insightModeOverlay)
+    // happen to also be the id of a real .dr-modal-overlay element, not a
+    // page card — most other action-only entries have no matching element
+    // at all and safely no-op above, but these two do exist, so without
+    // this guard the code below was setting position:relative via INLINE
+    // style on the modal itself, which silently broke its position:fixed
+    // (inline style beats any stylesheet rule, specificity or not) and
+    // left it rendered in normal document flow instead of as a popup.
+    if (card.classList.contains('dr-modal-overlay')) return;
 
     // Absolute positioning is relative to the nearest positioned ancestor
     // — force it here rather than relying on any card's own (possibly
