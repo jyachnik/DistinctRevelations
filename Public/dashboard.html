@@ -2281,6 +2281,19 @@ html.gated main { visibility:hidden; }
         <div id="jiraEpicProgressList"></div>
       </section>
 
+      <!-- Jira Team Workload — open story points per assignee. See
+           jiraTeamWorkload.js. -->
+      <section class="card metrics-panel owner-only-card" id="jiraTeamWorkloadCard">
+        <div class="section-header">
+          <h2>👥 Jira Team Workload</h2>
+          <p class="section-subtext">Open (not-Done) story points per assignee.</p>
+        </div>
+        <p id="jiraTeamWorkloadSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — connect Jira to replace this with your real team.
+        </p>
+        <div class="metrics-chart-wrap"><canvas id="jiraTeamWorkloadChart"></canvas></div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -3334,6 +3347,7 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
         loadScript('./JS/jiraSprintBurndown.js');
         loadScript('./JS/jiraVelocity.js');
         loadScript('./JS/jiraEpicProgress.js');
+        loadScript('./JS/jiraTeamWorkload.js');
       });
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');

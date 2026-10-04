@@ -198,6 +198,9 @@
     jiraEpicProgressCard: {
       body: '<p>Each epic\'s percent complete, computed from its child issues\' story points (points on Done issues ÷ total points across all children). An epic with no children yet, or none with points assigned, shows 0%.</p>'
     },
+    jiraTeamWorkloadCard: {
+      body: '<p>Sum of story points on each person\'s open (not-Done) issues — a quick read of who\'s carrying the most work right now, not a capacity/hours comparison like Resource Overallocation above (that one uses imported hourly capacity; this one is purely Jira story points).</p>'
+    },
     earnedScheduleCard: {
       body: '<p><strong>SPI(t)</strong> = Earned Schedule ÷ Actual Time — a time-based version of Schedule Performance Index that, unlike the dollar-based SV/SPI on the EVM chart, stays meaningful all the way to actual finish even after planned work\'s own due dates have passed.</p>' +
         '<p><strong>Forecast Finish (time-based)</strong> = project start + (planned duration ÷ SPI(t)).</p>'
