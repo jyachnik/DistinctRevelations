@@ -29,17 +29,17 @@
   // can label itself "sample data" without a separate flag per row.
   var SAMPLE_ISSUES = [
     { id: 'sample-1', key: 'PWR-101', summary: 'Define MVP scope for Phase I rollout', type: 'Epic', status: 'In Progress', priority: 'High', assignee: 'J. Alvarez', storyPoints: null, sprint: '—', dueDate: new Date(2026, 10, 14) },
-    { id: 'sample-2', key: 'PWR-102', summary: 'Integrate GPS feed with asset tracking service', type: 'Story', status: 'In Progress', priority: 'High', assignee: 'M. Chen', storyPoints: 8, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 24) },
-    { id: 'sample-3', key: 'PWR-103', summary: 'Set up email notification service', type: 'Story', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 10) },
-    { id: 'sample-4', key: 'PWR-104', summary: 'Fix null pointer on empty asset list', type: 'Bug', status: 'To Do', priority: 'Highest', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 22) },
-    { id: 'sample-5', key: 'PWR-105', summary: 'Design security dashboard wireframes', type: 'Task', status: 'Done', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 8) },
-    { id: 'sample-6', key: 'PWR-106', summary: 'Underestimated integration time with third-party GPS vendor', type: 'Bug', status: 'In Review', priority: 'Highest', assignee: 'J. Alvarez', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 25) },
-    { id: 'sample-7', key: 'PWR-107', summary: 'Build resource-capacity API endpoint', type: 'Story', status: 'In Progress', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 27) },
-    { id: 'sample-8', key: 'PWR-108', summary: 'Write UAT test cases for asset tracking', type: 'Task', status: 'To Do', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 3) },
+    { id: 'sample-2', key: 'PWR-102', summary: 'Integrate GPS feed with asset tracking service', type: 'Story', status: 'In Progress', priority: 'High', assignee: 'M. Chen', storyPoints: 8, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 24), epicLink: 'PWR-101' },
+    { id: 'sample-3', key: 'PWR-103', summary: 'Set up email notification service', type: 'Story', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 10), epicLink: 'PWR-101' },
+    { id: 'sample-4', key: 'PWR-104', summary: 'Fix null pointer on empty asset list', type: 'Bug', status: 'To Do', priority: 'Highest', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 22), epicLink: 'PWR-101' },
+    { id: 'sample-5', key: 'PWR-105', summary: 'Design security dashboard wireframes', type: 'Task', status: 'Done', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 8), epicLink: 'PWR-109' },
+    { id: 'sample-6', key: 'PWR-106', summary: 'Underestimated integration time with third-party GPS vendor', type: 'Bug', status: 'In Review', priority: 'Highest', assignee: 'J. Alvarez', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 25), epicLink: 'PWR-101' },
+    { id: 'sample-7', key: 'PWR-107', summary: 'Build resource-capacity API endpoint', type: 'Story', status: 'In Progress', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 27), epicLink: 'PWR-109' },
+    { id: 'sample-8', key: 'PWR-108', summary: 'Write UAT test cases for asset tracking', type: 'Task', status: 'To Do', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 3), epicLink: 'PWR-109' },
     { id: 'sample-9', key: 'PWR-109', summary: 'Specialized AI/security resource availability', type: 'Epic', status: 'To Do', priority: 'High', assignee: 'J. Alvarez', storyPoints: null, sprint: '—', dueDate: new Date(2026, 11, 1) },
-    { id: 'sample-10', key: 'PWR-110', summary: 'Reduce dashboard initial load time', type: 'Task', status: 'To Do', priority: 'Low', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 5) },
-    { id: 'sample-11', key: 'PWR-111', summary: 'Login session expires too early on mobile', type: 'Bug', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 1, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 9) },
-    { id: 'sample-12', key: 'PWR-112', summary: 'Vendor integration deadline for Phase I MVP', type: 'Story', status: 'In Review', priority: 'High', assignee: 'R. Nolan', storyPoints: 8, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 26) }
+    { id: 'sample-10', key: 'PWR-110', summary: 'Reduce dashboard initial load time', type: 'Task', status: 'To Do', priority: 'Low', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 5), epicLink: 'PWR-109' },
+    { id: 'sample-11', key: 'PWR-111', summary: 'Login session expires too early on mobile', type: 'Bug', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 1, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 9), epicLink: 'PWR-109' },
+    { id: 'sample-12', key: 'PWR-112', summary: 'Vendor integration deadline for Phase I MVP', type: 'Story', status: 'In Review', priority: 'High', assignee: 'R. Nolan', storyPoints: 8, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 26), epicLink: 'PWR-101' }
   ];
 
   function notify() {

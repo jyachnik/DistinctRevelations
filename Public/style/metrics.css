@@ -2768,6 +2768,21 @@ button.tv-card-modal-close:hover { filter: brightness(1.2); }
   .jira-kanban-column { min-width: 0; }
 }
 
+/* ---- Jira Epic Progress — one row per epic, reusing the same
+   .progress-bar-track/.progress-bar-fill markup as Project Progress. ---- */
+.jira-epic-row { margin-bottom: 16px; }
+.jira-epic-row:last-child { margin-bottom: 0; }
+.jira-epic-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.jira-epic-key { font-weight: 700; font-size: 0.78rem; color: var(--metric-ink-secondary, #666); }
+.jira-epic-title { flex: 1 1 auto; font-size: 0.86rem; color: var(--metric-ink, #333); }
+.jira-epic-pct { font-weight: 700; font-size: 0.86rem; color: var(--metric-ink, #333); }
+.jira-epic-row-foot { margin-top: 4px; font-size: 0.72rem; color: var(--metric-ink-secondary, #666); }
+
 /* ---- Ask the Project: Executive / Detailed answer style ---- */
 .ask-style { display: flex; align-items: center; gap: 14px; font-size: 0.8rem; color: var(--metric-ink-secondary, #555); }
 .ask-style label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: #1c2733; font-weight: 600; }

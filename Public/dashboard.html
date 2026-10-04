@@ -2268,6 +2268,19 @@ html.gated main { visibility:hidden; }
         <div class="metrics-chart-wrap"><canvas id="jiraVelocityChart"></canvas></div>
       </section>
 
+      <!-- Jira Epic Progress — percent of each epic's child issues done,
+           by story points. See jiraEpicProgress.js. -->
+      <section class="card metrics-panel owner-only-card" id="jiraEpicProgressCard">
+        <div class="section-header">
+          <h2>🎯 Jira Epic Progress</h2>
+          <p class="section-subtext">Percent of each epic's work done, by story points.</p>
+        </div>
+        <p id="jiraEpicProgressSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — connect Jira to replace this with your real epics.
+        </p>
+        <div id="jiraEpicProgressList"></div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -3320,6 +3333,7 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
         loadScript('./JS/jiraKanban.js');
         loadScript('./JS/jiraSprintBurndown.js');
         loadScript('./JS/jiraVelocity.js');
+        loadScript('./JS/jiraEpicProgress.js');
       });
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');

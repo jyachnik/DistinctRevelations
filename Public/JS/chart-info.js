@@ -195,6 +195,9 @@
     jiraVelocityCard: {
       body: '<p><strong>Velocity</strong> = story points actually completed per sprint — the bars are each closed sprint\'s total, the dashed line is the running average used to forecast future sprint capacity. Needs Jira\'s Sprint Report / Agile API data, which isn\'t connected yet — shown here as an illustrative sample sprint history.</p>'
     },
+    jiraEpicProgressCard: {
+      body: '<p>Each epic\'s percent complete, computed from its child issues\' story points (points on Done issues ÷ total points across all children). An epic with no children yet, or none with points assigned, shows 0%.</p>'
+    },
     earnedScheduleCard: {
       body: '<p><strong>SPI(t)</strong> = Earned Schedule ÷ Actual Time — a time-based version of Schedule Performance Index that, unlike the dollar-based SV/SPI on the EVM chart, stays meaningful all the way to actual finish even after planned work\'s own due dates have passed.</p>' +
         '<p><strong>Forecast Finish (time-based)</strong> = project start + (planned duration ÷ SPI(t)).</p>'
