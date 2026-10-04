@@ -2254,6 +2254,20 @@ html.gated main { visibility:hidden; }
         <div class="metrics-chart-wrap"><canvas id="jiraSprintBurndownChart"></canvas></div>
       </section>
 
+      <!-- Jira Velocity — completed points per closed sprint + running
+           average, same convention as the project-level Velocity chart.
+           See jiraVelocity.js. -->
+      <section class="card metrics-panel owner-only-card" id="jiraVelocityCard">
+        <div class="section-header">
+          <h2>🏃 Jira Velocity</h2>
+          <p class="section-subtext">Points completed per closed sprint, and the running average.</p>
+        </div>
+        <p id="jiraVelocitySampleBanner" class="metrics-sample-banner" hidden>
+          Illustrative sample sprint history — Jira's Sprint Report data isn't connected yet.
+        </p>
+        <div class="metrics-chart-wrap"><canvas id="jiraVelocityChart"></canvas></div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -3305,6 +3319,7 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
         loadScript('./JS/jiraBacklog.js');
         loadScript('./JS/jiraKanban.js');
         loadScript('./JS/jiraSprintBurndown.js');
+        loadScript('./JS/jiraVelocity.js');
       });
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');

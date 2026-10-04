@@ -192,6 +192,9 @@
     jiraSprintBurndownCard: {
       body: '<p>Remaining story points in the active sprint, Ideal (straight line to zero by sprint end) vs. Actual. Jira\'s issue list alone doesn\'t carry day-by-day history, so this needs either Jira\'s own Sprint Report data or a daily snapshot written by the sync — shown here as one illustrative sample sprint until that exists.</p>'
     },
+    jiraVelocityCard: {
+      body: '<p><strong>Velocity</strong> = story points actually completed per sprint — the bars are each closed sprint\'s total, the dashed line is the running average used to forecast future sprint capacity. Needs Jira\'s Sprint Report / Agile API data, which isn\'t connected yet — shown here as an illustrative sample sprint history.</p>'
+    },
     earnedScheduleCard: {
       body: '<p><strong>SPI(t)</strong> = Earned Schedule ÷ Actual Time — a time-based version of Schedule Performance Index that, unlike the dollar-based SV/SPI on the EVM chart, stays meaningful all the way to actual finish even after planned work\'s own due dates have passed.</p>' +
         '<p><strong>Forecast Finish (time-based)</strong> = project start + (planned duration ÷ SPI(t)).</p>'
