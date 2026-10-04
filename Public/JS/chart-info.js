@@ -183,6 +183,9 @@
     dependenciesCard: {
       body: '<p>What each piece of work is waiting on — another task/milestone, an outside party, or another team/project. A dependency past its need-by date and still not Resolved shows up on Needs Attention.</p>'
     },
+    jiraBacklogCard: {
+      body: '<p>A read-only mirror of your Jira backlog — this app doesn\'t edit Jira, it just displays issues (key, summary, type, status, priority, assignee, story points, sprint) once connected. Shows sample issues until a real Jira connection is set up.</p>'
+    },
     earnedScheduleCard: {
       body: '<p><strong>SPI(t)</strong> = Earned Schedule ÷ Actual Time — a time-based version of Schedule Performance Index that, unlike the dollar-based SV/SPI on the EVM chart, stays meaningful all the way to actual finish even after planned work\'s own due dates have passed.</p>' +
         '<p><strong>Forecast Finish (time-based)</strong> = project start + (planned duration ÷ SPI(t)).</p>'

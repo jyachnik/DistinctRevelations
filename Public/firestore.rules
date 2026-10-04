@@ -416,6 +416,17 @@ service cloud.firestore {
           allow delete: if isOwnerEmail() || canCardAction(biz, proj, 'decisionLogCard', 'delete');
         }
 
+        // Jira Backlog Tracker (Public/JS/jiraBacklog.js) — read-only from
+        // the client; any project member can read. Real writes will come
+        // from a server-side Cloud Function (Admin SDK, bypasses these
+        // rules entirely) once a real Jira sync exists — no role can
+        // create/update/delete here, including the owner, so there's no
+        // path for the client to desync this from Jira's own data.
+        match /jiraIssues/{issueId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if false;
+        }
+
         // Deliverable / Milestone Sign-off (Public/JS/signoff.js). Items are
         // created and edited per the Permissions matrix (like the Decision
         // Log) but ALWAYS start pending — nobody can create an item that's

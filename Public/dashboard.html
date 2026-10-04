@@ -2172,6 +2172,60 @@ html.gated main { visibility:hidden; }
         </div>
       </section>
 
+      <!-- Jira Backlog Tracker — read-only (no Add/Edit/Delete form; this
+           data comes FROM Jira, not typed in here). Reads
+           projects/{proj}/jiraIssues once a real Jira sync exists; shows
+           authored sample issues until then. See jiraBacklog.js. -->
+      <section class="card metrics-panel owner-only-card" id="jiraBacklogCard">
+        <div class="section-header">
+          <h2>🧩 Jira Backlog Tracker</h2>
+          <p class="section-subtext">Issues pulled from Jira — status, type, priority, assignee, and sprint. Click a column header to sort.</p>
+        </div>
+        <p id="jiraBacklogSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — connect Jira to replace this with your real backlog.
+        </p>
+
+        <div class="severity-legend">
+          <span class="severity-legend-group-label">Status:</span>
+          <span class="severity-legend-item"><span class="severity-badge severity-unknown">To Do</span> not started</span>
+          <span class="severity-legend-item"><span class="severity-badge severity-medium">In Progress</span> active</span>
+          <span class="severity-legend-item"><span class="severity-badge severity-medium">In Review</span> awaiting review</span>
+          <span class="severity-legend-item"><span class="severity-badge severity-low">Done</span> complete</span>
+        </div>
+
+        <div class="assumptions-filters">
+          <span class="assumptions-filters-label">Filter by:</span>
+          <button type="button" id="jiraBacklogFilterReset" class="assumptions-filter-reset">Clear Filters</button>
+          <select id="jiraBacklogFilterStatus"></select>
+          <select id="jiraBacklogFilterType"></select>
+          <select id="jiraBacklogFilterAssignee"></select>
+        </div>
+
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="jiraBacklogTable">
+            <colgroup>
+              <col class="col-short" /><col class="col-wide" /><col class="col-short" />
+              <col class="col-medium" /><col class="col-short" /><col class="col-medium" />
+              <col class="col-short" /><col class="col-medium" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th data-sort="key">Key</th><th data-sort="summary">Summary</th><th data-sort="type">Type</th>
+                <th data-sort="status">Status</th><th data-sort="priority">Priority</th><th data-sort="assignee">Assignee</th>
+                <th data-sort="storyPoints">Points</th><th data-sort="sprint">Sprint</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="assumptions-pagination" id="jiraBacklogPagination">
+          <button type="button" id="jiraBacklogPagePrev" class="assumptions-page-btn">‹ Prev</button>
+          <span id="jiraBacklogPageInfo" class="assumptions-page-info"></span>
+          <button type="button" id="jiraBacklogPageNext" class="assumptions-page-btn">Next ›</button>
+        </div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -3214,6 +3268,7 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
       loadScript('./JS/communicationsPlan.js');
       loadScript('./JS/lessonsLearned.js');
       loadScript('./JS/dependencies.js');
+      loadScript('./JS/jiraBacklog.js');
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');
       loadScript('./JS/report-charts.js');
