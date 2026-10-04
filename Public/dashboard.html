@@ -2226,6 +2226,20 @@ html.gated main { visibility:hidden; }
         </div>
       </section>
 
+      <!-- Jira Kanban Board — the same issues as the Backlog Tracker above,
+           grouped into columns by status instead of a table. Read-only,
+           shares window.drJiraData with it (see jiraData.js/jiraKanban.js). -->
+      <section class="card metrics-panel owner-only-card" id="jiraKanbanCard">
+        <div class="section-header">
+          <h2>🗂️ Jira Kanban Board</h2>
+          <p class="section-subtext">The same issues as the Backlog Tracker, grouped by status like your Jira board's columns.</p>
+        </div>
+        <p id="jiraKanbanSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — connect Jira to replace this with your real board.
+        </p>
+        <div class="jira-kanban-board" id="jiraKanbanBoard"></div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -3268,7 +3282,15 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
       loadScript('./JS/communicationsPlan.js');
       loadScript('./JS/lessonsLearned.js');
       loadScript('./JS/dependencies.js');
-      loadScript('./JS/jiraBacklog.js');
+      // jiraData.js must FINISH loading before the cards that read
+      // window.drJiraData start — loadScript's defer flag alone doesn't
+      // guarantee order for dynamically-inserted scripts (that guarantee
+      // only applies to parser-inserted ones), so this chains via the
+      // onload callback instead of relying on call order.
+      loadScript('./JS/jiraData.js', function () {
+        loadScript('./JS/jiraBacklog.js');
+        loadScript('./JS/jiraKanban.js');
+      });
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');
       loadScript('./JS/report-charts.js');

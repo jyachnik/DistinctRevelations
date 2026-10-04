@@ -186,6 +186,9 @@
     jiraBacklogCard: {
       body: '<p>A read-only mirror of your Jira backlog — this app doesn\'t edit Jira, it just displays issues (key, summary, type, status, priority, assignee, story points, sprint) once connected. Shows sample issues until a real Jira connection is set up.</p>'
     },
+    jiraKanbanCard: {
+      body: '<p>The exact same issues as the Backlog Tracker, grouped into columns by status instead of a table — a quick visual read of what\'s moving. Also read-only and backed by the same sample/real data.</p>'
+    },
     earnedScheduleCard: {
       body: '<p><strong>SPI(t)</strong> = Earned Schedule ÷ Actual Time — a time-based version of Schedule Performance Index that, unlike the dollar-based SV/SPI on the EVM chart, stays meaningful all the way to actual finish even after planned work\'s own due dates have passed.</p>' +
         '<p><strong>Forecast Finish (time-based)</strong> = project start + (planned duration ÷ SPI(t)).</p>'

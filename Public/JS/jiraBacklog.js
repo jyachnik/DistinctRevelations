@@ -1,33 +1,25 @@
 /* ============================================================================
    Jira Backlog Tracker — a read-only mirror of a connected Jira project's
    issues. Unlike every other card in this app, this one has NO add/edit/
-   delete UI at all: the data comes FROM Jira, not typed in here. Until a
-   real Jira connection exists, it shows clearly-labeled sample issues with
-   the exact shape real synced data will have, so swapping in the live
-   source later is a data-layer change only — the rendering/filtering/
-   sorting code below doesn't change.
+   delete UI at all: the data comes FROM Jira, not typed in here.
 
-   Real version (not built yet): a scheduled Cloud Function polls the Jira
-   REST API (same pattern as the existing daily overdue-task digest) and
-   writes normalized issues into
-   businesses/{biz}/projects/{proj}/jiraIssues/{issueKey}. This file
-   already listens on that collection — the moment it has documents, the
-   sample banner disappears and real issues take over automatically.
-   Fields (matching Jira's own naming where there's a direct equivalent):
-   key, summary, type, status, statusCategory, assignee, priority,
+   Data comes from window.drJiraData (see jiraData.js — the one shared
+   listener + sample set every Jira-sourced card subscribes to, so this
+   file never talks to Firestore or holds its own copy of the sample
+   data). Fields (matching Jira's own naming where there's a direct
+   equivalent): key, summary, type, status, assignee, priority,
    storyPoints, sprint, dueDate.
    ============================================================================ */
 
 (function () {
   'use strict';
 
-  var ns = '[jiraBacklog]';
   var CARD_ID = 'jiraBacklogCard';
   var PAGE_SIZE = 15;
 
   var ctx = {
-    biz: null, proj: null, userEmail: '', isOwner: false,
-    rows: [], sort: { key: 'key', dir: 'asc' }, page: 1
+    userEmail: '', isOwner: false,
+    rows: [], usingSample: true, sort: { key: 'key', dir: 'asc' }, page: 1
   };
 
   var OWNER_EMAIL = '';
@@ -40,26 +32,6 @@
   var TYPES = ['Epic', 'Story', 'Task', 'Bug'];
   var STATUSES = ['To Do', 'In Progress', 'In Review', 'Done'];
 
-  // Sample issues — shown only until a real Jira sync populates
-  // jiraIssues. ids start with "sample-"; this card never writes to
-  // Firestore at all (read-only), so there's no action to refuse them
-  // from, but the prefix keeps the convention consistent with every
-  // other sample-data card in this app.
-  var SAMPLE_ISSUES = [
-    { id: 'sample-1', key: 'PWR-101', summary: 'Define MVP scope for Phase I rollout', type: 'Epic', status: 'In Progress', priority: 'High', assignee: 'J. Alvarez', storyPoints: null, sprint: '—', dueDate: new Date(2026, 10, 14) },
-    { id: 'sample-2', key: 'PWR-102', summary: 'Integrate GPS feed with asset tracking service', type: 'Story', status: 'In Progress', priority: 'High', assignee: 'M. Chen', storyPoints: 8, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 24) },
-    { id: 'sample-3', key: 'PWR-103', summary: 'Set up email notification service', type: 'Story', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 10) },
-    { id: 'sample-4', key: 'PWR-104', summary: 'Fix null pointer on empty asset list', type: 'Bug', status: 'To Do', priority: 'Highest', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 22) },
-    { id: 'sample-5', key: 'PWR-105', summary: 'Design security dashboard wireframes', type: 'Task', status: 'Done', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 8) },
-    { id: 'sample-6', key: 'PWR-106', summary: 'Underestimated integration time with third-party GPS vendor', type: 'Bug', status: 'In Review', priority: 'Highest', assignee: 'J. Alvarez', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 25) },
-    { id: 'sample-7', key: 'PWR-107', summary: 'Build resource-capacity API endpoint', type: 'Story', status: 'In Progress', priority: 'Medium', assignee: 'S. Patel', storyPoints: 5, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 27) },
-    { id: 'sample-8', key: 'PWR-108', summary: 'Write UAT test cases for asset tracking', type: 'Task', status: 'To Do', priority: 'Medium', assignee: 'R. Nolan', storyPoints: 3, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 3) },
-    { id: 'sample-9', key: 'PWR-109', summary: 'Specialized AI/security resource availability', type: 'Epic', status: 'To Do', priority: 'High', assignee: 'J. Alvarez', storyPoints: null, sprint: '—', dueDate: new Date(2026, 11, 1) },
-    { id: 'sample-10', key: 'PWR-110', summary: 'Reduce dashboard initial load time', type: 'Task', status: 'To Do', priority: 'Low', assignee: 'M. Chen', storyPoints: 2, sprint: 'Sprint 15', dueDate: new Date(2026, 10, 5) },
-    { id: 'sample-11', key: 'PWR-111', summary: 'Login session expires too early on mobile', type: 'Bug', status: 'Done', priority: 'Medium', assignee: 'S. Patel', storyPoints: 1, sprint: 'Sprint 13', dueDate: new Date(2026, 9, 9) },
-    { id: 'sample-12', key: 'PWR-112', summary: 'Vendor integration deadline for Phase I MVP', type: 'Story', status: 'In Review', priority: 'High', assignee: 'R. Nolan', storyPoints: 8, sprint: 'Sprint 14', dueDate: new Date(2026, 9, 26) }
-  ];
-
   // ---------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------
@@ -68,18 +40,6 @@
     var d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
     return d.innerHTML;
-  }
-  function getDB() {
-    return window.db || (window.firebase && window.firebase.firestore && window.firebase.firestore());
-  }
-  function projDocRef() {
-    var db = getDB();
-    if (!db || !ctx.biz) return null;
-    return db.collection('businesses').doc(ctx.biz).collection('projects').doc(ctx.proj || 'default');
-  }
-  function issuesRef() {
-    var p = projDocRef();
-    return p ? p.collection('jiraIssues') : null;
   }
   function toDate(v) {
     if (!v) return null;
@@ -131,10 +91,10 @@
     card.classList.toggle('report-access-granted', canView);
     if (!canView || !tbody) return;
 
-    var usingSample = !ctx.rows.length;
+    var usingSample = ctx.usingSample;
     var banner = document.getElementById('jiraBacklogSampleBanner');
     if (banner) banner.hidden = !usingSample;
-    var source = usingSample ? SAMPLE_ISSUES : ctx.rows;
+    var source = ctx.rows;
 
     // Assignee filter options depend on what's actually in the data, so
     // (re)built here rather than from a fixed list like Status/Type.
@@ -241,26 +201,11 @@
     });
   }
 
-  function listen() {
-    var ref = issuesRef();
-    if (!ref) return;
-    ref.onSnapshot(function (snap) {
-      var rows = [];
-      snap.forEach(function (doc) { var d = doc.data() || {}; d.id = doc.id; rows.push(d); });
-      ctx.rows = rows;
-      paint();
-    }, function (err) {
-      console.warn(ns, 'listen error (expected if not a project member, or no Jira sync yet)', err && err.code);
-    });
-  }
-
   function detectContext() {
     card = document.getElementById(CARD_ID);
     tbody = $('#jiraBacklogTable tbody');
     fStatus = $('#jiraBacklogFilterStatus'); fType = $('#jiraBacklogFilterType'); fAssignee = $('#jiraBacklogFilterAssignee');
 
-    ctx.biz = window.BIZ_KEY || window.businessKey || null;
-    ctx.proj = window.PROJECT_KEY || 'default';
     var user = (window.auth && window.auth.currentUser) ||
       (window.firebase && window.firebase.auth && window.firebase.auth().currentUser) || null;
     ctx.userEmail = (user && user.email) || '';
@@ -271,11 +216,15 @@
 
   function init() {
     detectContext();
-    if (!ctx.biz || !card || !tbody) return;
+    if (!card || !tbody || !window.drJiraData) return;
     fillSelect(fStatus, 'All Status', STATUSES);
     fillSelect(fType, 'All Types', TYPES);
     bindEvents();
-    listen();
+    window.drJiraData.subscribe(function (state) {
+      ctx.rows = state.issues;
+      ctx.usingSample = state.usingSample;
+      paint();
+    });
     if (window.drAccess) window.drAccess.whenReady().then(applyAccess);
     else applyAccess();
   }

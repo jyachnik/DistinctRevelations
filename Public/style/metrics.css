@@ -2674,6 +2674,100 @@ button.tv-card-modal-close:hover { filter: brightness(1.2); }
   opacity: 1 !important;
 }
 
+/* ---- Jira Kanban Board — columns by status, mirroring a real Jira board.
+   Read-only; no drag-and-drop (see jiraKanban.js). ---- */
+.jira-kanban-board {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.jira-kanban-column {
+  flex: 1 1 240px;
+  min-width: 220px;
+  background: var(--color-background, #f9f9f9);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jira-kanban-column-header {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--metric-ink, #333);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+.jira-kanban-count {
+  background: var(--color-border, #e0e0e0);
+  color: var(--metric-ink-secondary, #666);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.jira-kanban-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 40px;
+}
+.jira-kanban-card {
+  background: #fff;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+}
+.jira-kanban-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--metric-ink-secondary, #666);
+  margin-bottom: 4px;
+}
+.jira-kanban-type { font-size: 0.9rem; }
+.jira-kanban-summary {
+  font-size: 0.82rem;
+  color: var(--metric-ink, #333);
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+.jira-kanban-card-bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--metric-ink-secondary, #666);
+}
+.jira-kanban-points {
+  background: var(--color-background, #f9f9f9);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-weight: 700;
+}
+.jira-kanban-assignee { margin-left: auto; font-weight: 600; }
+.jira-kanban-empty {
+  color: var(--metric-ink-secondary, #999);
+  font-size: 0.78rem;
+  font-style: italic;
+  text-align: center;
+  padding: 12px 0;
+}
+@media (max-width: 900px) {
+  .jira-kanban-board { flex-direction: column; }
+  .jira-kanban-column { min-width: 0; }
+}
+
 /* ---- Ask the Project: Executive / Detailed answer style ---- */
 .ask-style { display: flex; align-items: center; gap: 14px; font-size: 0.8rem; color: var(--metric-ink-secondary, #555); }
 .ask-style label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: #1c2733; font-weight: 600; }

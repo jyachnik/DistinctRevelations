@@ -48,7 +48,7 @@
     'costOfQualityCard', 'deliverableSignoffCard', 'assumptionsLogCard',
     'constraintsLogCard', 'riskRegisterCard', 'issueLogCard', 'stakeholderRegisterCard',
     'communicationsPlanCard', 'communicationsLogCard', 'teamDirectoryCard',
-    'changeControlLogCard', 'baselineChangeCard', 'decisionLogCard', 'jiraBacklogCard'
+    'changeControlLogCard', 'baselineChangeCard', 'decisionLogCard', 'jiraBacklogCard', 'jiraKanbanCard'
   ];
   // Smaller cards that should stay their own natural width but be
   // CENTERED in the modal instead of stretching/sitting flush-left

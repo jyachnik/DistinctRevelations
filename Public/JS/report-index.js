@@ -105,6 +105,7 @@
     changeControlLogCard: { icon: '🔁', label: 'Change Control Log', desc: 'Formal change requests with impact and owner/sponsor approval status.' },
     decisionLogCard: { icon: '⚖️', label: 'Decision Log', desc: 'Decisions made on the project, with rationale, alternatives considered, and follow-up.' },
     jiraBacklogCard: { icon: '🧩', label: 'Jira Backlog Tracker', desc: 'Issues pulled from Jira — status, type, priority, assignee, and sprint.' },
+    jiraKanbanCard: { icon: '🗂️', label: 'Jira Kanban Board', desc: 'The same Jira issues grouped by status, mirroring your Jira board\'s columns.' },
     communicationsPlanCard: { icon: '📣', label: 'Communications Plan', desc: 'Who gets told what, how often, and by what channel.' },
     documentRegisterCard: { icon: '🗂️', label: 'Project Documents', desc: 'Every document on the project — imported plans and registers (also what Ask the Project reads), File Manager uploads, and anything shared with you privately.', action: 'projectDocuments' },
     procurementCard: { icon: '🛒', label: 'Procurement / Vendor Log', desc: 'Purchases and contracts (value, invoiced, paid, key dates, flags) plus the vendor directory.' },
@@ -157,7 +158,7 @@
     // the Tiled view's first row+ mirrors what's pinned at the top of
     // the Dashboard page itself, before the rest of Executive follows.
     { name: 'Executive', ids: ['projectStatusCard', 'projectProgressCard', 'qnaSummaryCard', 'schedulePerformanceCard', 'forecastFinishCard', 'costPerformanceCard', 'projectCharterAction', 'healthScorecardCard', 'ragDistCard', 'needsAttentionCard', 'aiAnalysisCard', 'benefitsRealizationCard', 'glossaryCard'] },
-    { name: 'Schedule', ids: ['executiveRoadmapCard', 'ganttSection', 'schedulePerformanceCard', 'forecastFinishCard', 'burndownCard', 'burnupCard', 'velocityCard', 'cfdCard', 'criticalPathCard', 'dependenciesCard', 'milestoneTrendCard', 'topSlippedCard', 'milestoneSection', 'jiraBacklogCard'] },
+    { name: 'Schedule', ids: ['executiveRoadmapCard', 'ganttSection', 'schedulePerformanceCard', 'forecastFinishCard', 'burndownCard', 'burnupCard', 'velocityCard', 'cfdCard', 'criticalPathCard', 'dependenciesCard', 'milestoneTrendCard', 'topSlippedCard', 'milestoneSection', 'jiraBacklogCard', 'jiraKanbanCard'] },
     { name: 'Financial', ids: ['costPerformanceCard', 'evmCard', 'budgetVsActualCard', 'etcVsEacCard', 'cashFlowCard', 'earnedScheduleCard', 'procurementCard'] },
     { name: 'Quality Control', ids: ['requirementsTraceabilityCard', 'qualityDefectsCard', 'defectTrendCard', 'costOfQualityCard', 'deliverableSignoffCard'] },
     { name: 'Risk', ids: ['assumptionsLogCard', 'constraintsLogCard', 'riskRegisterCard', 'riskHeatMapCard', 'riskExposureTrendCard', 'riskReserveCard', 'issueLogCard', 'stakeholderRegisterCard', 'stakeholderEngagementCard', 'communicationsPlanCard', 'communicationsLogCard', 'healthScorecardCard'] },
