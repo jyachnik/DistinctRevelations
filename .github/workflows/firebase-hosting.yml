@@ -13,13 +13,25 @@ jobs:
       # 1. Check out your code
       - uses: actions/checkout@v3
 
-      # 2. Install Firebase CLI
+      # 2. Install Firebase CLI (version pinned — "latest" silently broke
+      #    this workflow once before, when an intervening firebase-tools
+      #    release stopped accepting the old --token CI auth this
+      #    workflow used to use; a pinned version won't drift again).
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@13
 
-      # 3. Deploy to Firebase Hosting, Firestore rules, and Storage rules
+      # 3. Authenticate as a service account instead of the deprecated
+      #    `firebase login:ci` token — set up once in the Firebase/Google
+      #    Cloud console, stored as the FIREBASE_SERVICE_ACCOUNT repo
+      #    secret (the full JSON key, not just a token string).
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      # 4. Deploy to Firebase Hosting, Firestore rules, and Storage rules
+      #    — firebase-tools picks up the credentials from step 3
+      #    automatically (GOOGLE_APPLICATION_CREDENTIALS), no --token.
       - name: Deploy to Firebase
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          firebase deploy --only hosting,firestore:rules,storage --project distinct-revelations --token "$FIREBASE_TOKEN"
+          firebase deploy --only hosting,firestore:rules,storage --project distinct-revelations
