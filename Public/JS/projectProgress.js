@@ -44,8 +44,6 @@
   }
 
   function init() {
-    console.log(LOG, "init called");
-
     waitForFirebase(function (DR) {
       waitForBusinessKey(function (bizKey) {
         var card = document.getElementById("projectProgressCard");

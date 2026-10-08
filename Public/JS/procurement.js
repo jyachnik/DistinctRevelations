@@ -408,12 +408,38 @@
     var open = status === 'Closed';
     var why = 'Only applies once the record\'s status is "Closed."';
     if (els.pClosureDate) {
-      if (open) { els.pClosureDate.disabled = false; els.pClosureDate.title = ''; }
-      else { els.pClosureDate.value = ''; els.pClosureDate.disabled = true; els.pClosureDate.title = why; }
+      if (open) {
+        if (els.pClosureDate.disabled) {
+          els.pClosureDate.disabled = false;
+          els.pClosureDate.title = '';
+          if (!els.pClosureDate.value && els.pClosureDate.dataset.stash) els.pClosureDate.value = els.pClosureDate.dataset.stash;
+          els.pClosureDate.dataset.stash = '';
+        }
+      } else if (!els.pClosureDate.disabled) {
+        els.pClosureDate.dataset.stash = els.pClosureDate.value;
+        els.pClosureDate.value = '';
+        els.pClosureDate.disabled = true;
+        els.pClosureDate.title = why;
+      } else {
+        els.pClosureDate.title = why;
+      }
     }
     if (els.pClosureConfirmed) {
-      if (open) { els.pClosureConfirmed.disabled = false; els.pClosureConfirmed.title = ''; }
-      else { els.pClosureConfirmed.checked = false; els.pClosureConfirmed.disabled = true; els.pClosureConfirmed.title = why; }
+      if (open) {
+        if (els.pClosureConfirmed.disabled) {
+          els.pClosureConfirmed.disabled = false;
+          els.pClosureConfirmed.title = '';
+          if (!els.pClosureConfirmed.checked && els.pClosureConfirmed.dataset.stash === 'true') els.pClosureConfirmed.checked = true;
+          els.pClosureConfirmed.dataset.stash = '';
+        }
+      } else if (!els.pClosureConfirmed.disabled) {
+        els.pClosureConfirmed.dataset.stash = String(els.pClosureConfirmed.checked);
+        els.pClosureConfirmed.checked = false;
+        els.pClosureConfirmed.disabled = true;
+        els.pClosureConfirmed.title = why;
+      } else {
+        els.pClosureConfirmed.title = why;
+      }
     }
   }
 
@@ -445,6 +471,8 @@
     ['pVendor', 'pType', 'pStatus', 'pRisk', 'pItem'].forEach(function (k) { if (els[k]) els[k].value = ''; });
     if (els.pClosureConfirmed) els.pClosureConfirmed.checked = false;
     moneyInputs().forEach(function (pair) { if (pair[1]) pair[1].dataset.stash = ''; });
+    if (els.pClosureDate) els.pClosureDate.dataset.stash = '';
+    if (els.pClosureConfirmed) els.pClosureConfirmed.dataset.stash = '';
     applyMoneyRules();
     applyClosureRules();
   }
@@ -493,8 +521,8 @@
     // Values are set first, then locked/cleared to match the record's status.
     moneyInputs().forEach(function (pair) { if (pair[1]) { pair[1].disabled = false; pair[1].dataset.stash = ''; } });
     applyMoneyRules();
-    if (els.pClosureDate) { els.pClosureDate.disabled = false; els.pClosureDate.value = toDateInput(r.closureDate); }
-    if (els.pClosureConfirmed) { els.pClosureConfirmed.disabled = false; els.pClosureConfirmed.checked = !!r.finalPaymentConfirmed; }
+    if (els.pClosureDate) { els.pClosureDate.disabled = false; els.pClosureDate.dataset.stash = ''; els.pClosureDate.value = toDateInput(r.closureDate); }
+    if (els.pClosureConfirmed) { els.pClosureConfirmed.disabled = false; els.pClosureConfirmed.dataset.stash = ''; els.pClosureConfirmed.checked = !!r.finalPaymentConfirmed; }
     applyClosureRules();
     els.pAdd.textContent = 'Update';
     els.pCancel.style.display = '';

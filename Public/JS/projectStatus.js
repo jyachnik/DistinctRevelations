@@ -66,8 +66,6 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
         }
       });
     }
-
-    console.log(LOG, "rendered status:", meta);
   }
 
   function waitForFirebase(cb) {
@@ -94,8 +92,6 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
   }
 
   function init() {
-    console.log(LOG, "init called");
-
     waitForFirebase(function (DR) {
       waitForBusinessKey(function (bizKey) {
         var user = DR.auth.currentUser || {};
@@ -106,8 +102,6 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
     (OWNER_EMAIL && email === OWNER_EMAIL.toLowerCase()) ||
     OWNER_LIST.map(function (e) { return (e || '').toLowerCase(); })
               .indexOf(email) !== -1;
-
-        console.log(LOG, "context:", { bizKey: bizKey, email: user.email || "", isOwner: isOwner });
 
         var card =
           document.getElementById("projectStatusCard") ||
@@ -124,12 +118,6 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
         var rows = Array.prototype.slice.call(
           card.querySelectorAll(".status-row")
         );
-
-        console.log(LOG, "DOM elements:", {
-          hasCard: !!card,
-          hasLabel: !!labelEl,
-          rowCount: rows.length
-        });
 
         // Read-only for everyone now — no more click-to-set.
         rows.forEach(function (row) {
@@ -159,10 +147,6 @@ var OWNER_LIST = (window.APP_CONFIG && window.APP_CONFIG.OWNERS) || [];
               "";
 
             var code = normalizeStatus(rawStatus);
-            console.log(LOG, "business snapshot:", {
-              rawStatus: rawStatus,
-              normalized: code
-            });
             applyStatusToDOM(card, labelEl, rows, code);
 
             if (lastUpdatedEl) {

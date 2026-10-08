@@ -421,7 +421,6 @@
       console.error(NS, 'Firestore not available');
       return;
     }
-console.log('[filemanager] biz key =', biz);
     ctx.biz = biz;
     // Multi-project cutover — every business always has at least the
     // auto-created 'default' project (dashboard-business-loader.js
@@ -436,7 +435,6 @@ console.log('[filemanager] biz key =', biz);
 
     var col = filesRef();
     col.orderBy('createdAt', 'desc').onSnapshot(function (snap) {
-      console.log('[filemanager] snapshot size =', snap.size); // add this
       var rows = [];
       var users = Object.assign({}, ctx.companyMembers);
       var types = {};

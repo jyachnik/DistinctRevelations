@@ -1,7 +1,10 @@
 /* session-classic.js — resilient bootstrap with Firebase wait */
 /* eslint-disable no-console */
 (function () {
-  const log = (...a) => console.log('[session-classic]', ...a);
+  // Was an always-on console.log — dumped session context to every
+  // visitor's console on every page load. No-op'd rather than deleting
+  // each of its call sites individually.
+  const log = () => {};
   const warn = (...a) => console.warn('[session-classic]', ...a);
 
   // Poll for Firebase Auth (compat or modular)

@@ -505,12 +505,6 @@
     var panel = document.querySelector('.card.activity-panel');
     if (panel) panel.classList.toggle('owner', ctx.isOwner);
 
-    console.log(TAG, 'panel owner flag', {
-      email: ctx.userEmail,
-      isOwner: ctx.isOwner,
-      hasPanel: !!panel
-    });
-
     var col = db
       .collection('businesses')
       .doc(biz)

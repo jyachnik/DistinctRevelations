@@ -1,7 +1,5 @@
 /* /JS/forgot.js */
 
-console.log('[forgot] script loaded');
-
 document.addEventListener('DOMContentLoaded', function () {
   var form = document.getElementById('forgotForm');
   var msg  = document.getElementById('forgotMsg');
@@ -23,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var emailInput = form.querySelector('[name="email"]');
     var email = emailInput ? emailInput.value.trim() : '';
-    console.log('[forgot] submitting', email);
 
     if (!email) {
       setMsg('Please enter your email.');
@@ -41,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     auth.sendPasswordResetEmail(email)
       .then(function () {
-        console.log('[forgot] reset email sent');
         setMsg('Reset email sent.', true);
       })
       .catch(function (err) {

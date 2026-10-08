@@ -7,7 +7,11 @@
   (window.APP_CONFIG && window.APP_CONFIG.OWNER_EMAIL) ||
   window.ownerEmail ||
   '';
-  const L = (...a)=>console.log(TAG, ...a);
+  // Was an always-on console.log — dumped context to every visitor's
+  // console on every page load. No-op'd rather than deleting each of its
+  // call sites individually; W/E (warn/error) are kept, they're real
+  // operational signals, not debug noise.
+  const L = ()=>{};
   const W = (...a)=>console.warn(TAG, ...a);
   const E = (...a)=>console.error(TAG, ...a);
   const $ = (id)=>document.getElementById(id);

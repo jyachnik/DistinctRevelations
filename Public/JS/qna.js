@@ -40,6 +40,16 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
   function $(sel, root) {
     return (root || document).querySelector(sel);
   }
+  // Every other card in this app routes user-supplied text through an esc()
+  // like this before putting it in innerHTML; this file didn't, which left
+  // every Q&A item's type/message/response/assignee/author open to a stored
+  // XSS from any project member (allowed to create a qna item) against
+  // anyone who later views the card, including the owner.
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
 
   // ---------------------------------------------------------------------------
   // DOM references
@@ -209,11 +219,8 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
   // ---------------------------------------------------------------------------
   // Assignees
   // ---------------------------------------------------------------------------
- console.log('[qna] OWNER_EMAIL at load =', OWNER_EMAIL);
- 
   function loadAssignees() {
     if (!assignedSel || !ctx.biz) return;
- console.log('[qna] loadAssignees biz=', ctx.biz, 'owner=', OWNER_EMAIL);
 
     var ref = usersRef();
     if (!ref) return;
@@ -328,7 +335,7 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
 
         var chk =
           '<input type="checkbox" class="qna-done" data-id="' +
-          r.id +
+          esc(r.id) +
           '"' +
           (r.completed ? ' checked' : '') +
           (canMD ? '' : ' disabled title="You don\'t have permission to mark this done"') +
@@ -336,13 +343,13 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
 
         var editBtn =
           '<button type="button" class="edit-btn qna-edit" data-id="' +
-          r.id +
+          esc(r.id) +
           '"' + (canE ? '' : ' disabled aria-disabled="true" title="You can only edit items you created"') +
           '>✏️</button>';
 
         var delBtn =
           '<button type="button" class="delete-btn qna-del" data-id="' +
-          r.id +
+          esc(r.id) +
           '"' + (canD ? '' : ' disabled aria-disabled="true" title="You can only delete items you created"') +
           '>🗑️</button>';
 
@@ -354,24 +361,24 @@ if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.OWNERS) && window.APP_C
 
         return (
           '<tr data-id="' +
-          r.id +
+          esc(r.id) +
           '">' +
           '<td>' +
-          (r.type || '') +
+          esc(r.type) +
           '</td>' +
           '<td>' +
-          (r.message || '') +
+          esc(r.message) +
           '</td>' +
           '<td>' +
-          (r.response || '') +
+          esc(r.response) +
           '</td>' +
           '<td class="qna-responded-cell">' +
           (r.response && r.responseAt
-            ? fmtDate(r.responseAt) + (r.responseBy ? '<div class="qna-response-meta">' + r.responseBy + '</div>' : '')
+            ? fmtDate(r.responseAt) + (r.responseBy ? '<div class="qna-response-meta">' + esc(r.responseBy) + '</div>' : '')
             : (r.response ? '<span class="qna-no-timestamp" title="Responded before this was tracked">—</span>' : '—')) +
           '</td>' +
           '<td>' +
-  (r.assignedTo || '') +
+  esc(r.assignedTo) +
 '</td>' +
           '<td>' +
           dueDisplay +
@@ -711,6 +718,8 @@ function updateStats() {
         rebuildFilters();
         updateStats();      // NEW: drive counts from current rows
         paint();
+      }, function (err) {
+        console.warn(ns, 'listen error (expected if not a project member)', err && err.code);
       });
   }
 
@@ -751,11 +760,6 @@ function updateStats() {
       !!ctx.userEmail &&
       ctx.userEmail.toLowerCase() === OWNER_EMAIL.toLowerCase();
 
-    console.log(ns, 'context:', {
-      biz: ctx.biz,
-      email: ctx.userEmail,
-      isOwner: ctx.isOwner
-    });
   }
 
   // Hides the whole Add form (not just its button) when the current role
@@ -789,8 +793,6 @@ function updateStats() {
   // Init
   // ---------------------------------------------------------------------------
   function init() {
-    console.log(ns, 'init called');
-
     detectContextFromDOM();
     if (!ctx.biz) {
       console.warn(ns, 'no biz context; qna disabled');

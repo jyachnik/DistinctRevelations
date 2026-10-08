@@ -11,11 +11,15 @@ service cloud.firestore {
     }
 
     // Top-level per-user profile / business mapping doc (users/{uid}).
-    // Any signed-in user can read mappings so login can resolve their business;
-    // only the user themself can write their own doc.
+    // Scoped to the signed-in user's own doc, both read and write — this
+    // used to allow ANY signed-in user to read the whole collection (every
+    // user's name/email/phone, across every company) so login could
+    // resolve a non-owner's business mapping client-side. That lookup now
+    // goes through functions/index.js's resolveMyBusinessKey callable
+    // instead (Admin SDK, bypasses rules, but only ever returns the
+    // CALLER's own mapping) — see login-simple.js.
     match /users/{uid} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
+      allow read, create, update, delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     // Global, owner-managed library of reusable prep-checklist tasks

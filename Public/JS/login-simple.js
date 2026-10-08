@@ -11,12 +11,14 @@
     (window.APP_CONFIG && window.APP_CONFIG.OWNERS) ||
     [];
 
-  const L = (...a) => console.log(TAG, ...a);
+  // Was an always-on console.log — dumped context (emails, business keys)
+  // to every visitor's console on every page load. No-op'd rather than
+  // deleting each of its ~15 call sites individually; W/E (warn/error) are
+  // kept, they're real operational signals, not debug noise.
+  const L = () => {};
   const W = (...a) => console.warn(TAG, ...a);
   const E = (...a) => console.error(TAG, ...a);
   const $ = (id) => document.getElementById(id);
-
-  console.log('[login] OWNERS from config =', OWNERS);
 
   // ---------------- helpers ----------------
   function getURLKey(){ try{ return (new URLSearchParams(location.search).get('business')||'').trim(); }catch{return '';} }
@@ -120,16 +122,21 @@ const isOwner = OWNERS.some(
       return;
     }
 
-    // Non-owner
+    // Non-owner — resolved server-side (functions/index.js's
+    // resolveMyBusinessKey) rather than a direct client query. The
+    // users/{uid} collection's read rule is scoped to the signed-in user's
+    // own doc only (see firestore.rules), so a broad client-side lookup
+    // can't work here any more — this callable returns only the caller's
+    // own mapping, looked up by their own verified uid/email server-side.
     let key = urlKey||lsKey;
     if(!key){
       try{
         L('resolving non-owner business mapping …');
-        const byId = await db.collection('users').doc(email).get();
-        if (byId.exists) key = (byId.data()?.businessKey || byId.data()?.business || '').trim();
-        if (!key) {
-          const qs = await db.collection('users').where('email','==',email).limit(1).get();
-          if (!qs.empty) key = (qs.docs[0].data()?.businessKey || qs.docs[0].data()?.business || '').trim();
+        if (window.functions) {
+          const res = await window.functions.httpsCallable('resolveMyBusinessKey')();
+          key = (res?.data?.businessKey || '').trim();
+        } else {
+          W('resolve skipped: firebase-functions-compat SDK not loaded on this page');
         }
       }catch(e){ W('resolve failed:', e?.message||e); }
     }

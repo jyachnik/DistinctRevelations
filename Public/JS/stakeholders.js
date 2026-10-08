@@ -191,7 +191,6 @@
     if (!canView || !tbody) return;
 
     var usingSample = !ctx.rows || !ctx.rows.length;
-    console.log(ns, 'paint', { biz: ctx.biz, proj: ctx.proj, isOwner: ctx.isOwner, realRows: (ctx.rows || []).length, usingSample: usingSample });
     var banner = document.getElementById('stakeholderSampleBanner');
     if (banner) banner.hidden = !usingSample;
     var sourceRows = usingSample ? SAMPLE_STAKEHOLDERS : ctx.rows;

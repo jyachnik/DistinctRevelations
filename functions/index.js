@@ -677,6 +677,42 @@ exports.resolveMemberUid = onCall({ timeoutSeconds: 15 }, async (request) => {
   }
 });
 
+// Login (Public/JS/login-simple.js) needs a non-owner's businessKey mapping
+// right after sign-in, from users/{uid} (createCompanyAccount above writes
+// that doc keyed by uid). firestore.rules used to let any signed-in user
+// read the WHOLE users collection so the client could look this up itself —
+// a real cross-tenant leak (every user's name/email/phone, for every
+// company, readable by anyone signed in). That rule is now scoped to
+// request.auth.uid == uid (self only), so this callable does the lookup
+// server-side instead: Admin SDK bypasses rules, but the result returned is
+// still just the CALLER's own businessKey, never anyone else's data. Falls
+// back to a doc/query lookup by the caller's own verified email (never a
+// client-supplied one) for any pre-existing account whose users/ doc
+// predates the uid-keyed convention.
+exports.resolveMyBusinessKey = onCall({ timeoutSeconds: 15 }, async (request) => {
+  if (!request.auth || !request.auth.token) throw new HttpsError('unauthenticated', 'Please sign in.');
+  const uid = request.auth.uid;
+  const email = (request.auth.token.email || '').toLowerCase();
+  const db = getFirestore();
+  const keyFrom = (snap) => {
+    if (!snap || !snap.exists) return '';
+    const d = snap.data() || {};
+    return (d.businessKey || d.business || '').trim();
+  };
+  try {
+    let key = keyFrom(await db.collection('users').doc(uid).get());
+    if (!key && email) key = keyFrom(await db.collection('users').doc(email).get());
+    if (!key && email) {
+      const qs = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!qs.empty) key = keyFrom(qs.docs[0]);
+    }
+    return { businessKey: key };
+  } catch (err) {
+    logger.error('resolveMyBusinessKey failed', { uid, err: err && err.message });
+    throw new HttpsError('internal', 'Could not resolve your business.');
+  }
+});
+
 exports.createCompanyAccount = onCall({ timeoutSeconds: 30 }, async (request) => {
   if (!request.auth || !request.auth.token || !OWNERS.includes((request.auth.token.email || '').toLowerCase())) {
     throw new HttpsError('permission-denied', 'Only the Owner can create accounts.');

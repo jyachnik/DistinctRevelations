@@ -42,9 +42,6 @@
   window.firebaseFirestore = firebase.firestore;
   window.fbstore = firebase.storage;
 
-  console.log(TAG, "initialized compat 10.12.2");
-  console.log(TAG, "Storage bound to bucket →", app.options.storageBucket);
-
   // Signal readiness just like your working pattern
   document.dispatchEvent(new Event("firebase-ready"));
   window.dispatchEvent(new Event("firebase-ready"));
