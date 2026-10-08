@@ -144,10 +144,20 @@ async function handleDiscrepancyAnalysis({ db, auth, data, owners, apiKey, fetch
   const resp = await fetchImpl('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    // CONTEXT can run to tens of thousands of tokens (DOC_WORD_BUDGET + DATA_WORD_BUDGET) — the single
+    // biggest cache opportunity in this app. A re-run of this report on the same project (a retry, or
+    // checking after a fix) sends an identical CONTEXT block, so it gets its own cache_control
+    // breakpoint, separate from the trailing instruction so that doesn't invalidate the cached prefix.
     body: JSON.stringify({
       model: MODEL, max_tokens: 8000,
-      system: SYSTEM,
-      messages: [{ role: 'user', content: 'PROJECT: ' + (project.name || 'this project') + '\n\nCONTEXT:\n\n' + context + '\n\nFind the discrepancies.' }]
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: 'PROJECT: ' + (project.name || 'this project') + '\n\nCONTEXT:\n\n' + context, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: '\n\nFind the discrepancies.' }
+        ]
+      }]
     })
   });
   if (!resp.ok) {

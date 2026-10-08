@@ -79,7 +79,17 @@
     // owner) in the rules, not grantable here.
     deliverableSignoffCard: ['Add', 'Edit', 'Delete'],
     // Governs BOTH the purchases and the vendors list on this card.
-    procurementCard: ['Add', 'Edit', 'Delete']
+    procurementCard: ['Add', 'Edit', 'Delete'],
+    // Five Agile-ceremony log cards (Public/JS/simple-log-cards.js /
+    // agile-log-cards.js) — same owner-only-write shape as Baseline Change
+    // above. (Product Vision / Definition of Ready / Definition of Done
+    // are single-document cards with no Add/Edit/Delete to grant, like
+    // Team Charter — no entry here for those three, on purpose.)
+    releasePlanCard: ['Add', 'Edit', 'Delete'],
+    dailyStandupCard: ['Add', 'Edit', 'Delete'],
+    sprintReviewCard: ['Add', 'Edit', 'Delete'],
+    sprintRetroCard: ['Add', 'Edit', 'Delete'],
+    releaseNotesCard: ['Add', 'Edit', 'Delete']
   };
 
   // Actions whose underlying Firestore write is hardcoded owner-only at
@@ -144,7 +154,14 @@
     decisionLogCard: ['add', 'edit', 'delete'],
     dependenciesCard: ['add', 'edit', 'delete'],
     deliverableSignoffCard: ['add', 'edit', 'delete'],
-    procurementCard: ['add', 'edit', 'delete']
+    procurementCard: ['add', 'edit', 'delete'],
+    // Same reasoning — real owner-only writes (firestore.rules's releasePlan/
+    // dailyStandups/sprintReviews/sprintRetros/releaseNotesLog blocks).
+    releasePlanCard: ['add', 'edit', 'delete'],
+    dailyStandupCard: ['add', 'edit', 'delete'],
+    sprintReviewCard: ['add', 'edit', 'delete'],
+    sprintRetroCard: ['add', 'edit', 'delete'],
+    releaseNotesCard: ['add', 'edit', 'delete']
   };
   // Roles that can still be granted an otherwise backend-locked action
   // because the rules genuinely enforce that grant for them.

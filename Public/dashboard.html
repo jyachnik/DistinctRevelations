@@ -132,7 +132,7 @@
   <link rel="stylesheet" href="style/dr-rag.css?v=20260916d"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.2.2/dist/frappe-gantt.css"/>
   <link rel="stylesheet" href="style/gantt.css?v=20260924a"/>
-  <link rel="stylesheet" href="style/metrics.css?v=20260924t"/>
+  <link rel="stylesheet" href="style/metrics.css?v=20261008c"/>
   <link rel="stylesheet" href="style/change-report.css?v=20260916d"/>
   <link rel="stylesheet" href="style/quick-links.css?v=20260924c"/>
   <link rel="stylesheet" href="style/dr-progress.css?v=20260916d"/>
@@ -2341,6 +2341,224 @@ html.gated main { visibility:hidden; }
         <div class="metrics-chart-wrap"><canvas id="jiraTeamWorkloadChart"></canvas></div>
       </section>
 
+      <!-- Product Vision Statement / Definition of Ready / Definition of
+           Done — three single-document Agile artifacts built on the
+           simple-doc-cards.js factory (same shape as Team Charter above).
+           See simple-doc-cards.js / agile-doc-cards.js. -->
+      <section class="card metrics-panel owner-only-card tc-card-centered" id="productVisionCard">
+        <div class="section-header">
+          <h2>🎯 Product Vision Statement</h2>
+          <p class="section-subtext">The problem being solved, the vision for the product, who it's for, and how success will be measured.</p>
+        </div>
+        <p id="pvSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample content — edit and save below to replace it with the real one.
+        </p>
+        <div>
+          <form class="tc-form pv-add-only" onsubmit="return false;">
+            <label>Problem / Opportunity<textarea id="pv-problemStatement" rows="3"></textarea></label>
+            <label>Vision Statement<textarea id="pv-vision" rows="3"></textarea></label>
+            <label>Target Users / Beneficiaries<textarea id="pv-targetUsers" rows="2"></textarea></label>
+            <label>Success Measures<textarea id="pv-successMeasures" rows="3"></textarea></label>
+            <div class="tc-save-row">
+              <button type="button" id="pv-save" class="primary">Save</button>
+              <span id="pv-status" class="doc-share-status"></span>
+            </div>
+          </form>
+          <div class="pv-read-only" id="pvReadOnlyView" style="display:none"></div>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card tc-card-centered" id="definitionOfReadyCard">
+        <div class="section-header">
+          <h2>✅ Definition of Ready</h2>
+          <p class="section-subtext">The bar a backlog item must meet before the team pulls it into a sprint.</p>
+        </div>
+        <p id="dorSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample content — edit and save below to replace it with the real one.
+        </p>
+        <div>
+          <form class="tc-form dor-add-only" onsubmit="return false;">
+            <label>A backlog item is Ready to pull into a sprint when…<textarea id="dor-criteria" rows="6"></textarea></label>
+            <div class="tc-save-row">
+              <button type="button" id="dor-save" class="primary">Save</button>
+              <span id="dor-status" class="doc-share-status"></span>
+            </div>
+          </form>
+          <div class="dor-read-only" id="dorReadOnlyView" style="display:none"></div>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card tc-card-centered" id="definitionOfDoneCard">
+        <div class="section-header">
+          <h2>🏁 Definition of Done</h2>
+          <p class="section-subtext">The bar every increment must meet to be considered complete.</p>
+        </div>
+        <p id="dodSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample content — edit and save below to replace it with the real one.
+        </p>
+        <div>
+          <form class="tc-form dod-add-only" onsubmit="return false;">
+            <label>An increment is Done when…<textarea id="dod-criteria" rows="6"></textarea></label>
+            <div class="tc-save-row">
+              <button type="button" id="dod-save" class="primary">Save</button>
+              <span id="dod-status" class="doc-share-status"></span>
+            </div>
+          </form>
+          <div class="dod-read-only" id="dodReadOnlyView" style="display:none"></div>
+        </div>
+      </section>
+
+      <!-- Release Plan / Daily Stand-up Notes / Sprint Review & Demo Notes /
+           Sprint Retrospective Notes / Release Notes — five log-style
+           Agile artifacts built on the simple-log-cards.js factory. Owner-
+           only writes, sample rows until a real entry exists. See
+           simple-log-cards.js / agile-log-cards.js. -->
+      <section class="card metrics-panel owner-only-card" id="releasePlanCard">
+        <div class="section-header">
+          <h2>🗺️ Release Plan</h2>
+          <p class="section-subtext">Which releases are planned, their target dates, and what's in scope for each.</p>
+        </div>
+        <p id="rpSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — add a release below to replace this.
+        </p>
+        <form class="stakeholder-form rp-form" onsubmit="return false;">
+          <input id="rp-releaseName" type="text" placeholder="Release name" required class="rp-add-only" />
+          <input id="rp-targetDate" type="date" class="rp-add-only" />
+          <select id="rp-status" class="rp-add-only">
+            <option value="">Status</option>
+            <option value="Planned">Planned</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Released">Released</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          <div class="cc-line-break"></div>
+          <textarea id="rp-scopeSummary" placeholder="Scope / items included" class="rp-add-only"></textarea>
+          <button type="button" id="rp-add" class="primary rp-add-only">Add</button>
+          <button type="button" id="rp-cancel-edit" class="qna-cancel-edit-btn rp-add-only" style="display:none;">Cancel</button>
+        </form>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="rpTable">
+            <colgroup>
+              <col class="col-medium" /><col class="col-date" /><col class="col-short" /><col class="col-wide" /><col class="col-narrow" />
+            </colgroup>
+            <thead><tr><th>Release</th><th>Target Date</th><th>Status</th><th class="wrap-text">Scope / Items Included</th><th class="actions">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card" id="dailyStandupCard">
+        <div class="section-header">
+          <h2>☀️ Daily Stand-up Notes</h2>
+          <p class="section-subtext">A brief daily log of progress and blockers.</p>
+        </div>
+        <p id="dsSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — add an entry below to replace this.
+        </p>
+        <form class="stakeholder-form ds-form" onsubmit="return false;">
+          <input id="ds-date" type="date" required class="ds-add-only" />
+          <input id="ds-attendees" type="text" placeholder="Attendees" class="ds-add-only" />
+          <div class="cc-line-break"></div>
+          <textarea id="ds-notes" placeholder="Notes" class="ds-add-only"></textarea>
+          <textarea id="ds-blockers" placeholder="Blockers" class="ds-add-only"></textarea>
+          <button type="button" id="ds-add" class="primary ds-add-only">Add</button>
+          <button type="button" id="ds-cancel-edit" class="qna-cancel-edit-btn ds-add-only" style="display:none;">Cancel</button>
+        </form>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="dsTable">
+            <colgroup>
+              <col class="col-date" /><col class="col-medium" /><col class="col-wide" /><col class="col-wide" /><col class="col-narrow" />
+            </colgroup>
+            <thead><tr><th>Date</th><th>Attendees</th><th class="wrap-text">Notes</th><th class="wrap-text">Blockers</th><th class="actions">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card" id="sprintReviewCard">
+        <div class="section-header">
+          <h2>🎬 Sprint Review / Demo Notes</h2>
+          <p class="section-subtext">What was completed and demoed each sprint, and the stakeholder feedback it got.</p>
+        </div>
+        <p id="srSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — add an entry below to replace this.
+        </p>
+        <form class="stakeholder-form sr-form" onsubmit="return false;">
+          <input id="sr-sprintLabel" type="text" placeholder="Sprint" required class="sr-add-only" />
+          <input id="sr-date" type="date" class="sr-add-only" />
+          <div class="cc-line-break"></div>
+          <textarea id="sr-completedWork" placeholder="What was completed / demoed" class="sr-add-only"></textarea>
+          <textarea id="sr-stakeholderFeedback" placeholder="Stakeholder feedback" class="sr-add-only"></textarea>
+          <button type="button" id="sr-add" class="primary sr-add-only">Add</button>
+          <button type="button" id="sr-cancel-edit" class="qna-cancel-edit-btn sr-add-only" style="display:none;">Cancel</button>
+        </form>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="srTable">
+            <colgroup>
+              <col class="col-medium" /><col class="col-date" /><col class="col-wide" /><col class="col-wide" /><col class="col-narrow" />
+            </colgroup>
+            <thead><tr><th>Sprint</th><th>Date</th><th class="wrap-text">What Was Completed / Demoed</th><th class="wrap-text">Stakeholder Feedback</th><th class="actions">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card" id="sprintRetroCard">
+        <div class="section-header">
+          <h2>🔄 Sprint Retrospective Notes</h2>
+          <p class="section-subtext">What went well, what didn't, and what the team will change next sprint.</p>
+        </div>
+        <p id="rtSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — add an entry below to replace this.
+        </p>
+        <form class="stakeholder-form rt-form" onsubmit="return false;">
+          <input id="rt-sprintLabel" type="text" placeholder="Sprint" required class="rt-add-only" />
+          <input id="rt-date" type="date" class="rt-add-only" />
+          <div class="cc-line-break"></div>
+          <textarea id="rt-whatWentWell" placeholder="What went well" class="rt-add-only"></textarea>
+          <textarea id="rt-whatDidntGoWell" placeholder="What didn't go well" class="rt-add-only"></textarea>
+          <textarea id="rt-actionItems" placeholder="Action items for next sprint" class="rt-add-only"></textarea>
+          <button type="button" id="rt-add" class="primary rt-add-only">Add</button>
+          <button type="button" id="rt-cancel-edit" class="qna-cancel-edit-btn rt-add-only" style="display:none;">Cancel</button>
+        </form>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="rtTable">
+            <colgroup>
+              <col class="col-medium" /><col class="col-date" /><col class="col-wide" /><col class="col-wide" /><col class="col-wide" /><col class="col-narrow" />
+            </colgroup>
+            <thead><tr><th>Sprint</th><th>Date</th><th class="wrap-text">What Went Well</th><th class="wrap-text">What Didn't Go Well</th><th class="wrap-text">Action Items</th><th class="actions">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card metrics-panel owner-only-card" id="releaseNotesCard">
+        <div class="section-header">
+          <h2>📣 Release Notes</h2>
+          <p class="section-subtext">What shipped in each release, written for stakeholders.</p>
+        </div>
+        <p id="rnSampleBanner" class="metrics-sample-banner" hidden>
+          Showing sample data — add an entry below to replace this.
+        </p>
+        <form class="stakeholder-form rn-form" onsubmit="return false;">
+          <input id="rn-releaseLabel" type="text" placeholder="Release / version" required class="rn-add-only" />
+          <input id="rn-date" type="date" class="rn-add-only" />
+          <div class="cc-line-break"></div>
+          <textarea id="rn-summary" placeholder="What shipped" class="rn-add-only"></textarea>
+          <button type="button" id="rn-add" class="primary rn-add-only">Add</button>
+          <button type="button" id="rn-cancel-edit" class="qna-cancel-edit-btn rn-add-only" style="display:none;">Cancel</button>
+        </form>
+        <div class="metrics-table-wrap risk-assumptions-table-wrap">
+          <table id="rnTable">
+            <colgroup>
+              <col class="col-medium" /><col class="col-date" /><col class="col-wide" /><col class="col-narrow" />
+            </colgroup>
+            <thead><tr><th>Release / Version</th><th>Date</th><th class="wrap-text">What Shipped</th><th class="actions">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Deliverable / Milestone Sign-off — formal client acceptance. Items
            are created/edited per the Permissions matrix; the decision is
            recorded by the Client Partner (or the owner), once per round, and
@@ -2495,6 +2713,7 @@ html.gated main { visibility:hidden; }
             <span class="severity-legend-item"><span class="severity-badge severity-medium">Expires in Nd</span> contract ends within 30 days</span>
             <span class="severity-legend-item"><span class="severity-badge severity-high">Contract expired</span> end date passed, still Contracted</span>
             <span class="severity-legend-item"><span class="severity-badge severity-high">Over contract value</span> invoiced or paid exceeds the contract</span>
+            <span class="severity-legend-item"><span class="severity-badge severity-medium">Closed, payment not confirmed</span> status is Closed but final payment isn't confirmed yet</span>
           </div>
 
           <form class="stakeholder-form pc-form" onsubmit="return false;">
@@ -2502,7 +2721,7 @@ html.gated main { visibility:hidden; }
             <select id="pc-vendor" class="pc-add-only"><option value="">Vendor: pick from directory…</option></select>
             <input id="pc-vendor-text" type="text" placeholder="…or type a vendor name" class="pc-add-only" />
             <select id="pc-type" class="pc-add-only"></select>
-            <select id="pc-status" class="pc-add-only"></select>
+            <select id="pc-purchase-status" class="pc-add-only"></select>
             <div class="cc-line-break"></div>
             <input id="pc-value" type="number" step="any" min="0" placeholder="Contract value ($)" class="pc-add-only" />
             <input id="pc-invoiced" type="number" step="any" min="0" placeholder="Invoiced ($)" class="pc-add-only" />
@@ -2511,6 +2730,8 @@ html.gated main { visibility:hidden; }
             <label class="pc-lbl pc-add-only">Contract start <input id="pc-start" type="date" /></label>
             <label class="pc-lbl pc-add-only">Contract end <input id="pc-end" type="date" /></label>
             <label class="pc-lbl pc-add-only">Delivery due <input id="pc-delivery" type="date" /></label>
+            <label class="pc-lbl pc-add-only">Closure date <input id="pc-closuredate" type="date" /></label>
+            <label class="pc-lbl pc-add-only"><input id="pc-closure-confirmed" type="checkbox" /> Final payment confirmed</label>
             <div class="cc-line-break"></div>
             <select id="pc-risk" class="pc-add-only"><option value="">Linked risk (optional)</option></select>
             <select id="pc-task" class="pc-add-only"><option value="">Linked task/milestone (optional)</option></select>
@@ -2535,6 +2756,7 @@ html.gated main { visibility:hidden; }
                 <col class="col-short" /><col class="col-short" /><col class="col-short" />
                 <col class="col-short" /><col class="col-short" /><col class="col-date" />
                 <col class="col-date" /><col class="col-date" /><col class="col-date" />
+                <col class="col-date" /><col class="col-short" />
                 <col class="pc-col-flags" /><col class="pc-col-flags" /><col class="col-narrow" />
                 <col class="col-wide" /><col class="pc-col-actions" />
               </colgroup>
@@ -2544,6 +2766,7 @@ html.gated main { visibility:hidden; }
                   <th data-sort="status">Status</th><th data-sort="contractValue">Contract Value</th><th data-sort="invoicedAmount">Invoiced</th>
                   <th data-sort="paidAmount">Paid</th><th data-sort="balance">Balance</th><th data-sort="needByDate">Need-By</th>
                   <th data-sort="contractStart">Start</th><th data-sort="contractEnd">End</th><th data-sort="deliveryDue">Delivery Due</th>
+                  <th data-sort="closureDate">Closure Date</th><th data-sort="finalPaymentConfirmed">Payment Confirmed</th>
                   <th data-sort="flags">Flags</th><th>Linked</th><th>Contract</th>
                   <th class="wrap-text">Notes</th><th class="actions">Actions</th>
                 </tr>
@@ -3398,6 +3621,12 @@ window.onFirebaseReady = window.onFirebaseReady || (function(){
       });
       loadScript('./JS/signoff.js');
       loadScript('./JS/procurement.js');
+      // Each factory must FINISH loading before the cards built on it start
+      // (same loadScript-onload-chaining reasoning as jiraData.js above —
+      // dynamically-inserted <script> tags aren't guaranteed to execute in
+      // call order).
+      loadScript('./JS/simple-doc-cards.js', function () { loadScript('./JS/agile-doc-cards.js'); });
+      loadScript('./JS/simple-log-cards.js', function () { loadScript('./JS/agile-log-cards.js'); });
       loadScript('./JS/report-charts.js');
       loadScript('./JS/docx-writer.js');
       loadScript('./JS/status-report.js');

@@ -110,6 +110,14 @@
     jiraVelocityCard: { icon: '🏃', label: 'Jira Velocity', desc: 'Points completed per closed sprint, and the running average.' },
     jiraEpicProgressCard: { icon: '🎯', label: 'Jira Epic Progress', desc: 'Percent of each epic\'s work done, by story points.' },
     jiraTeamWorkloadCard: { icon: '👥', label: 'Jira Team Workload', desc: 'Open (not-Done) story points per assignee.' },
+    productVisionCard: { icon: '🎯', label: 'Product Vision Statement', desc: 'The problem being solved, the vision, who it\'s for, and how success is measured.' },
+    definitionOfReadyCard: { icon: '✅', label: 'Definition of Ready', desc: 'The bar a backlog item must meet before the team pulls it into a sprint.' },
+    definitionOfDoneCard: { icon: '🏁', label: 'Definition of Done', desc: 'The bar every increment must meet to be considered complete.' },
+    releasePlanCard: { icon: '🗺️', label: 'Release Plan', desc: 'Which releases are planned, their target dates, and what\'s in scope for each.' },
+    dailyStandupCard: { icon: '☀️', label: 'Daily Stand-up Notes', desc: 'A brief daily log of progress and blockers.' },
+    sprintReviewCard: { icon: '🎬', label: 'Sprint Review / Demo Notes', desc: 'What was completed and demoed each sprint, and the stakeholder feedback it got.' },
+    sprintRetroCard: { icon: '🔄', label: 'Sprint Retrospective Notes', desc: 'What went well, what didn\'t, and what the team will change next sprint.' },
+    releaseNotesCard: { icon: '📣', label: 'Release Notes', desc: 'What shipped in each release, written for stakeholders.' },
     communicationsPlanCard: { icon: '📣', label: 'Communications Plan', desc: 'Who gets told what, how often, and by what channel.' },
     documentRegisterCard: { icon: '🗂️', label: 'Project Documents', desc: 'Every document on the project — imported plans and registers (also what Ask the Project reads), File Manager uploads, and anything shared with you privately.', action: 'projectDocuments' },
     procurementCard: { icon: '🛒', label: 'Procurement / Vendor Log', desc: 'Purchases and contracts (value, invoiced, paid, key dates, flags) plus the vendor directory.' },
@@ -162,7 +170,7 @@
     // the Tiled view's first row+ mirrors what's pinned at the top of
     // the Dashboard page itself, before the rest of Executive follows.
     { name: 'Executive', ids: ['projectStatusCard', 'projectProgressCard', 'qnaSummaryCard', 'schedulePerformanceCard', 'forecastFinishCard', 'costPerformanceCard', 'projectCharterCard', 'healthScorecardCard', 'ragDistCard', 'needsAttentionCard', 'aiAnalysisCard', 'benefitsRealizationCard', 'glossaryCard'] },
-    { name: 'Schedule', ids: ['executiveRoadmapCard', 'ganttSection', 'schedulePerformanceCard', 'forecastFinishCard', 'burndownCard', 'burnupCard', 'velocityCard', 'cfdCard', 'criticalPathCard', 'dependenciesCard', 'milestoneTrendCard', 'topSlippedCard', 'milestoneSection', 'jiraBacklogCard', 'jiraKanbanCard', 'jiraSprintBurndownCard', 'jiraVelocityCard', 'jiraEpicProgressCard', 'jiraTeamWorkloadCard'] },
+    { name: 'Schedule', ids: ['executiveRoadmapCard', 'ganttSection', 'schedulePerformanceCard', 'forecastFinishCard', 'burndownCard', 'burnupCard', 'velocityCard', 'cfdCard', 'criticalPathCard', 'dependenciesCard', 'milestoneTrendCard', 'topSlippedCard', 'milestoneSection', 'jiraBacklogCard', 'jiraKanbanCard', 'jiraSprintBurndownCard', 'jiraVelocityCard', 'jiraEpicProgressCard', 'jiraTeamWorkloadCard', 'productVisionCard', 'definitionOfReadyCard', 'definitionOfDoneCard', 'releasePlanCard', 'dailyStandupCard', 'sprintReviewCard', 'sprintRetroCard', 'releaseNotesCard'] },
     { name: 'Financial', ids: ['costPerformanceCard', 'evmCard', 'budgetVsActualCard', 'etcVsEacCard', 'cashFlowCard', 'earnedScheduleCard', 'procurementCard'] },
     { name: 'Quality Control', ids: ['requirementsTraceabilityCard', 'qualityDefectsCard', 'defectTrendCard', 'costOfQualityCard', 'deliverableSignoffCard'] },
     { name: 'Risk', ids: ['assumptionsLogCard', 'constraintsLogCard', 'riskRegisterCard', 'riskHeatMapCard', 'riskExposureTrendCard', 'riskReserveCard', 'issueLogCard', 'stakeholderRegisterCard', 'stakeholderEngagementCard', 'communicationsPlanCard', 'communicationsLogCard', 'healthScorecardCard'] },

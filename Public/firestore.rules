@@ -437,6 +437,49 @@ service cloud.firestore {
           allow create, update, delete: if isOwnerEmail();
         }
 
+        // Product Vision Statement / Definition of Ready / Definition of
+        // Done (Public/JS/simple-doc-cards.js, instantiated in
+        // Public/JS/agile-doc-cards.js) — one fixed doc each ("main"), same
+        // owner-only-end-to-end shape as Project Charter above.
+        match /productVision/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /definitionOfReady/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /definitionOfDone/{docId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
+        // Release Plan / Daily Stand-up Notes / Sprint Review & Demo Notes /
+        // Sprint Retrospective Notes / Release Notes (Public/JS/simple-log-
+        // cards.js, instantiated in Public/JS/agile-log-cards.js) — same
+        // owner-only-write shape as Stakeholder Register/Team Directory
+        // above; any project member can read.
+        match /releasePlan/{itemId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /dailyStandups/{itemId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /sprintReviews/{itemId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /sprintRetros/{itemId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+        match /releaseNotesLog/{itemId} {
+          allow read: if isOwnerOrProjectMember(biz, proj);
+          allow create, update, delete: if isOwnerEmail();
+        }
+
         // Deliverable / Milestone Sign-off (Public/JS/signoff.js). Items are
         // created and edited per the Permissions matrix (like the Decision
         // Log) but ALWAYS start pending — nobody can create an item that's

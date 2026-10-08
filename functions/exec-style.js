@@ -63,12 +63,22 @@ const EXEC_ANALYSIS_SPEC =
 // if it fails the technical analysis is still saved). It sees the same facts and records, plus the
 // technical analysis' findings, and is held to the same grounding rules.
 const EXEC_MODEL = 'claude-sonnet-5';
-function buildExecPrompt({ cardFactsStr, recordsStr, analysis }) {
-  return 'You write the executive briefing layer of a project dashboard. Below are (1) CARD_FACTS — sentences already shown on the dashboard, computed ' +
+
+// instructions: fixed wording, identical on every call. data: this call's actual facts/records —
+// kept separate so the caller can give `instructions` its own cache_control breakpoint without it
+// being invalidated by `data`, which is different every time.
+function buildExecPromptParts({ cardFactsStr, recordsStr, analysis }) {
+  const instructions = 'You write the executive briefing layer of a project dashboard. Below are (1) CARD_FACTS — sentences already shown on the dashboard, computed ' +
     'deterministically and correct; (2) RAW_RECORDS — the underlying project data; (3) ANALYST_NOTES — what the technical analysis found (useful pointers, but any ' +
     'claim you make must still be supported by CARD_FACTS or RAW_RECORDS).' + EXEC_ANALYSIS_SPEC.replace('ALSO produce these two keys (in the same JSON object)', 'Produce a JSON object with exactly these two keys') +
-    '\n\nReturn ONLY the JSON object, no preamble or code fences.\n\nCARD_FACTS:\n' + cardFactsStr +
-    '\n\nANALYST_NOTES:\n' + JSON.stringify(analysis) + '\n\nRAW_RECORDS:\n' + recordsStr;
+    '\n\nReturn ONLY the JSON object, no preamble or code fences.';
+  const data = '\n\nCARD_FACTS:\n' + cardFactsStr + '\n\nANALYST_NOTES:\n' + JSON.stringify(analysis) + '\n\nRAW_RECORDS:\n' + recordsStr;
+  return { instructions, data };
+}
+
+function buildExecPrompt(args) {
+  const { instructions, data } = buildExecPromptParts(args);
+  return instructions + data;
 }
 
 const str = (v, max) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim().slice(0, max);
@@ -98,4 +108,4 @@ const ASK_EXEC_RULES =
   '(business impact, exposure, decision or support needed). Keep the [n] citations on the facts you use. Add no recommendation or instruction the context does not contain. If the question needs task-level detail ' +
   'the context contains, summarise it and say a detailed answer is available.';
 
-module.exports = { EXEC_MODEL, buildExecPrompt, EXEC_ID, DETAIL_ID, resolveStyle, EXEC_VOICE, EXEC_ANALYSIS_SPEC, sanitizeExecutive, sanitizeCardTextExec, ASK_EXEC_RULES };
+module.exports = { EXEC_MODEL, buildExecPrompt, buildExecPromptParts, EXEC_ID, DETAIL_ID, resolveStyle, EXEC_VOICE, EXEC_ANALYSIS_SPEC, sanitizeExecutive, sanitizeCardTextExec, ASK_EXEC_RULES };

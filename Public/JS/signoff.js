@@ -1,7 +1,10 @@
 /* ============================================================================
-   Deliverable / Milestone Sign-off — formal client acceptance of a milestone
-   or deliverable: acceptance criteria, a due date, and a recorded decision
-   (Accepted / Accepted with conditions / Rejected) with who and when.
+   Deliverable / Milestone Sign-off — formal client acceptance of a milestone,
+   deliverable, or the project's Final Acceptance (PMI's "Final Stakeholder
+   Acceptance" — sponsor/client sign-off that the final product/result as a
+   whole is accepted, not tied to any one milestone): acceptance criteria, a
+   due date, and a recorded decision (Accepted / Accepted with conditions /
+   Rejected) with who and when.
    Items are created/edited per the Permissions matrix (like decisionLog.js);
    the DECISION is role-based — the Client Partner (or the owner) records it,
    once per round. A rejected / conditionally accepted item can be resubmitted,
@@ -35,7 +38,7 @@
     OWNER_EMAIL = window.ownerEmail;
   }
 
-  var KINDS = ['Milestone', 'Deliverable'];
+  var KINDS = ['Milestone', 'Deliverable', 'Final Acceptance'];
   var DECISION_LABEL = { pending: 'Pending', accepted: 'Accepted', conditional: 'Accepted with Conditions', rejected: 'Rejected' };
   var STATUS_LABELS = ['Pending', 'Accepted', 'Accepted with Conditions', 'Rejected'];
 
@@ -46,7 +49,8 @@
     { id: 'sample-1', title: 'Design approval', kind: 'Milestone', linkedItemTitle: 'Design approval', dueDate: daysFromNow(-4), decision: 'pending', round: 1, history: [], acceptanceCriteria: 'Client signs off the final visual design and page templates.', evidenceUrl: '', decisionComment: '' },
     { id: 'sample-2', title: 'Requirements sign-off', kind: 'Milestone', linkedItemTitle: 'Requirements sign-off', dueDate: daysFromNow(-60), decision: 'accepted', decidedBy: 'partner@client.com', decidedAt: daysFromNow(-58), decisionComment: 'Approved as presented.', round: 1, history: [], acceptanceCriteria: 'Signed requirements document, no open questions.', evidenceUrl: '' },
     { id: 'sample-3', title: 'Content migration complete', kind: 'Deliverable', linkedItemTitle: '', dueDate: daysFromNow(10), decision: 'conditional', decidedBy: 'partner@client.com', decidedAt: daysFromNow(-1), decisionComment: 'Accepted once the 12 broken image links are fixed.', round: 1, history: [], acceptanceCriteria: 'All approved pages live with working links and images.', evidenceUrl: '' },
-    { id: 'sample-4', title: 'User acceptance test report', kind: 'Deliverable', linkedItemTitle: '', dueDate: daysFromNow(21), decision: 'pending', round: 2, history: [{ round: 1, decision: 'rejected', comment: 'Test coverage missing for mobile.', decidedBy: 'partner@client.com', decidedAt: daysFromNow(-9) }], acceptanceCriteria: 'Report covers desktop and mobile, with all defects triaged.', evidenceUrl: '', decisionComment: '' }
+    { id: 'sample-4', title: 'User acceptance test report', kind: 'Deliverable', linkedItemTitle: '', dueDate: daysFromNow(21), decision: 'pending', round: 2, history: [{ round: 1, decision: 'rejected', comment: 'Test coverage missing for mobile.', decidedBy: 'partner@client.com', decidedAt: daysFromNow(-9) }], acceptanceCriteria: 'Report covers desktop and mobile, with all defects triaged.', evidenceUrl: '', decisionComment: '' },
+    { id: 'sample-5', title: 'Final project acceptance', kind: 'Final Acceptance', linkedItemTitle: '', dueDate: daysFromNow(45), decision: 'pending', round: 1, history: [], acceptanceCriteria: 'All deliverables accepted, outstanding punch-list items closed, and final documentation handed over.', evidenceUrl: '', decisionComment: '' }
   ];
 
   // ---------------------------------------------------------------------

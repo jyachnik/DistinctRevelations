@@ -452,6 +452,36 @@ test('team charter: owner writes; a member can read but not create/update/delete
   await assertSucceeds(deleteDoc(doc(ownerCtx().firestore(), path)));
 });
 
+for (const col of ['productVision', 'definitionOfReady', 'definitionOfDone']) {
+  test(col + ': owner writes; a member can read but not create/update/delete; a non-member cannot read', async () => {
+    await seed();
+    const path = 'businesses/biz-a/projects/proj-1/' + col + '/main';
+    await assertSucceeds(setDoc(doc(ownerCtx().firestore(), path), { criteria: 'v1' }));
+    await assertSucceeds(getDoc(doc(memberCtx().firestore(), path)));
+    await assertFails(getDoc(doc(outsiderCtx().firestore(), path)));
+    await assertFails(setDoc(doc(memberCtx().firestore(), path), { criteria: 'Hijacked' }));
+    await assertFails(updateDoc(doc(memberCtx().firestore(), path), { criteria: 'Hijacked' }));
+    await assertFails(deleteDoc(doc(memberCtx().firestore(), path)));
+    await assertSucceeds(updateDoc(doc(ownerCtx().firestore(), path), { criteria: 'v2' }));
+    await assertSucceeds(deleteDoc(doc(ownerCtx().firestore(), path)));
+  });
+}
+
+for (const col of ['releasePlan', 'dailyStandups', 'sprintReviews', 'sprintRetros', 'releaseNotesLog']) {
+  test(col + ': owner writes; a member can read but not create/update/delete; a non-member cannot read', async () => {
+    await seed();
+    const path = 'businesses/biz-a/projects/proj-1/' + col + '/item1';
+    await assertSucceeds(setDoc(doc(ownerCtx().firestore(), path), { label: 'Entry 1' }));
+    await assertSucceeds(getDoc(doc(memberCtx().firestore(), path)));
+    await assertFails(getDoc(doc(outsiderCtx().firestore(), path)));
+    await assertFails(setDoc(doc(memberCtx().firestore(), 'businesses/biz-a/projects/proj-1/' + col + '/item2'), { label: 'Nope' }));
+    await assertFails(updateDoc(doc(memberCtx().firestore(), path), { label: 'Hijacked' }));
+    await assertFails(deleteDoc(doc(memberCtx().firestore(), path)));
+    await assertSucceeds(updateDoc(doc(ownerCtx().firestore(), path), { label: 'Entry 1 (revised)' }));
+    await assertSucceeds(deleteDoc(doc(ownerCtx().firestore(), path)));
+  });
+}
+
 test('baseline changes: owner writes; a member can read but not create/update/delete; a non-member cannot read', async () => {
   await seed();
   const path = 'businesses/biz-a/projects/proj-1/baselineChanges/bc1';

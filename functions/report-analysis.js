@@ -221,7 +221,10 @@ async function handleReportAnalysis({ db, auth, data, owners, apiKey, fetchImpl,
   const resp = await fetchImpl('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 4000, thinking: { type: 'disabled' }, system: SYSTEM, messages: [{ role: 'user', content: buildPrompt(data.projectName, sections, charts) }] })
+    // SYSTEM is identical on every call (it's static instructions, never the report's own data), so it
+    // gets a cache_control breakpoint — cheap insurance even though it's short enough that a single call
+    // alone may fall under the provider's minimum cacheable size.
+    body: JSON.stringify({ model: MODEL, max_tokens: 4000, thinking: { type: 'disabled' }, system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: buildPrompt(data.projectName, sections, charts) }] })
   });
   if (!resp.ok) {
     let detail = ''; try { detail = (await resp.text()).slice(0, 300); } catch (e) { /* ignore */ }

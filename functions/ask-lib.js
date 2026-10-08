@@ -234,8 +234,23 @@ function buildPrompt({ project, question, history, sections, dataBlocks, style }
   });
   const prior = (history || []).filter((h) => h && (h.role === 'user' || h.role === 'assistant') && h.content).slice(-6)
     .map((h) => ({ role: h.role, content: String(h.content).slice(0, 2000) }));
-  const messages = prior.concat([{ role: 'user', content: 'CONTEXT:\n\n' + parts.join('\n\n') + '\n\nQUESTION: ' + String(question).slice(0, 1000) }]);
-  return { system: SYSTEM(project) + (style === 'executive' ? ' ' + require('./exec-style').ASK_EXEC_RULES : ''), messages, sources };
+  // The CONTEXT block (documents + live data) is usually the largest part of the request and the
+  // most likely to recur verbatim — a follow-up question in the same conversation, or a retry, often
+  // retrieves the identical sections. It gets its own cache_control breakpoint, separate from the
+  // (always-different) question text that follows it, so a cache hit on CONTEXT isn't invalidated by
+  // a new question. Anthropic silently ignores cache_control on a block below its minimum token size,
+  // so this is harmless even when the block is too small to actually cache.
+  const messages = prior.concat([{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'CONTEXT:\n\n' + parts.join('\n\n'), cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: '\n\nQUESTION: ' + String(question).slice(0, 1000) }
+    ]
+  }]);
+  // The system prompt is identical for every question asked about the same project (modulo the
+  // executive-wording addendum), so it's cached too — low value on its own (it's short), but free.
+  const system = [{ type: 'text', text: SYSTEM(project) + (style === 'executive' ? ' ' + require('./exec-style').ASK_EXEC_RULES : ''), cache_control: { type: 'ephemeral' } }];
+  return { system, messages, sources };
 }
 
 function citedSources(answer, sources) {

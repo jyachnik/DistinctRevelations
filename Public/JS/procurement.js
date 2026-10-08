@@ -14,8 +14,15 @@
    Firestore: businesses/{biz}/projects/{proj}/purchases/{doc}
      item, vendorId, vendorName, contractType, status, contractValue,
      invoicedAmount, paidAmount, needByDate, contractStart, contractEnd,
-     deliveryDue, contractUrl, notes, linkedRiskId/Title, linkedItemId/Title
+     deliveryDue, closureDate, finalPaymentConfirmed, contractUrl, notes,
+     linkedRiskId/Title, linkedItemId/Title
    (both also: createdAt/By/ByUid, updatedAt/By)
+
+   closureDate/finalPaymentConfirmed are this card's "Procurement Closure
+   Documentation" — PMI's formal per-vendor closure record (deliverables
+   accepted, final payment made). They only apply once status is "Closed"
+   (see applyClosureRules) — set them any other time and they're cleared on
+   save, same discipline applyMoneyRules already uses for the dollar fields.
    ============================================================================ */
 
 (function () {
@@ -59,7 +66,8 @@
     { id: 'sample-p1', item: 'Managed hosting — 12 months', vendorName: 'Northwind Hosting', contractType: 'Subscription', status: 'Contracted', contractValue: 48000, invoicedAmount: 24000, paidAmount: 24000, needByDate: daysFromNow(-20), contractStart: daysFromNow(-90), contractEnd: daysFromNow(20), deliveryDue: daysFromNow(-60), contractUrl: '', notes: 'Renewal decision due before end date.', linkedRiskTitle: '', linkedItemTitle: '' },
     { id: 'sample-p2', item: 'Build-out construction', vendorName: 'Summit Build Co.', contractType: 'Fixed Price', status: 'Contracted', contractValue: 220000, invoicedAmount: 245000, paidAmount: 190000, needByDate: daysFromNow(-30), contractStart: daysFromNow(-120), contractEnd: daysFromNow(90), deliveryDue: daysFromNow(-5), contractUrl: '', notes: 'Change orders pushed invoiced above the contract.', linkedRiskTitle: 'Vendor may delay construction start', linkedItemTitle: 'Construction' },
     { id: 'sample-p3', item: 'Change-management workshops', vendorName: 'BrightPath Consulting', contractType: 'Time & Materials', status: 'Selected', contractValue: 30000, invoicedAmount: 0, paidAmount: 0, needByDate: daysFromNow(14), contractStart: daysFromNow(21), contractEnd: daysFromNow(120), deliveryDue: daysFromNow(60), contractUrl: '', notes: '', linkedRiskTitle: '', linkedItemTitle: '' },
-    { id: 'sample-p4', item: 'Network switches', vendorName: 'Northwind Hosting', contractType: 'Purchase Order', status: 'Delivered', contractValue: 12500, invoicedAmount: 12500, paidAmount: 12500, needByDate: daysFromNow(-45), contractStart: null, contractEnd: null, deliveryDue: daysFromNow(-40), contractUrl: '', notes: '', linkedRiskTitle: '', linkedItemTitle: '' }
+    { id: 'sample-p4', item: 'Network switches', vendorName: 'Northwind Hosting', contractType: 'Purchase Order', status: 'Delivered', contractValue: 12500, invoicedAmount: 12500, paidAmount: 12500, needByDate: daysFromNow(-45), contractStart: null, contractEnd: null, deliveryDue: daysFromNow(-40), contractUrl: '', notes: '', linkedRiskTitle: '', linkedItemTitle: '' },
+    { id: 'sample-p5', item: 'Site survey & permitting', vendorName: 'Summit Build Co.', contractType: 'Fixed Price', status: 'Closed', contractValue: 18000, invoicedAmount: 18000, paidAmount: 18000, needByDate: daysFromNow(-150), contractStart: daysFromNow(-160), contractEnd: daysFromNow(-100), deliveryDue: daysFromNow(-105), closureDate: daysFromNow(-98), finalPaymentConfirmed: true, contractUrl: '', notes: 'Closed out — final deliverables accepted and final invoice paid in full.', linkedRiskTitle: '', linkedItemTitle: '' }
   ];
 
   // ---------------------------------------------------------------------
@@ -160,6 +168,9 @@
     var value = moneyOf(p, 'contractValue');
     if (value != null && value > 0 && ((moneyOf(p, 'invoicedAmount') || 0) > value || (moneyOf(p, 'paidAmount') || 0) > value)) {
       flags.push({ text: 'Over contract value', cls: 'severity-high' });
+    }
+    if (st === 'Closed' && !p.finalPaymentConfirmed) {
+      flags.push({ text: 'Closed, payment not confirmed', cls: 'severity-medium' });
     }
     return flags;
   }
@@ -277,7 +288,8 @@
   function pSortValue(r, key) {
     if (['contractValue', 'invoicedAmount', 'paidAmount'].indexOf(key) !== -1) return moneyOf(r, key) == null ? -Infinity : moneyOf(r, key);
     if (key === 'balance') { var b = balanceOf(r); return b == null ? -Infinity : b; }
-    if (['needByDate', 'contractStart', 'contractEnd', 'deliveryDue'].indexOf(key) !== -1) { var d = toDate(r[key]); return d ? d.getTime() : Number.MAX_SAFE_INTEGER; }
+    if (['needByDate', 'contractStart', 'contractEnd', 'deliveryDue', 'closureDate'].indexOf(key) !== -1) { var d = toDate(r[key]); return d ? d.getTime() : Number.MAX_SAFE_INTEGER; }
+    if (key === 'finalPaymentConfirmed') return r.finalPaymentConfirmed ? 1 : 0;
     if (key === 'vendorName') return vendorNameFor(r).toLowerCase();
     if (key === 'flags') return flagsOf(r).length;
     return String(r[key] || '').toLowerCase();
@@ -302,7 +314,7 @@
     markSorted('purchasesTable', ctx.pSort);
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="17" class="metrics-empty">No purchases match the selected filters.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="19" class="metrics-empty">No purchases match the selected filters.</td></tr>';
     } else {
       tbody.innerHTML = pageRows.map(function (r) {
         var bal = balanceOf(r);
@@ -324,6 +336,8 @@
           '<td>' + esc(fmtDate(r.contractStart)) + '</td>' +
           '<td>' + esc(fmtDate(r.contractEnd)) + '</td>' +
           '<td>' + esc(fmtDate(r.deliveryDue)) + '</td>' +
+          '<td>' + (r.status === 'Closed' ? esc(fmtDate(r.closureDate)) : '—') + '</td>' +
+          '<td>' + (r.status === 'Closed' ? (r.finalPaymentConfirmed ? '✓' : '—') : '—') + '</td>' +
           '<td>' + flags + '</td>' +
           '<td>' + (linked.length ? linked.join('<br>') : '—') + '</td>' +
           '<td>' + safeLink(r.contractUrl) + '</td>' +
@@ -385,6 +399,24 @@
     });
   }
 
+  // Closure documentation (closure date, final-payment confirmation) only means
+  // anything once the record is actually Closed — locked otherwise, same
+  // discipline as applyMoneyRules above, so a stale date/checkbox left over
+  // from a status that was later reverted never shows or saves.
+  function applyClosureRules() {
+    var status = els.pStatus.value || 'Planned';
+    var open = status === 'Closed';
+    var why = 'Only applies once the record\'s status is "Closed."';
+    if (els.pClosureDate) {
+      if (open) { els.pClosureDate.disabled = false; els.pClosureDate.title = ''; }
+      else { els.pClosureDate.value = ''; els.pClosureDate.disabled = true; els.pClosureDate.title = why; }
+    }
+    if (els.pClosureConfirmed) {
+      if (open) { els.pClosureConfirmed.disabled = false; els.pClosureConfirmed.title = ''; }
+      else { els.pClosureConfirmed.checked = false; els.pClosureConfirmed.disabled = true; els.pClosureConfirmed.title = why; }
+    }
+  }
+
   function readPurchaseForm() {
     var vendor = ctx.vendors.find(function (v) { return v.id === (els.pVendor && els.pVendor.value); });
     var risk = ctx.risks.find(function (r) { return r.id === (els.pRisk && els.pRisk.value); });
@@ -400,17 +432,21 @@
       invoicedAmount: els.pInvoiced.disabled ? null : num(els.pInvoiced.value),
       paidAmount: els.pPaid.disabled ? null : num(els.pPaid.value),
       needByDate: dateVal(els.pNeedBy), contractStart: dateVal(els.pStart), contractEnd: dateVal(els.pEnd), deliveryDue: dateVal(els.pDelivery),
+      closureDate: els.pClosureDate.disabled ? null : dateVal(els.pClosureDate),
+      finalPaymentConfirmed: !els.pClosureConfirmed.disabled && els.pClosureConfirmed.checked,
       contractUrl: els.pUrl.value.trim(), notes: els.pNotes.value.trim(),
       linkedRiskId: risk ? risk.id : '', linkedRiskTitle: risk ? risk.title : '',
       linkedItemId: item ? item.id : '', linkedItemTitle: item ? item.title : ''
     };
   }
   function clearPurchaseForm() {
-    ['pName', 'pVendorText', 'pValue', 'pInvoiced', 'pPaid', 'pNeedBy', 'pStart', 'pEnd', 'pDelivery', 'pUrl', 'pNotes']
+    ['pName', 'pVendorText', 'pValue', 'pInvoiced', 'pPaid', 'pNeedBy', 'pStart', 'pEnd', 'pDelivery', 'pClosureDate', 'pUrl', 'pNotes']
       .forEach(function (k) { if (els[k]) els[k].value = ''; });
     ['pVendor', 'pType', 'pStatus', 'pRisk', 'pItem'].forEach(function (k) { if (els[k]) els[k].value = ''; });
+    if (els.pClosureConfirmed) els.pClosureConfirmed.checked = false;
     moneyInputs().forEach(function (pair) { if (pair[1]) pair[1].dataset.stash = ''; });
     applyMoneyRules();
+    applyClosureRules();
   }
   function resetPurchaseEdit() {
     ctx.editingPurchase = null;
@@ -457,6 +493,9 @@
     // Values are set first, then locked/cleared to match the record's status.
     moneyInputs().forEach(function (pair) { if (pair[1]) { pair[1].disabled = false; pair[1].dataset.stash = ''; } });
     applyMoneyRules();
+    if (els.pClosureDate) { els.pClosureDate.disabled = false; els.pClosureDate.value = toDateInput(r.closureDate); }
+    if (els.pClosureConfirmed) { els.pClosureConfirmed.disabled = false; els.pClosureConfirmed.checked = !!r.finalPaymentConfirmed; }
+    applyClosureRules();
     els.pAdd.textContent = 'Update';
     els.pCancel.style.display = '';
   }
@@ -658,7 +697,7 @@
     document.getElementById('vendorsPageNext').addEventListener('click', function () { ctx.vPage++; paintVendors(); });
 
     [els.pRisk, els.pItem].forEach(function (s) { if (s) s.addEventListener('mousedown', loadLinkables); });
-    els.pStatus.addEventListener('change', applyMoneyRules);
+    els.pStatus.addEventListener('change', function () { applyMoneyRules(); applyClosureRules(); });
     els.pAdd.addEventListener('click', savePurchase);
     els.pCancel.addEventListener('click', resetPurchaseEdit);
     els.vAdd.addEventListener('click', saveVendor);
@@ -688,9 +727,10 @@
   function detectContext() {
     card = document.getElementById(CARD_ID);
     var map = {
-      pName: '#pc-item', pVendor: '#pc-vendor', pVendorText: '#pc-vendor-text', pType: '#pc-type', pStatus: '#pc-status',
+      pName: '#pc-item', pVendor: '#pc-vendor', pVendorText: '#pc-vendor-text', pType: '#pc-type', pStatus: '#pc-purchase-status',
       pValue: '#pc-value', pInvoiced: '#pc-invoiced', pPaid: '#pc-paid',
       pNeedBy: '#pc-needby', pStart: '#pc-start', pEnd: '#pc-end', pDelivery: '#pc-delivery',
+      pClosureDate: '#pc-closuredate', pClosureConfirmed: '#pc-closure-confirmed',
       pRisk: '#pc-risk', pItem: '#pc-task', pUrl: '#pc-url', pNotes: '#pc-notes', pAdd: '#pc-add', pCancel: '#pc-cancel-edit',
       pfStatus: '#purchasesFilterStatus', pfType: '#purchasesFilterType',
       vName: '#vd-name', vCategory: '#vd-category', vContact: '#vd-contact', vEmail: '#vd-email', vPhone: '#vd-phone',
@@ -713,6 +753,7 @@
     populateStaticSelects();
     bindEvents();
     applyMoneyRules();
+    applyClosureRules();
     showTab('purchases');
     loadLinkables();
     listen();

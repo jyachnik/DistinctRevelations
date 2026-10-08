@@ -226,13 +226,17 @@ function extractJson(text) {
 // documents and live card data. All the logic (and its security tests) lives in
 // ask-handler.js; this is only the Cloud Functions wrapper.
 const { handleAsk, AskError } = require('./ask-handler');
-const { EXEC_MODEL, buildExecPrompt, sanitizeExecutive, sanitizeCardTextExec } = require('./exec-style');
+const { EXEC_MODEL, buildExecPromptParts, sanitizeExecutive, sanitizeCardTextExec } = require('./exec-style');
 
 // The C-level wording of an analysis: a separate call to a stronger model, isolated so that a failure
 // here never loses the technical analysis (the result just has no executive layer until the next run).
 async function generateExecutive(apiKey, cardFactsStr, records, analysis) {
   const none = { executive: null, cardTextExec: {} };
   try {
+    // instructions (fixed wording) and data (this project's facts/records) are sent as separate
+    // content blocks so only `instructions` carries a cache_control breakpoint — it's identical on
+    // every analysis run, while `data` never is.
+    const { instructions, data: execData } = buildExecPromptParts({ cardFactsStr, recordsStr: JSON.stringify(records), analysis });
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
@@ -240,7 +244,13 @@ async function generateExecutive(apiKey, cardFactsStr, records, analysis) {
         model: EXEC_MODEL, max_tokens: 8000,
         // no extended thinking: on a full project's records it spent the whole token budget and returned no text
         thinking: { type: 'disabled' },
-        messages: [{ role: 'user', content: buildExecPrompt({ cardFactsStr, recordsStr: JSON.stringify(records), analysis }) }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: instructions, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: execData }
+          ]
+        }]
       })
     });
     if (!resp.ok) { logger.error('runProjectAnalysis: executive layer API error', { status: resp.status, errText: (await resp.text()).slice(0, 300) }); return none; }
@@ -350,7 +360,12 @@ exports.runProjectAnalysis = onCall({ timeoutSeconds: 480 }, async (request) => 
   const db = getFirestore();
   const { records, previousAnalysis } = await loadProjectRecords(db, bizKey, projKey);
 
-  const prompt =
+  // Split into a fixed `instructions` block (identical on every run, for every project) and a
+  // `dataSuffix` block (this project's actual facts/records) so only `instructions` gets a
+  // cache_control breakpoint — it's by far the larger, reusable part of the prompt, and a project
+  // Owner re-running this analysis (or running it across several projects back to back) hits the
+  // cache on every call after the first.
+  const instructions =
     'You are an experienced project management business analyst reviewing a client project ' +
     'dashboard. Below are up to three things: (1) CARD_FACTS — sentences already shown on the ' +
     'dashboard, computed deterministically and already correct; treat every number/name/date in ' +
@@ -449,8 +464,10 @@ exports.runProjectAnalysis = onCall({ timeoutSeconds: 480 }, async (request) => 
     'edited or because they\'re furthest behind their own due date relative to their % complete, and ' +
     'say specifically what to look for (what changed, current % complete) so the reader is pointed at ' +
     'exactly where to click rather than told to "review the schedule."\n\n' +
-    'Return ONLY the JSON object, no preamble or code fences.\n\n' +
-    'CARD_FACTS:\n' + cardFactsStr + '\n\n' +
+    'Return ONLY the JSON object, no preamble or code fences.';
+
+  const dataSuffix =
+    '\n\nCARD_FACTS:\n' + cardFactsStr + '\n\n' +
     'PREVIOUS_ANALYSIS:\n' + JSON.stringify(previousAnalysis) + '\n\n' +
     'RAW_RECORDS:\n' + JSON.stringify(records);
 
@@ -473,7 +490,13 @@ exports.runProjectAnalysis = onCall({ timeoutSeconds: 480 }, async (request) => 
         // fail to parse even though the content generated so far was
         // good. This is a genuinely large response, not a runaway one.
         max_tokens: 16000,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: instructions, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: dataSuffix }
+          ]
+        }]
       })
     });
 

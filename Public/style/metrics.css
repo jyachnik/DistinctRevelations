@@ -261,14 +261,15 @@
    of a sidebar column) — the Report Index card was moved to be a direct
    child of <body> instead (see dashboard.html, right after <header>),
    structurally independent of this column entirely. A left margin
-   reserves the fixed card's own 150px width so this column's content
-   doesn't render underneath it. Meetings/Events + Activity Log,
+   reserves the fixed card's own 150px width, PLUS a 20px gap so content
+   doesn't render flush against the sidebar's edge, so this column's
+   content doesn't render underneath it. Meetings/Events + Activity Log,
    Assumptions/Risk/Constraints, and Q&A/File Manager all live AFTER this
    column closes (still inside <main>, but as separate sibling rows, not
    inside it) — they need the exact same reservation, or they'd render
-   flush at x:0 while everything above them starts at x:150px. */
+   flush at x:0 while everything above them starts at x:170px. */
 .charts-and-gantt-column {
-  margin-left: 150px;
+  margin-left: 170px;
 }
 /* #riskAssumptionsRow/#filesQnaRow (.dashboard-stack) carry an explicit
    width:100% from their base class (dashboard1.css) — adding margin-left
@@ -287,9 +288,16 @@
 #milestoneSection,
 #activityPanelCard,
 #riskAssumptionsRow,
-#filesQnaRow {
-  margin-left: 150px;
-  width: calc(100% - 150px);
+#filesQnaRow,
+/* Benefits Realization/Glossary/Needs Attention were each moved to live
+   here (see their own HTML comments: "Moved here per explicit request"),
+   outside .charts-and-gantt-column, but never got this same reservation —
+   left flush at x:0, they rendered underneath/into the fixed sidebar. */
+#benefitsRealizationCard,
+#glossaryCard,
+#needsAttentionCard {
+  margin-left: 170px;
+  width: calc(100% - 170px);
 }
 
 /* Report Index — links to every report/chart card, hover = short
@@ -2245,6 +2253,14 @@ button.rc-group-toggle:hover { background: #e3e8ee; }
 .bc-form .cc-line-break { flex-basis: 100%; height: 0; }
 .bc-form input.br-num { width: 110px; }
 
+/* Agile log cards — Release Plan, Daily Stand-up, Sprint Review, Sprint
+   Retrospective, Release Notes (simple-log-cards.js / agile-log-cards.js) */
+.rp-form .cc-line-break,
+.ds-form .cc-line-break,
+.sr-form .cc-line-break,
+.rt-form .cc-line-break,
+.rn-form .cc-line-break { flex-basis: 100%; height: 0; }
+
 /* Earned Schedule */
 .es-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; }
 .es-tile { background: #fafafa; border: 1px solid var(--metric-gridline, #ddd); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
@@ -2507,11 +2523,11 @@ body.dr-viewer-open .ask-shell.show-side .ask-side { display: flex; position: ab
 }
 
 /* "Titles & Subtitles" view — category-grouped 4-column tile grid. Same
-   150px left reservation as every other <main> content section, so it
+   170px left reservation as every other <main> content section, so it
    doesn't render underneath the fixed sidebar. */
 #titlesSubtitlesView {
-  margin-left: 150px;
-  width: calc(100% - 150px);
+  margin-left: 170px;
+  width: calc(100% - 170px);
   box-sizing: border-box;
   /* .dashboard-summary-row is now ALWAYS position:fixed and visible (see
      dashboard.html — it was moved out of <main> so it stays up in Tiled
